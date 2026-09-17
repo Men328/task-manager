@@ -1,0 +1,172 @@
+{
+  "app": {
+    "title": "Task Manager",
+    "description": "Personal Task Manager — Kanban board"
+  },
+  "common": {
+    "soon": "Not in the base yet",
+    "cancel": "Cancel",
+    "remove": "Delete",
+    "retry": "Retry"
+  },
+  "nav": {
+    "mainMenu": "Menu",
+    "myTask": "My Tasks",
+    "statusesLifecycle": "Statuses & Lifecycle"
+  },
+  "sidebar": {
+    "brand": "Task Manager",
+    "spaceTitle": "My Tasks",
+    "spaceMeta": "{{tasks}} tasks · {{statuses}} statuses"
+  },
+  "topbar": {
+    "openMenu": "Open menu",
+    "searchPlaceholder": "Search keyword",
+    "noProfile": "No profile",
+    "identityOffline": "Identity service offline",
+    "notifications": "Notifications",
+    "language": "Language",
+    "theme": "Appearance"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "auto": "System"
+  },
+  "boardHeader": {
+    "title": "My Tasks",
+    "searchPlaceholder": "Search",
+    "filter": "Filter",
+    "filterCount": "Filter ({{n}})",
+    "priority": "Priority",
+    "clearFilter": "Clear filters",
+    "refresh": "Reload data",
+    "refreshAria": "Reload",
+    "newTask": "New Task",
+    "viewKanban": "Kanban",
+    "viewTable": "Table",
+    "viewList": "List",
+    "viewTimeline": "Timeline"
+  },
+  "kanban": {
+    "columnOptions": "Options for {{name}}",
+    "addToColumn": "Add task to this column",
+    "viewLifecycle": "View lifecycle",
+    "addTask": "Add task",
+    "addTaskTo": "Add task to {{name}}",
+    "dropHere": "Drop to move here",
+    "empty": "No tasks yet",
+    "addTaskCta": "Add Task"
+  },
+  "taskCard": {
+    "progress": "Progress"
+  },
+  "taskTable": {
+    "colTask": "Task",
+    "colStatus": "Status",
+    "colPriority": "Priority",
+    "colProgress": "Progress",
+    "colDue": "Due",
+    "empty": "No tasks yet.",
+    "inParent": "in {{title}}",
+    "remove": "Delete task",
+    "removeAria": "Delete {{title}}",
+    "confirmTitle": "Delete task?",
+    "confirmPrefix": "Task",
+    "confirmSuffix": "will be deleted. Tasks that have subtasks cannot be deleted.",
+    "deleted": "Task deleted",
+    "deleteFailed": "Could not delete task"
+  },
+  "states": {
+    "apiTitle": "Cannot reach the API",
+    "apiHint": "The backend is not running. Start it and try again:",
+    "loading": "Loading data..."
+  },
+  "taskForm": {
+    "title": "New Task",
+    "titleLabel": "Title",
+    "titlePlaceholder": "What needs to be done?",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Short description...",
+    "statusLabel": "Status",
+    "statusPlaceholder": "Default status",
+    "noStatus": "No status yet",
+    "priorityLabel": "Priority",
+    "parentLabel": "Parent task",
+    "parentPlaceholder": "None (root task)",
+    "noTasks": "No tasks yet",
+    "dueLabel": "Due date",
+    "submit": "Create task",
+    "created": "Task created",
+    "createFailed": "Could not create task"
+  },
+  "boardPage": {
+    "noProfileTitle": "No profile yet",
+    "noProfileDesc": "The identity service has no profile. Create one to get started.",
+    "createProfile": "Create profile",
+    "noStatusTitle": "No status yet",
+    "noStatusDesc": "Board columns come from the profile statuses. Create the default 4-status set with lifecycle rules to start.",
+    "seedStatuses": "Create default statuses",
+    "noMatch": "No tasks match the current filter.",
+    "listView": "List view",
+    "timelineView": "Timeline view",
+    "soonDesc": "Not in the base yet. The design has the tab; rendering will be added later.",
+    "defaultProfileName": "My Profile",
+    "moveFailedTitle": "Could not change status",
+    "seedDoneTitle": "Default statuses created",
+    "seedDoneMessage": "To Do → On Progress → In Review → Completed",
+    "seedFailedTitle": "Could not create status",
+    "createProfileFailedTitle": "Could not create profile"
+  },
+  "statusesPage": {
+    "breadcrumb": "Dashboard",
+    "title": "Statuses & Lifecycle",
+    "subtitle": "Statuses belong to each profile; transitions are an allowlist.",
+    "seedStatuses": "Create default statuses",
+    "emptyTitle": "No status yet",
+    "emptyDesc": "Create 4 statuses with rules so the board has columns.",
+    "statusesPanel": "Statuses ({{n}})",
+    "statusesPanelDesc": "Board columns, sorted by position",
+    "colStatus": "Status",
+    "colSlug": "Slug",
+    "colCategory": "Category",
+    "colDefault": "Default",
+    "colTerminal": "Terminal",
+    "colTasks": "Tasks",
+    "badgeDefault": "default",
+    "badgeTerminal": "terminal",
+    "rulesPanel": "Lifecycle rules ({{n}})",
+    "rulesPanelDesc": "An active rule allows the transition. No rule means blocked.",
+    "rulesEmpty": "No rules yet — every status change is blocked (including drag & drop on the board).",
+    "colFrom": "From",
+    "colTo": "To",
+    "colActive": "Active",
+    "colRequiresNote": "Requires note",
+    "badgeActive": "active",
+    "badgeOff": "off",
+    "yes": "yes",
+    "seedDoneTitle": "Default statuses created",
+    "seedDoneMessage": "To Do → On Progress → In Review → Completed",
+    "seedFailedTitle": "Could not create status"
+  },
+  "priority": {
+    "unspecified": "No priority",
+    "low": "Low priority",
+    "medium": "Medium priority",
+    "high": "High priority",
+    "urgent": "Urgent priority"
+  },
+  "category": {
+    "unspecified": "Unspecified",
+    "todo": "To Do",
+    "inProgress": "In Progress",
+    "done": "Done",
+    "cancelled": "Cancelled"
+  },
+  "errors": {
+    "noProfile": "No profile selected",
+    "loadProfiles": "Could not load profiles",
+    "loadBoard": "Could not load board data",
+    "loadStatuses": "Could not load status data"
+  }
+}

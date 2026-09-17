@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package identity.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/identity/v1;identityv1";
+
+// Profile là hồ sơ của một identity.
+// Mapping DB: identity.PROFILES
+message Profile {
+  string id = 1;
+  string email = 2;
+  string display_name = 3;
+  string avatar_url = 4;
+  string timezone = 5;
+  string locale = 6;
+  bool is_active = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message CreateProfileRequest {
+  string email = 1;
+  string display_name = 2;
+  string avatar_url = 3;
+  string timezone = 4;
+  string locale = 5;
+}
+
+message CreateProfileResponse {
+  Profile profile = 1;
+}
+
+message GetProfileRequest {
+  string id = 1;
+}
+
+message GetProfileResponse {
+  Profile profile = 1;
+}
+
+message ListProfilesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListProfilesResponse {
+  repeated Profile profiles = 1;
+  string next_page_token = 2;
+}
+
+// Chỉ update các field được set (proto3 optional = field presence).
+message UpdateProfileRequest {
+  string id = 1;
+  optional string display_name = 2;
+  optional string avatar_url = 3;
+  optional string timezone = 4;
+  optional string locale = 5;
+  optional bool is_active = 6;
+}
+
+message UpdateProfileResponse {
+  Profile profile = 1;
+}
+
+message DeleteProfileRequest {
+  string id = 1;
+}
+
+message DeleteProfileResponse {}
+
+service ProfileService {
+  rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse) {
+    option (google.api.http) = {
+      post: "/v1/profiles"
+      body: "*"
+    };
+  }
+
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse) {
+    option (google.api.http) = {get: "/v1/profiles/{id}"};
+  }
+
+  rpc ListProfiles(ListProfilesRequest) returns (ListProfilesResponse) {
+    option (google.api.http) = {get: "/v1/profiles"};
+  }
+
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {
+    option (google.api.http) = {
+      patch: "/v1/profiles/{id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteProfile(DeleteProfileRequest) returns (DeleteProfileResponse) {
+    option (google.api.http) = {delete: "/v1/profiles/{id}"};
+  }
+}

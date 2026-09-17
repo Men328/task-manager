@@ -1,0 +1,33 @@
+version: v2
+
+# clean: xoá output dir trước khi generate
+clean: true
+
+plugins:
+  # message + enum
+  - local: protoc-gen-go
+    out: common/gen/go
+    opt:
+      - paths=source_relative
+
+  # gRPC service stub
+  - local: protoc-gen-go-grpc
+    out: common/gen/go
+    opt:
+      - paths=source_relative
+
+  # HTTP/JSON gateway (grpc-http) từ google.api.http annotation
+  - local: protoc-gen-grpc-gateway
+    out: common/gen/go
+    opt:
+      - paths=source_relative
+
+  # OpenAPI/Swagger cho frontend
+  # strategy: all -> gọi plugin 1 lần với toàn bộ file, nếu không sẽ bị ghi đè
+  # task_manager.swagger.json cho từng directory (mất service của directory khác).
+  - local: protoc-gen-openapiv2
+    out: common/gen/openapi
+    strategy: all
+    opt:
+      - allow_merge=true
+      - merge_file_name=task_manager

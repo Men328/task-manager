@@ -1,0 +1,17 @@
+version: v2
+
+# Toàn bộ file interface (.proto) tập trung ở đây
+modules:
+  - path: common/proto
+
+# Dependency lấy từ Buf Schema Registry (google/api/annotations.proto cho grpc-gateway)
+deps:
+  - buf.build/googleapis/googleapis
+
+lint:
+  use:
+    - STANDARD
+
+breaking:
+  use:
+    - FILE

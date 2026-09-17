@@ -1,0 +1,172 @@
+{
+  "app": {
+    "title": "Quản lý công việc",
+    "description": "Trình quản lý công việc cá nhân — bảng Kanban"
+  },
+  "common": {
+    "soon": "Chưa có trong base",
+    "cancel": "Huỷ",
+    "remove": "Xoá",
+    "retry": "Thử lại"
+  },
+  "nav": {
+    "mainMenu": "Menu",
+    "myTask": "Công việc của tôi",
+    "statusesLifecycle": "Trạng thái & vòng đời"
+  },
+  "sidebar": {
+    "brand": "Quản lý công việc",
+    "spaceTitle": "Công việc của tôi",
+    "spaceMeta": "{{tasks}} công việc · {{statuses}} trạng thái"
+  },
+  "topbar": {
+    "openMenu": "Mở menu",
+    "searchPlaceholder": "Tìm kiếm từ khoá",
+    "noProfile": "Chưa có hồ sơ",
+    "identityOffline": "Dịch vụ identity ngoại tuyến",
+    "notifications": "Thông báo",
+    "language": "Ngôn ngữ",
+    "theme": "Giao diện"
+  },
+  "theme": {
+    "light": "Sáng",
+    "dark": "Tối",
+    "auto": "Theo hệ thống"
+  },
+  "boardHeader": {
+    "title": "Công việc của tôi",
+    "searchPlaceholder": "Tìm kiếm",
+    "filter": "Lọc",
+    "filterCount": "Lọc ({{n}})",
+    "priority": "Độ ưu tiên",
+    "clearFilter": "Xoá bộ lọc",
+    "refresh": "Tải lại dữ liệu",
+    "refreshAria": "Tải lại",
+    "newTask": "Tạo công việc",
+    "viewKanban": "Kanban",
+    "viewTable": "Bảng",
+    "viewList": "Danh sách",
+    "viewTimeline": "Dòng thời gian"
+  },
+  "kanban": {
+    "columnOptions": "Tuỳ chọn {{name}}",
+    "addToColumn": "Thêm công việc vào cột này",
+    "viewLifecycle": "Xem vòng đời",
+    "addTask": "Thêm công việc",
+    "addTaskTo": "Thêm công việc vào {{name}}",
+    "dropHere": "Thả để chuyển sang đây",
+    "empty": "Chưa có công việc",
+    "addTaskCta": "Thêm công việc"
+  },
+  "taskCard": {
+    "progress": "Tiến độ"
+  },
+  "taskTable": {
+    "colTask": "Công việc",
+    "colStatus": "Trạng thái",
+    "colPriority": "Độ ưu tiên",
+    "colProgress": "Tiến độ",
+    "colDue": "Hạn",
+    "empty": "Chưa có công việc nào.",
+    "inParent": "trong {{title}}",
+    "remove": "Xoá công việc",
+    "removeAria": "Xoá {{title}}",
+    "confirmTitle": "Xoá công việc?",
+    "confirmPrefix": "Công việc",
+    "confirmSuffix": "sẽ bị xoá. Công việc đang có công việc con sẽ không xoá được.",
+    "deleted": "Đã xoá công việc",
+    "deleteFailed": "Không xoá được công việc"
+  },
+  "states": {
+    "apiTitle": "Không gọi được API",
+    "apiHint": "Backend chưa chạy. Khởi động rồi thử lại:",
+    "loading": "Đang tải dữ liệu..."
+  },
+  "taskForm": {
+    "title": "Tạo công việc",
+    "titleLabel": "Tiêu đề",
+    "titlePlaceholder": "Cần làm gì?",
+    "descriptionLabel": "Mô tả",
+    "descriptionPlaceholder": "Mô tả ngắn...",
+    "statusLabel": "Trạng thái",
+    "statusPlaceholder": "Trạng thái mặc định",
+    "noStatus": "Chưa có trạng thái",
+    "priorityLabel": "Độ ưu tiên",
+    "parentLabel": "Công việc cha",
+    "parentPlaceholder": "Không có (công việc gốc)",
+    "noTasks": "Chưa có công việc nào",
+    "dueLabel": "Hạn hoàn thành",
+    "submit": "Tạo công việc",
+    "created": "Đã tạo công việc",
+    "createFailed": "Không tạo được công việc"
+  },
+  "boardPage": {
+    "noProfileTitle": "Chưa có hồ sơ",
+    "noProfileDesc": "Dịch vụ identity chưa có hồ sơ nào. Tạo một hồ sơ để bắt đầu.",
+    "createProfile": "Tạo hồ sơ",
+    "noStatusTitle": "Chưa có trạng thái nào",
+    "noStatusDesc": "Cột trên board lấy từ trạng thái của hồ sơ. Tạo nhanh bộ 4 trạng thái kèm quy tắc vòng đời để bắt đầu.",
+    "seedStatuses": "Tạo bộ trạng thái mặc định",
+    "noMatch": "Không có công việc nào khớp bộ lọc hiện tại.",
+    "listView": "Dạng danh sách",
+    "timelineView": "Dạng dòng thời gian",
+    "soonDesc": "Chưa có trong base. Thiết kế đã có tab, phần hiển thị sẽ bổ sung sau.",
+    "defaultProfileName": "Hồ sơ của tôi",
+    "moveFailedTitle": "Không chuyển được trạng thái",
+    "seedDoneTitle": "Đã tạo bộ trạng thái mặc định",
+    "seedDoneMessage": "To Do → On Progress → In Review → Completed",
+    "seedFailedTitle": "Không tạo được trạng thái",
+    "createProfileFailedTitle": "Không tạo được hồ sơ"
+  },
+  "statusesPage": {
+    "breadcrumb": "Tổng quan",
+    "title": "Trạng thái & vòng đời",
+    "subtitle": "Trạng thái thuộc từng hồ sơ; quy tắc chuyển là danh sách được phép.",
+    "seedStatuses": "Tạo bộ trạng thái mặc định",
+    "emptyTitle": "Chưa có trạng thái nào",
+    "emptyDesc": "Tạo bộ 4 trạng thái kèm quy tắc để board có cột.",
+    "statusesPanel": "Trạng thái ({{n}})",
+    "statusesPanelDesc": "Cột trên board, sắp xếp theo vị trí",
+    "colStatus": "Trạng thái",
+    "colSlug": "Slug",
+    "colCategory": "Nhóm",
+    "colDefault": "Mặc định",
+    "colTerminal": "Kết thúc",
+    "colTasks": "Công việc",
+    "badgeDefault": "mặc định",
+    "badgeTerminal": "kết thúc",
+    "rulesPanel": "Quy tắc vòng đời ({{n}})",
+    "rulesPanelDesc": "Quy tắc đang bật thì được phép chuyển. Không có quy tắc nghĩa là bị chặn.",
+    "rulesEmpty": "Chưa có quy tắc nào — mọi thao tác đổi trạng thái đều bị chặn (kể cả kéo thả trên board).",
+    "colFrom": "Từ",
+    "colTo": "Đến",
+    "colActive": "Đang bật",
+    "colRequiresNote": "Cần ghi chú",
+    "badgeActive": "bật",
+    "badgeOff": "tắt",
+    "yes": "có",
+    "seedDoneTitle": "Đã tạo bộ trạng thái mặc định",
+    "seedDoneMessage": "To Do → On Progress → In Review → Completed",
+    "seedFailedTitle": "Không tạo được trạng thái"
+  },
+  "priority": {
+    "unspecified": "Không ưu tiên",
+    "low": "Ưu tiên thấp",
+    "medium": "Ưu tiên trung bình",
+    "high": "Ưu tiên cao",
+    "urgent": "Ưu tiên khẩn cấp"
+  },
+  "category": {
+    "unspecified": "Không xác định",
+    "todo": "Cần làm",
+    "inProgress": "Đang làm",
+    "done": "Hoàn thành",
+    "cancelled": "Đã huỷ"
+  },
+  "errors": {
+    "noProfile": "Chưa chọn hồ sơ",
+    "loadProfiles": "Không tải được hồ sơ",
+    "loadBoard": "Không tải được dữ liệu board",
+    "loadStatuses": "Không tải được dữ liệu trạng thái"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "exclude": ["common/gen", "frontend", "node_modules"],
+  "noComments": ["service", "tools"],
+  "flatLayers": [
+    "internal/model",
+    "internal/service",
+    "internal/repository",
+    "internal/dependency",
+    "internal/handler"
+  ],
+  "requiredFiles": [
+    {
+      "path": "internal/service/interfaces.go",
+      "mustDeclareInterface": true
+    }
+  ],
+  "importRules": [
+    {
+      "layer": "internal/model",
+      "forbid": ["taskmanager/"],
+      "reason": "model là core: chỉ stdlib, không import tầng nào"
+    },
+    {
+      "layer": "internal/service",
+      "forbid": ["/internal/repository", "/internal/dependency"],
+      "reason": "service không import repository/dependency; giao tiếp qua interface contract"
+    },
+    {
+      "layer": "internal/repository",
+      "forbid": ["/internal/service", "/internal/dependency"],
+      "reason": "adapter repository không import service/dependency (structural typing)"
+    },
+    {
+      "layer": "internal/dependency",
+      "forbid": ["/internal/repository", "/internal/service"],
+      "reason": "dependency chỉ phụ thuộc model"
+    },
+    {
+      "layer": "internal/handler",
+      "forbid": ["/internal/repository"],
+      "reason": "handler giao tiếp qua service contract, không chạm repository"
+    }
+  ],
+  "cmd": {
+    "requiredDirs": ["cmd/grpc", "cmd/http"],
+    "requireImports": ["go.uber.org/fx"],
+    "forbidImports": ["os/signal", "syscall"],
+    "forbidPatterns": ["signal.NotifyContext", "SIGTERM", "SIGINT"]
+  }
+}

@@ -1,0 +1,25 @@
+# Go
+/bin/
+*.exe
+*.test
+*.out
+coverage.*
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Code gen: mặc định COMMIT để service build được ngay.
+# Bỏ comment dòng dưới nếu muốn generate trong CI thay vì commit.
+# common/gen/

@@ -1,0 +1,12 @@
+# Giữ build context nhẹ: không copy node_modules/dist/.git vào Docker.
+**/node_modules
+**/dist
+**/.vite
+.git
+.gitignore
+**/*.log
+**/.env
+**/.env.local
+docs
+design
+deployments

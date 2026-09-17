@@ -1,0 +1,36 @@
+.root {
+  min-height: 0;
+}
+
+.headerBar {
+  background: var(--tm-surface);
+  border-bottom: 1px solid var(--tm-border);
+}
+
+.scrollArea {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.panel {
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-border);
+  border-radius: var(--tm-radius-panel);
+  overflow: hidden;
+}
+
+.panelHeader {
+  border-bottom: 1px solid var(--tm-border);
+  background: var(--tm-table-head-bg);
+}
+
+.headRow {
+  background: var(--tm-surface-alt);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}

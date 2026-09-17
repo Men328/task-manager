@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package task.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/task/v1;taskv1";
+
+// Nhóm ngữ nghĩa của status, dùng cho logic app.
+// Mapping DB: enum status_category
+enum TaskStatusCategory {
+  TASK_STATUS_CATEGORY_UNSPECIFIED = 0;
+  TASK_STATUS_CATEGORY_TODO = 1;
+  TASK_STATUS_CATEGORY_IN_PROGRESS = 2;
+  TASK_STATUS_CATEGORY_DONE = 3;
+  TASK_STATUS_CATEGORY_CANCELLED = 4;
+}
+
+// Status do từng profile tự định nghĩa (1-n).
+// Mapping DB: task.TASK_STATUSES
+message TaskStatus {
+  string id = 1;
+  string profile_id = 2;
+  string name = 3;
+  string slug = 4;
+  string description = 5;
+  string color = 6;
+  TaskStatusCategory category = 7;
+  bool is_default = 8;
+  bool is_terminal = 9;
+  int32 position = 10;
+  bool is_archived = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+message CreateTaskStatusRequest {
+  string profile_id = 1;
+  string name = 2;
+  string slug = 3;
+  string description = 4;
+  string color = 5;
+  TaskStatusCategory category = 6;
+  bool is_default = 7;
+  bool is_terminal = 8;
+  int32 position = 9;
+}
+
+message CreateTaskStatusResponse {
+  TaskStatus status = 1;
+}
+
+message GetTaskStatusRequest {
+  string id = 1;
+}
+
+message GetTaskStatusResponse {
+  TaskStatus status = 1;
+}
+
+message ListTaskStatusesRequest {
+  string profile_id = 1;
+  bool include_archived = 2;
+}
+
+message ListTaskStatusesResponse {
+  repeated TaskStatus statuses = 1;
+}
+
+message UpdateTaskStatusRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string color = 4;
+  optional TaskStatusCategory category = 5;
+  optional bool is_default = 6;
+  optional bool is_terminal = 7;
+  optional int32 position = 8;
+  optional bool is_archived = 9;
+}
+
+message UpdateTaskStatusResponse {
+  TaskStatus status = 1;
+}
+
+message DeleteTaskStatusRequest {
+  string id = 1;
+}
+
+message DeleteTaskStatusResponse {}
+
+service TaskStatusService {
+  rpc CreateTaskStatus(CreateTaskStatusRequest) returns (CreateTaskStatusResponse) {
+    option (google.api.http) = {
+      post: "/v1/statuses"
+      body: "*"
+    };
+  }
+
+  rpc GetTaskStatus(GetTaskStatusRequest) returns (GetTaskStatusResponse) {
+    option (google.api.http) = {get: "/v1/statuses/{id}"};
+  }
+
+  rpc ListTaskStatuses(ListTaskStatusesRequest) returns (ListTaskStatusesResponse) {
+    option (google.api.http) = {get: "/v1/statuses"};
+  }
+
+  rpc UpdateTaskStatus(UpdateTaskStatusRequest) returns (UpdateTaskStatusResponse) {
+    option (google.api.http) = {
+      patch: "/v1/statuses/{id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteTaskStatus(DeleteTaskStatusRequest) returns (DeleteTaskStatusResponse) {
+    option (google.api.http) = {delete: "/v1/statuses/{id}"};
+  }
+}

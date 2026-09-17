@@ -1,0 +1,35 @@
+.card {
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-border);
+  border-radius: var(--tm-radius-card);
+  cursor: grab;
+  box-shadow: var(--tm-shadow-card);
+  transition:
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.card:hover {
+  border-color: var(--tm-border-strong);
+  box-shadow: var(--tm-shadow-card-hover);
+}
+
+.card[data-dragging='true'] {
+  opacity: 0.45;
+  transform: rotate(1.5deg);
+}
+
+.parentDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

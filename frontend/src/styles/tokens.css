@@ -1,0 +1,132 @@
+/**
+ * Design tokens cho 2 chế độ sáng/tối.
+ *
+ * - `:root` là mặc định (light) khi `<html>` chưa có `data-mantine-color-scheme`.
+ * - Mantine gắn `data-mantine-color-scheme="light" | "dark"` lên `<html>`,
+ *   nên chỉ cần khai báo biến theo attribute đó là toàn bộ app đổi màu.
+ * - Component TSX dùng các biến này qua `tokens` trong `src/theme.ts`
+ *   (`tokens.text` → `var(--tm-text)`), CSS module dùng trực tiếp `var(--tm-*)`.
+ */
+
+:root,
+:root[data-mantine-color-scheme='light'] {
+  color-scheme: light;
+
+  /* nền */
+  --tm-app-bg: #f6f6fb;
+  --tm-surface: #ffffff;
+  --tm-surface-alt: #fcfcfe;
+  --tm-column-bg: #fbfbfd;
+  --tm-input-bg: #f7f8fc;
+  --tm-table-head-bg: #fbfbfd;
+  --tm-chip-bg: #f1f2f6;
+  --tm-hover-bg: #f5f6fb;
+
+  /* viền */
+  --tm-border: #eceef4;
+  --tm-border-strong: #dfe2ec;
+
+  /* chữ */
+  --tm-text: #16192c;
+  --tm-text-muted: #8a90a2;
+  --tm-text-faint: #a7adbd;
+  --tm-nav-text: #6b7280;
+  --tm-accent-tag: #c026d3;
+
+  /* thương hiệu */
+  --tm-brand: #4353e8;
+  --tm-brand-light: #6d7aff;
+  --tm-brand-gradient-from: #4353e8;
+  --tm-brand-gradient-to: #7c3aed;
+  --tm-nav-active-bg: #f1f2ff;
+  --tm-drop-bg: #f4f5ff;
+
+  /* trạng thái */
+  --tm-danger: #e5484d;
+  --tm-progress-track: #eceef4;
+  --tm-progress-fill: #16192c;
+
+  /* priority badge */
+  --tm-priority-unspecified-bg: #f1f2f6;
+  --tm-priority-unspecified-fg: #8a90a2;
+  --tm-priority-low-bg: #e6f8f0;
+  --tm-priority-low-fg: #0ca678;
+  --tm-priority-medium-bg: #fff4e2;
+  --tm-priority-medium-fg: #e8890c;
+  --tm-priority-high-bg: #fff0e6;
+  --tm-priority-high-fg: #f76707;
+  --tm-priority-urgent-bg: #fdecee;
+  --tm-priority-urgent-fg: #e5484d;
+
+  /* scrollbar */
+  --tm-scrollbar: #d7dae5;
+  --tm-scrollbar-hover: #c2c7d6;
+
+  /* đổ bóng */
+  --tm-shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --tm-shadow-card-hover: 0 6px 18px rgba(16, 24, 40, 0.08);
+
+  /* layout */
+  --tm-radius-card: 14px;
+  --tm-radius-panel: 16px;
+  --tm-sidebar-width: 238px;
+  --tm-header-height: 58px;
+}
+
+:root[data-mantine-color-scheme='dark'] {
+  color-scheme: dark;
+
+  /* nền */
+  --tm-app-bg: #0f1117;
+  --tm-surface: #171a24;
+  --tm-surface-alt: #1b1f2b;
+  --tm-column-bg: #14171f;
+  --tm-input-bg: #1b1f2b;
+  --tm-table-head-bg: #14171f;
+  --tm-chip-bg: #262b39;
+  --tm-hover-bg: #1e2330;
+
+  /* viền */
+  --tm-border: #262b39;
+  --tm-border-strong: #333a4d;
+
+  /* chữ */
+  --tm-text: #e7e9f2;
+  --tm-text-muted: #9aa1b5;
+  --tm-text-faint: #6e7688;
+  --tm-nav-text: #aab1c4;
+  --tm-accent-tag: #e879f9;
+
+  /* thương hiệu */
+  --tm-brand: #8b93ff;
+  --tm-brand-light: #6d7aff;
+  --tm-brand-gradient-from: #5b6bff;
+  --tm-brand-gradient-to: #a855f7;
+  --tm-nav-active-bg: #232a4d;
+  --tm-drop-bg: #1c2140;
+
+  /* trạng thái */
+  --tm-danger: #ff7b81;
+  --tm-progress-track: #262b39;
+  --tm-progress-fill: #8b93ff;
+
+  /* priority badge */
+  --tm-priority-unspecified-bg: #262b39;
+  --tm-priority-unspecified-fg: #9aa1b5;
+  --tm-priority-low-bg: #123227;
+  --tm-priority-low-fg: #51e0a1;
+  --tm-priority-medium-bg: #3a2f14;
+  --tm-priority-medium-fg: #f5c542;
+  --tm-priority-high-bg: #3a2514;
+  --tm-priority-high-fg: #ff9f5a;
+  --tm-priority-urgent-bg: #3c1a20;
+  --tm-priority-urgent-fg: #ff7b81;
+
+  /* scrollbar */
+  --tm-scrollbar: #3a4054;
+  --tm-scrollbar-hover: #4a5169;
+
+  /* đổ bóng */
+  --tm-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --tm-shadow-card-hover: 0 8px 22px rgba(0, 0, 0, 0.55);
+}

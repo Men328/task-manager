@@ -1,0 +1,8 @@
+go 1.25.0
+
+use (
+	./common
+	./service/identity
+	./service/task
+	./tools/quality
+)

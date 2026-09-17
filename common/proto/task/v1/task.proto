@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+package task.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/task/v1;taskv1";
+
+// Mapping DB: enum task_priority
+enum TaskPriority {
+  TASK_PRIORITY_UNSPECIFIED = 0;
+  TASK_PRIORITY_LOW = 1;
+  TASK_PRIORITY_MEDIUM = 2;
+  TASK_PRIORITY_HIGH = 3;
+  TASK_PRIORITY_URGENT = 4;
+}
+
+// Task cá nhân, hỗ trợ task cha - con qua parent_task_id.
+// Mapping DB: task.TASKS
+message Task {
+  string id = 1;
+  string profile_id = 2;
+  // rỗng = task gốc (root)
+  string parent_task_id = 3;
+  string status_id = 4;
+  string title = 5;
+  string description = 6;
+  TaskPriority priority = 7;
+  int32 position = 8;
+  google.protobuf.Timestamp start_at = 9;
+  google.protobuf.Timestamp due_at = 10;
+  google.protobuf.Timestamp completed_at = 11;
+  bool is_archived = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+  // chỉ được fill khi request yêu cầu include_subtasks
+  repeated Task subtasks = 15;
+}
+
+message CreateTaskRequest {
+  string profile_id = 1;
+  string parent_task_id = 2;
+  string status_id = 3;
+  string title = 4;
+  string description = 5;
+  TaskPriority priority = 6;
+  int32 position = 7;
+  google.protobuf.Timestamp start_at = 8;
+  google.protobuf.Timestamp due_at = 9;
+}
+
+message CreateTaskResponse {
+  Task task = 1;
+}
+
+message GetTaskRequest {
+  string id = 1;
+  bool include_subtasks = 2;
+}
+
+message GetTaskResponse {
+  Task task = 1;
+}
+
+message ListTasksRequest {
+  string profile_id = 1;
+  // lọc theo task cha; để trống = không lọc
+  string parent_task_id = 2;
+  // chỉ lấy task gốc (parent_task_id IS NULL)
+  bool root_only = 3;
+  string status_id = 4;
+  bool include_archived = 5;
+  bool include_subtasks = 6;
+}
+
+message ListTasksResponse {
+  repeated Task tasks = 1;
+}
+
+message UpdateTaskRequest {
+  string id = 1;
+  optional string parent_task_id = 2;
+  optional string title = 3;
+  optional string description = 4;
+  optional TaskPriority priority = 5;
+  optional int32 position = 6;
+  // message field đã có sẵn presence (nil = không đổi) nên không cần `optional`
+  google.protobuf.Timestamp start_at = 7;
+  google.protobuf.Timestamp due_at = 8;
+  optional bool is_archived = 9;
+}
+
+message UpdateTaskResponse {
+  Task task = 1;
+}
+
+message DeleteTaskRequest {
+  string id = 1;
+}
+
+message DeleteTaskResponse {}
+
+message ChangeTaskStatusRequest {
+  string id = 1;
+  string status_id = 2;
+  string note = 3;
+}
+
+message ChangeTaskStatusResponse {
+  Task task = 1;
+}
+
+service TaskService {
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse) {
+    option (google.api.http) = {
+      post: "/v1/tasks"
+      body: "*"
+    };
+  }
+
+  rpc GetTask(GetTaskRequest) returns (GetTaskResponse) {
+    option (google.api.http) = {get: "/v1/tasks/{id}"};
+  }
+
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse) {
+    option (google.api.http) = {get: "/v1/tasks"};
+  }
+
+  rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse) {
+    option (google.api.http) = {
+      patch: "/v1/tasks/{id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse) {
+    option (google.api.http) = {delete: "/v1/tasks/{id}"};
+  }
+
+  // Đổi status, phải tuân theo rule trong STATUS_TRANSITIONS.
+  rpc ChangeTaskStatus(ChangeTaskStatusRequest) returns (ChangeTaskStatusResponse) {
+    option (google.api.http) = {
+      post: "/v1/tasks/{id}/status"
+      body: "*"
+    };
+  }
+}

@@ -1,0 +1,25 @@
+.scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--tm-scrollbar) transparent;
+}
+
+.scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 10px;
+}
+
+.scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--tm-scrollbar);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+.scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--tm-scrollbar-hover);
+  background-clip: content-box;
+}

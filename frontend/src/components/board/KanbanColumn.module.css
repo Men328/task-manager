@@ -1,0 +1,51 @@
+.column {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  padding: 12px;
+  background: var(--tm-column-bg);
+  border: 1px solid var(--tm-border);
+  border-radius: var(--tm-radius-panel);
+}
+
+.column[data-drop='true'] {
+  border-color: var(--tm-brand-light);
+  background: var(--tm-drop-bg);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.count {
+  background: var(--tm-chip-bg);
+  border-radius: 999px;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.empty {
+  padding: 22px 0;
+  border: 1px dashed var(--tm-border-strong);
+  border-radius: var(--tm-radius-card);
+  text-align: center;
+}
+
+.empty[data-over='true'] {
+  border-color: var(--tm-brand-light);
+}
+
+.addButton {
+  border-radius: 10px;
+  text-align: center;
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-border);
+}

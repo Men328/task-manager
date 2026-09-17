@@ -1,0 +1,76 @@
+package dependency
+
+import (
+	"strings"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	identityv1 "taskmanager/common/gen/go/identity/v1"
+	"taskmanager/service/identity/internal/model"
+)
+
+const (
+	defaultTimezone = "Asia/Ho_Chi_Minh"
+	defaultLocale   = "vi"
+)
+
+func ValidateCreateProfile(req *identityv1.CreateProfileRequest) error {
+	if strings.TrimSpace(req.GetEmail()) == "" {
+		return status.Error(codes.InvalidArgument, "email là bắt buộc")
+	}
+	if strings.TrimSpace(req.GetDisplayName()) == "" {
+		return status.Error(codes.InvalidArgument, "display_name là bắt buộc")
+	}
+	return nil
+}
+
+func ValidateProfileID(id string) error {
+	if id == "" {
+		return status.Error(codes.InvalidArgument, "id là bắt buộc")
+	}
+	return nil
+}
+
+func ProfileFromCreateRequest(req *identityv1.CreateProfileRequest) model.Profile {
+	return model.Profile{
+		Email:       req.GetEmail(),
+		DisplayName: req.GetDisplayName(),
+		AvatarURL:   req.GetAvatarUrl(),
+		Timezone:    orDefault(req.GetTimezone(), defaultTimezone),
+		Locale:      orDefault(req.GetLocale(), defaultLocale),
+		IsActive:    true,
+	}
+}
+
+func ProfileUpdateFromRequest(req *identityv1.UpdateProfileRequest) model.ProfileUpdate {
+	return model.ProfileUpdate{
+		DisplayName: req.DisplayName,
+		AvatarURL:   req.AvatarUrl,
+		Timezone:    req.Timezone,
+		Locale:      req.Locale,
+		IsActive:    req.IsActive,
+	}
+}
+
+func ProfileToProto(p model.Profile) *identityv1.Profile {
+	return &identityv1.Profile{
+		Id:          p.ID,
+		Email:       p.Email,
+		DisplayName: p.DisplayName,
+		AvatarUrl:   p.AvatarURL,
+		Timezone:    p.Timezone,
+		Locale:      p.Locale,
+		IsActive:    p.IsActive,
+		CreatedAt:   timestamppb.New(p.CreatedAt),
+		UpdatedAt:   timestamppb.New(p.UpdatedAt),
+	}
+}
+
+func orDefault(v, fallback string) string {
+	if strings.TrimSpace(v) == "" {
+		return fallback
+	}
+	return v
+}

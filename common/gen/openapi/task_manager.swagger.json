@@ -1,0 +1,1418 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "identity/v1/profile.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "ProfileService"
+    },
+    {
+      "name": "TaskStatusService"
+    },
+    {
+      "name": "TaskService"
+    },
+    {
+      "name": "StatusTransitionService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/profiles": {
+      "get": {
+        "operationId": "ProfileService_ListProfiles",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListProfilesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ProfileService"
+        ]
+      },
+      "post": {
+        "operationId": "ProfileService_CreateProfile",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateProfileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateProfileRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ProfileService"
+        ]
+      }
+    },
+    "/v1/profiles/{id}": {
+      "get": {
+        "operationId": "ProfileService_GetProfile",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetProfileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ProfileService"
+        ]
+      },
+      "delete": {
+        "operationId": "ProfileService_DeleteProfile",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteProfileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ProfileService"
+        ]
+      },
+      "patch": {
+        "operationId": "ProfileService_UpdateProfile",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateProfileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProfileServiceUpdateProfileBody"
+            }
+          }
+        ],
+        "tags": [
+          "ProfileService"
+        ]
+      }
+    },
+    "/v1/statuses": {
+      "get": {
+        "operationId": "TaskStatusService_ListTaskStatuses",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListTaskStatusesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "TaskStatusService"
+        ]
+      },
+      "post": {
+        "operationId": "TaskStatusService_CreateTaskStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateTaskStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateTaskStatusRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TaskStatusService"
+        ]
+      }
+    },
+    "/v1/statuses/{id}": {
+      "get": {
+        "operationId": "TaskStatusService_GetTaskStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetTaskStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskStatusService"
+        ]
+      },
+      "delete": {
+        "operationId": "TaskStatusService_DeleteTaskStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteTaskStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskStatusService"
+        ]
+      },
+      "patch": {
+        "operationId": "TaskStatusService_UpdateTaskStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateTaskStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TaskStatusServiceUpdateTaskStatusBody"
+            }
+          }
+        ],
+        "tags": [
+          "TaskStatusService"
+        ]
+      }
+    },
+    "/v1/tasks": {
+      "get": {
+        "operationId": "TaskService_ListTasks",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListTasksResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "parentTaskId",
+            "description": "lọc theo task cha; để trống = không lọc",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rootOnly",
+            "description": "chỉ lấy task gốc (parent_task_id IS NULL)",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "statusId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "includeSubtasks",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      },
+      "post": {
+        "operationId": "TaskService_CreateTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateTaskResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateTaskRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/v1/tasks/{id}": {
+      "get": {
+        "operationId": "TaskService_GetTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetTaskResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "includeSubtasks",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      },
+      "delete": {
+        "operationId": "TaskService_DeleteTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteTaskResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      },
+      "patch": {
+        "operationId": "TaskService_UpdateTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateTaskResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TaskServiceUpdateTaskBody"
+            }
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/v1/tasks/{id}/status": {
+      "post": {
+        "summary": "Đổi status, phải tuân theo rule trong STATUS_TRANSITIONS.",
+        "operationId": "TaskService_ChangeTaskStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ChangeTaskStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TaskServiceChangeTaskStatusBody"
+            }
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/v1/transitions": {
+      "get": {
+        "operationId": "StatusTransitionService_ListStatusTransitions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListStatusTransitionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "fromStatusId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "StatusTransitionService"
+        ]
+      },
+      "post": {
+        "operationId": "StatusTransitionService_CreateStatusTransition",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateStatusTransitionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateStatusTransitionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "StatusTransitionService"
+        ]
+      }
+    },
+    "/v1/transitions/validate": {
+      "post": {
+        "summary": "Kiểm tra 1 cặp chuyển trạng thái có được phép không (dùng trước khi đổi status).",
+        "operationId": "StatusTransitionService_ValidateStatusTransition",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ValidateStatusTransitionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ValidateStatusTransitionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "StatusTransitionService"
+        ]
+      }
+    },
+    "/v1/transitions/{id}": {
+      "get": {
+        "operationId": "StatusTransitionService_GetStatusTransition",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetStatusTransitionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "StatusTransitionService"
+        ]
+      },
+      "delete": {
+        "operationId": "StatusTransitionService_DeleteStatusTransition",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteStatusTransitionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "StatusTransitionService"
+        ]
+      },
+      "patch": {
+        "operationId": "StatusTransitionService_UpdateStatusTransition",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateStatusTransitionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/StatusTransitionServiceUpdateStatusTransitionBody"
+            }
+          }
+        ],
+        "tags": [
+          "StatusTransitionService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "ProfileServiceUpdateProfileBody": {
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string"
+        },
+        "avatarUrl": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      },
+      "description": "Chỉ update các field được set (proto3 optional = field presence)."
+    },
+    "StatusTransitionServiceUpdateStatusTransitionBody": {
+      "type": "object",
+      "properties": {
+        "isActive": {
+          "type": "boolean"
+        },
+        "requiresNote": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "TaskServiceChangeTaskStatusBody": {
+      "type": "object",
+      "properties": {
+        "statusId": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "TaskServiceUpdateTaskBody": {
+      "type": "object",
+      "properties": {
+        "parentTaskId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "priority": {
+          "$ref": "#/definitions/v1TaskPriority"
+        },
+        "position": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "startAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "message field đã có sẵn presence (nil = không đổi) nên không cần `optional`"
+        },
+        "dueAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "isArchived": {
+          "type": "boolean"
+        }
+      }
+    },
+    "TaskStatusServiceUpdateTaskStatusBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/definitions/v1TaskStatusCategory"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "isTerminal": {
+          "type": "boolean"
+        },
+        "position": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "isArchived": {
+          "type": "boolean"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1ChangeTaskStatusResponse": {
+      "type": "object",
+      "properties": {
+        "task": {
+          "$ref": "#/definitions/v1Task"
+        }
+      }
+    },
+    "v1CreateProfileRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "avatarUrl": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        }
+      }
+    },
+    "v1CreateProfileResponse": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "$ref": "#/definitions/v1Profile"
+        }
+      }
+    },
+    "v1CreateStatusTransitionRequest": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "fromStatusId": {
+          "type": "string"
+        },
+        "toStatusId": {
+          "type": "string"
+        },
+        "requiresNote": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "v1CreateStatusTransitionResponse": {
+      "type": "object",
+      "properties": {
+        "transition": {
+          "$ref": "#/definitions/v1StatusTransition"
+        }
+      }
+    },
+    "v1CreateTaskRequest": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "parentTaskId": {
+          "type": "string"
+        },
+        "statusId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "priority": {
+          "$ref": "#/definitions/v1TaskPriority"
+        },
+        "position": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "startAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dueAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "v1CreateTaskResponse": {
+      "type": "object",
+      "properties": {
+        "task": {
+          "$ref": "#/definitions/v1Task"
+        }
+      }
+    },
+    "v1CreateTaskStatusRequest": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/definitions/v1TaskStatusCategory"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "isTerminal": {
+          "type": "boolean"
+        },
+        "position": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "v1CreateTaskStatusResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/v1TaskStatus"
+        }
+      }
+    },
+    "v1DeleteProfileResponse": {
+      "type": "object"
+    },
+    "v1DeleteStatusTransitionResponse": {
+      "type": "object"
+    },
+    "v1DeleteTaskResponse": {
+      "type": "object"
+    },
+    "v1DeleteTaskStatusResponse": {
+      "type": "object"
+    },
+    "v1GetProfileResponse": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "$ref": "#/definitions/v1Profile"
+        }
+      }
+    },
+    "v1GetStatusTransitionResponse": {
+      "type": "object",
+      "properties": {
+        "transition": {
+          "$ref": "#/definitions/v1StatusTransition"
+        }
+      }
+    },
+    "v1GetTaskResponse": {
+      "type": "object",
+      "properties": {
+        "task": {
+          "$ref": "#/definitions/v1Task"
+        }
+      }
+    },
+    "v1GetTaskStatusResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/v1TaskStatus"
+        }
+      }
+    },
+    "v1ListProfilesResponse": {
+      "type": "object",
+      "properties": {
+        "profiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Profile"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ListStatusTransitionsResponse": {
+      "type": "object",
+      "properties": {
+        "transitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1StatusTransition"
+          }
+        }
+      }
+    },
+    "v1ListTaskStatusesResponse": {
+      "type": "object",
+      "properties": {
+        "statuses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1TaskStatus"
+          }
+        }
+      }
+    },
+    "v1ListTasksResponse": {
+      "type": "object",
+      "properties": {
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Task"
+          }
+        }
+      }
+    },
+    "v1Profile": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "avatarUrl": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Profile là hồ sơ của một identity.\nMapping DB: identity.PROFILES"
+    },
+    "v1StatusTransition": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "profileId": {
+          "type": "string"
+        },
+        "fromStatusId": {
+          "type": "string"
+        },
+        "toStatusId": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "requiresNote": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Rule chuyển trạng thái (lifecycle) — dạng ALLOWLIST:\ncó row  =\u003e được phép chuyển from_status_id -\u003e to_status_id\nkhông có row =\u003e bị cấm\nMapping DB: task.STATUS_TRANSITIONS"
+    },
+    "v1Task": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "profileId": {
+          "type": "string"
+        },
+        "parentTaskId": {
+          "type": "string",
+          "title": "rỗng = task gốc (root)"
+        },
+        "statusId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "priority": {
+          "$ref": "#/definitions/v1TaskPriority"
+        },
+        "position": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "startAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dueAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "isArchived": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "subtasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Task"
+          },
+          "title": "chỉ được fill khi request yêu cầu include_subtasks"
+        }
+      },
+      "title": "Task cá nhân, hỗ trợ task cha - con qua parent_task_id.\nMapping DB: task.TASKS"
+    },
+    "v1TaskPriority": {
+      "type": "string",
+      "enum": [
+        "TASK_PRIORITY_UNSPECIFIED",
+        "TASK_PRIORITY_LOW",
+        "TASK_PRIORITY_MEDIUM",
+        "TASK_PRIORITY_HIGH",
+        "TASK_PRIORITY_URGENT"
+      ],
+      "default": "TASK_PRIORITY_UNSPECIFIED",
+      "description": "Mapping DB: enum task_priority"
+    },
+    "v1TaskStatus": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "profileId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/definitions/v1TaskStatusCategory"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "isTerminal": {
+          "type": "boolean"
+        },
+        "position": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "isArchived": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Status do từng profile tự định nghĩa (1-n).\nMapping DB: task.TASK_STATUSES"
+    },
+    "v1TaskStatusCategory": {
+      "type": "string",
+      "enum": [
+        "TASK_STATUS_CATEGORY_UNSPECIFIED",
+        "TASK_STATUS_CATEGORY_TODO",
+        "TASK_STATUS_CATEGORY_IN_PROGRESS",
+        "TASK_STATUS_CATEGORY_DONE",
+        "TASK_STATUS_CATEGORY_CANCELLED"
+      ],
+      "default": "TASK_STATUS_CATEGORY_UNSPECIFIED",
+      "description": "Nhóm ngữ nghĩa của status, dùng cho logic app.\nMapping DB: enum status_category"
+    },
+    "v1UpdateProfileResponse": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "$ref": "#/definitions/v1Profile"
+        }
+      }
+    },
+    "v1UpdateStatusTransitionResponse": {
+      "type": "object",
+      "properties": {
+        "transition": {
+          "$ref": "#/definitions/v1StatusTransition"
+        }
+      }
+    },
+    "v1UpdateTaskResponse": {
+      "type": "object",
+      "properties": {
+        "task": {
+          "$ref": "#/definitions/v1Task"
+        }
+      }
+    },
+    "v1UpdateTaskStatusResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/v1TaskStatus"
+        }
+      }
+    },
+    "v1ValidateStatusTransitionRequest": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "fromStatusId": {
+          "type": "string"
+        },
+        "toStatusId": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ValidateStatusTransitionResponse": {
+      "type": "object",
+      "properties": {
+        "allowed": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

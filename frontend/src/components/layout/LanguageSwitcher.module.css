@@ -1,0 +1,22 @@
+.trigger {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: var(--tm-text-muted);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.trigger:hover {
+  background: var(--tm-hover-bg);
+}
+
+.check {
+  color: var(--tm-brand);
+}
+
+.checkPlaceholder {
+  display: inline-block;
+  width: 14px;
+}

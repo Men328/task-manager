@@ -1,0 +1,22 @@
+.root {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.panel {
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-border);
+  border-radius: var(--tm-radius-panel);
+  overflow: hidden;
+}
+
+.headRow {
+  background: var(--tm-table-head-bg);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}

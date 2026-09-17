@@ -1,0 +1,26 @@
+.root {
+  background: var(--tm-surface);
+  border-bottom: 1px solid var(--tm-border);
+}
+
+.viewTab {
+  padding: 6px 11px;
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.viewTab[data-active='true'] {
+  background: var(--tm-nav-active-bg);
+}
+
+.viewTab[data-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.searchInput {
+  background: var(--tm-input-bg);
+  border: 1px solid var(--tm-border);
+  font-size: 12.5px;
+}

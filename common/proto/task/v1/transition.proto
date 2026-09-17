@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package task.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/task/v1;taskv1";
+
+// Rule chuyển trạng thái (lifecycle) — dạng ALLOWLIST:
+// có row  => được phép chuyển from_status_id -> to_status_id
+// không có row => bị cấm
+// Mapping DB: task.STATUS_TRANSITIONS
+message StatusTransition {
+  string id = 1;
+  string profile_id = 2;
+  string from_status_id = 3;
+  string to_status_id = 4;
+  bool is_active = 5;
+  bool requires_note = 6;
+  string description = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message CreateStatusTransitionRequest {
+  string profile_id = 1;
+  string from_status_id = 2;
+  string to_status_id = 3;
+  bool requires_note = 4;
+  string description = 5;
+}
+
+message CreateStatusTransitionResponse {
+  StatusTransition transition = 1;
+}
+
+message GetStatusTransitionRequest {
+  string id = 1;
+}
+
+message GetStatusTransitionResponse {
+  StatusTransition transition = 1;
+}
+
+message ListStatusTransitionsRequest {
+  string profile_id = 1;
+  string from_status_id = 2;
+}
+
+message ListStatusTransitionsResponse {
+  repeated StatusTransition transitions = 1;
+}
+
+message UpdateStatusTransitionRequest {
+  string id = 1;
+  optional bool is_active = 2;
+  optional bool requires_note = 3;
+  optional string description = 4;
+}
+
+message UpdateStatusTransitionResponse {
+  StatusTransition transition = 1;
+}
+
+message DeleteStatusTransitionRequest {
+  string id = 1;
+}
+
+message DeleteStatusTransitionResponse {}
+
+message ValidateStatusTransitionRequest {
+  string profile_id = 1;
+  string from_status_id = 2;
+  string to_status_id = 3;
+}
+
+message ValidateStatusTransitionResponse {
+  bool allowed = 1;
+  string reason = 2;
+}
+
+service StatusTransitionService {
+  rpc CreateStatusTransition(CreateStatusTransitionRequest) returns (CreateStatusTransitionResponse) {
+    option (google.api.http) = {
+      post: "/v1/transitions"
+      body: "*"
+    };
+  }
+
+  rpc GetStatusTransition(GetStatusTransitionRequest) returns (GetStatusTransitionResponse) {
+    option (google.api.http) = {get: "/v1/transitions/{id}"};
+  }
+
+  rpc ListStatusTransitions(ListStatusTransitionsRequest) returns (ListStatusTransitionsResponse) {
+    option (google.api.http) = {get: "/v1/transitions"};
+  }
+
+  rpc UpdateStatusTransition(UpdateStatusTransitionRequest) returns (UpdateStatusTransitionResponse) {
+    option (google.api.http) = {
+      patch: "/v1/transitions/{id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteStatusTransition(DeleteStatusTransitionRequest) returns (DeleteStatusTransitionResponse) {
+    option (google.api.http) = {delete: "/v1/transitions/{id}"};
+  }
+
+  // Kiểm tra 1 cặp chuyển trạng thái có được phép không (dùng trước khi đổi status).
+  rpc ValidateStatusTransition(ValidateStatusTransitionRequest) returns (ValidateStatusTransitionResponse) {
+    option (google.api.http) = {
+      post: "/v1/transitions/validate"
+      body: "*"
+    };
+  }
+}

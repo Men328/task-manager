@@ -1,0 +1,18 @@
+.header {
+  background: var(--tm-surface);
+  border-bottom: 1px solid var(--tm-border);
+}
+
+.navbar {
+  background: var(--tm-surface);
+  border-right: 1px solid var(--tm-border);
+}
+
+.main {
+  background: var(--tm-app-bg);
+  height: calc(100dvh - var(--tm-header-height));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}

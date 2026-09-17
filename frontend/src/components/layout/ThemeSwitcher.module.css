@@ -1,0 +1,26 @@
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 7px;
+  border-radius: 8px;
+  color: var(--tm-text-muted);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.trigger:hover {
+  background: var(--tm-hover-bg);
+  color: var(--tm-text);
+}
+
+.check {
+  color: var(--tm-brand);
+}
+
+.checkPlaceholder {
+  display: inline-block;
+  width: 14px;
+}

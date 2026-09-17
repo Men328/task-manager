@@ -1,0 +1,36 @@
+.badge {
+  display: inline-block;
+  padding: 3px 7px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.label {
+  letter-spacing: 0.055em;
+  line-height: 1.35;
+}
+
+.unspecified {
+  background: var(--tm-priority-unspecified-bg);
+  color: var(--tm-priority-unspecified-fg);
+}
+
+.low {
+  background: var(--tm-priority-low-bg);
+  color: var(--tm-priority-low-fg);
+}
+
+.medium {
+  background: var(--tm-priority-medium-bg);
+  color: var(--tm-priority-medium-fg);
+}
+
+.high {
+  background: var(--tm-priority-high-bg);
+  color: var(--tm-priority-high-fg);
+}
+
+.urgent {
+  background: var(--tm-priority-urgent-bg);
+  color: var(--tm-priority-urgent-fg);
+}

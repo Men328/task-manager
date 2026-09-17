@@ -1,0 +1,16 @@
+{
+  "defaultLanguage": "vi",
+  "fallbackLanguage": "vi",
+  "load": "languageOnly",
+  "nonExplicitSupportedLngs": true,
+  "detection": {
+    "order": ["querystring", "localStorage", "navigator"],
+    "caches": ["localStorage"],
+    "queryParam": "lng",
+    "storageKey": "tm-language"
+  },
+  "languages": [
+    { "code": "vi", "label": "Tiếng Việt", "short": "VI" },
+    { "code": "en", "label": "English", "short": "EN" }
+  ]
+}
