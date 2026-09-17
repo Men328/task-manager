@@ -3,30 +3,29 @@ package dependency
 import (
 	"strings"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"taskmanager/common/errorcode"
 	taskv1 "taskmanager/common/gen/go/task/v1"
 	"taskmanager/service/task/internal/model"
 )
 
 func ValidateCreateTaskStatus(req *taskv1.CreateTaskStatusRequest) error {
 	if req.GetProfileId() == "" {
-		return status.Error(codes.InvalidArgument, "profile_id là bắt buộc")
+		return errorcode.Error(errorcode.TaskProfileIDRequired, "profile_id là bắt buộc")
 	}
 	if strings.TrimSpace(req.GetName()) == "" {
-		return status.Error(codes.InvalidArgument, "name là bắt buộc")
+		return errorcode.Error(errorcode.TaskStatusNameRequired, "name là bắt buộc")
 	}
 	if strings.TrimSpace(req.GetSlug()) == "" {
-		return status.Error(codes.InvalidArgument, "slug là bắt buộc")
+		return errorcode.Error(errorcode.TaskStatusSlugRequired, "slug là bắt buộc")
 	}
 	return nil
 }
 
 func ValidateTaskStatusID(id string) error {
 	if id == "" {
-		return status.Error(codes.InvalidArgument, "id là bắt buộc")
+		return errorcode.Error(errorcode.TaskStatusIDRequired, "id là bắt buộc")
 	}
 	return nil
 }

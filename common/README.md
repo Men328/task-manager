@@ -6,6 +6,7 @@ Go module **`taskmanager/common`** — chứa interface (proto) và code dùng c
 |---|---|---|
 | `proto/` | **Interface** — toàn bộ file `.proto` | ✅ có |
 | `gen/` | **Code gen** — output của `buf generate` | ❌ không (bị ghi đè) |
+| `errorcode/` | **Bộ mã lỗi chuẩn** — `error_codes.json` + helper Go | ✅ có (xem `errorcode/README.md`) |
 
 ## Service dùng `common` thế nào
 

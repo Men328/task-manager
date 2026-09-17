@@ -1,0 +1,385 @@
+{
+  "_note": "Bộ mã lỗi chuẩn (canonical). Backend gắn mã này vào google.rpc.ErrorInfo; FE map mã sang message. Bản mirror cho FE: frontend/src/config/error_codes.json - sinh bằng `make error-codes`, không sửa tay.",
+  "version": "1.0.0",
+  "domain": "taskmanager",
+  "defaultCode": "COMMON_INTERNAL",
+  "codes": {
+    "CLIENT_NETWORK_ERROR": {
+      "owner": "client",
+      "httpStatus": 0,
+      "message": {
+        "vi": "Không kết nối được máy chủ. Vui lòng kiểm tra kết nối và thử lại.",
+        "en": "Cannot reach the server. Please check your connection and try again."
+      }
+    },
+    "CLIENT_UNKNOWN_ERROR": {
+      "owner": "client",
+      "httpStatus": 0,
+      "message": {
+        "vi": "Đã xảy ra lỗi không xác định. Vui lòng thử lại.",
+        "en": "Something went wrong. Please try again."
+      }
+    },
+    "CLIENT_BAD_REQUEST": {
+      "owner": "client",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Yêu cầu không hợp lệ. Vui lòng kiểm tra lại dữ liệu.",
+        "en": "The request is invalid. Please check your input."
+      }
+    },
+    "CLIENT_UNAUTHORIZED": {
+      "owner": "client",
+      "httpStatus": 401,
+      "message": {
+        "vi": "Bạn cần đăng nhập để thực hiện thao tác này.",
+        "en": "You need to sign in to do that."
+      }
+    },
+    "CLIENT_FORBIDDEN": {
+      "owner": "client",
+      "httpStatus": 403,
+      "message": {
+        "vi": "Bạn không có quyền thực hiện thao tác này.",
+        "en": "You don't have permission to do that."
+      }
+    },
+    "CLIENT_NOT_FOUND": {
+      "owner": "client",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy dữ liệu yêu cầu.",
+        "en": "The requested data was not found."
+      }
+    },
+    "CLIENT_CONFLICT": {
+      "owner": "client",
+      "httpStatus": 409,
+      "message": {
+        "vi": "Dữ liệu đã tồn tại hoặc xung đột với trạng thái hiện tại.",
+        "en": "The data already exists or conflicts with the current state."
+      }
+    },
+    "CLIENT_TOO_MANY_REQUESTS": {
+      "owner": "client",
+      "httpStatus": 429,
+      "message": {
+        "vi": "Bạn thao tác quá nhanh. Vui lòng thử lại sau ít giây.",
+        "en": "Too many requests. Please try again in a moment."
+      }
+    },
+    "CLIENT_SERVER_ERROR": {
+      "owner": "client",
+      "httpStatus": 500,
+      "message": {
+        "vi": "Máy chủ gặp lỗi. Vui lòng thử lại sau.",
+        "en": "The server ran into a problem. Please try again later."
+      }
+    },
+    "CLIENT_UNAVAILABLE": {
+      "owner": "client",
+      "httpStatus": 503,
+      "message": {
+        "vi": "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.",
+        "en": "The service is temporarily unavailable. Please try again later."
+      }
+    },
+    "COMMON_INVALID_ARGUMENT": {
+      "owner": "common",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Dữ liệu gửi lên không hợp lệ.",
+        "en": "The submitted data is invalid."
+      }
+    },
+    "COMMON_NOT_FOUND": {
+      "owner": "common",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy dữ liệu yêu cầu.",
+        "en": "The requested data was not found."
+      }
+    },
+    "COMMON_ALREADY_EXISTS": {
+      "owner": "common",
+      "grpcCode": "AlreadyExists",
+      "httpStatus": 409,
+      "message": {
+        "vi": "Dữ liệu đã tồn tại.",
+        "en": "The data already exists."
+      }
+    },
+    "COMMON_FAILED_PRECONDITION": {
+      "owner": "common",
+      "grpcCode": "FailedPrecondition",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thao tác không thực hiện được ở trạng thái hiện tại.",
+        "en": "The action isn't allowed in the current state."
+      }
+    },
+    "COMMON_INTERNAL": {
+      "owner": "common",
+      "grpcCode": "Internal",
+      "httpStatus": 500,
+      "message": {
+        "vi": "Máy chủ gặp lỗi. Vui lòng thử lại sau.",
+        "en": "The server ran into a problem. Please try again later."
+      }
+    },
+    "COMMON_UNAVAILABLE": {
+      "owner": "common",
+      "grpcCode": "Unavailable",
+      "httpStatus": 503,
+      "message": {
+        "vi": "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.",
+        "en": "The service is temporarily unavailable. Please try again later."
+      }
+    },
+    "IDENTITY_EMAIL_REQUIRED": {
+      "owner": "identity",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Email là bắt buộc.",
+        "en": "Email is required."
+      }
+    },
+    "IDENTITY_DISPLAY_NAME_REQUIRED": {
+      "owner": "identity",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Tên hiển thị là bắt buộc.",
+        "en": "Display name is required."
+      }
+    },
+    "IDENTITY_PROFILE_ID_REQUIRED": {
+      "owner": "identity",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã hồ sơ.",
+        "en": "Profile id is required."
+      }
+    },
+    "IDENTITY_PROFILE_NOT_FOUND": {
+      "owner": "identity",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy hồ sơ.",
+        "en": "Profile not found."
+      }
+    },
+    "TASK_PROFILE_ID_REQUIRED": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã hồ sơ.",
+        "en": "Profile id is required."
+      }
+    },
+    "TASK_TITLE_REQUIRED": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Tiêu đề công việc là bắt buộc.",
+        "en": "Task title is required."
+      }
+    },
+    "TASK_ID_REQUIRED": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã công việc.",
+        "en": "Task id is required."
+      }
+    },
+    "TASK_ID_AND_STATUS_ID_REQUIRED": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã công việc hoặc trạng thái.",
+        "en": "Task id and status id are required."
+      }
+    },
+    "TASK_NOT_FOUND": {
+      "owner": "task",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy công việc.",
+        "en": "Task not found."
+      }
+    },
+    "TASK_PARENT_NOT_IN_PROFILE": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Công việc cha không thuộc hồ sơ này.",
+        "en": "The parent task belongs to another profile."
+      }
+    },
+    "TASK_HAS_SUBTASKS": {
+      "owner": "task",
+      "grpcCode": "FailedPrecondition",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Công việc vẫn còn công việc con. Hãy xoá hoặc chuyển chúng trước.",
+        "en": "This task still has subtasks. Remove or move them first."
+      }
+    },
+    "TASK_STATUS_SAME": {
+      "owner": "task",
+      "grpcCode": "FailedPrecondition",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Công việc đang ở trạng thái này rồi.",
+        "en": "The task is already in this status."
+      }
+    },
+    "TASK_STATUS_NOT_IN_PROFILE": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Trạng thái không thuộc hồ sơ này.",
+        "en": "The status belongs to another profile."
+      }
+    },
+    "TASK_STATUS_PROFILE_MISMATCH": {
+      "owner": "task",
+      "grpcCode": "FailedPrecondition",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Trạng thái không thuộc hồ sơ của công việc.",
+        "en": "The status doesn't belong to the task's profile."
+      }
+    },
+    "TASK_NO_STATUS_AVAILABLE": {
+      "owner": "task",
+      "grpcCode": "FailedPrecondition",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Hồ sơ chưa có trạng thái nào. Hãy tạo trạng thái trước.",
+        "en": "This profile has no status yet. Create one first."
+      }
+    },
+    "TASK_TRANSITION_NOT_ALLOWED": {
+      "owner": "task",
+      "grpcCode": "FailedPrecondition",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Không được phép chuyển công việc sang trạng thái này.",
+        "en": "This status change isn't allowed."
+      }
+    },
+    "TASK_CYCLE_DETECTED": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Không thể gán vì sẽ tạo vòng lặp công việc.",
+        "en": "That would create a task cycle."
+      }
+    },
+    "TASK_STATUS_NAME_REQUIRED": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Tên trạng thái là bắt buộc.",
+        "en": "Status name is required."
+      }
+    },
+    "TASK_STATUS_SLUG_REQUIRED": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Slug trạng thái là bắt buộc.",
+        "en": "Status slug is required."
+      }
+    },
+    "TASK_STATUS_ID_REQUIRED": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã trạng thái.",
+        "en": "Status id is required."
+      }
+    },
+    "TASK_STATUS_NOT_FOUND": {
+      "owner": "task",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy trạng thái.",
+        "en": "Status not found."
+      }
+    },
+    "TASK_STATUS_IN_USE": {
+      "owner": "task",
+      "grpcCode": "FailedPrecondition",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Trạng thái đang được công việc sử dụng. Hãy lưu trữ thay vì xoá.",
+        "en": "This status is in use by tasks. Archive it instead of deleting."
+      }
+    },
+    "TASK_TRANSITION_FIELDS_REQUIRED": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu thông tin quy tắc chuyển trạng thái.",
+        "en": "Transition rule details are required."
+      }
+    },
+    "TASK_TRANSITION_SAME_STATUS": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Trạng thái nguồn và trạng thái đích không được trùng nhau.",
+        "en": "Source and target status must be different."
+      }
+    },
+    "TASK_TRANSITION_ID_REQUIRED": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã quy tắc chuyển trạng thái.",
+        "en": "Transition rule id is required."
+      }
+    },
+    "TASK_TRANSITION_NOT_FOUND": {
+      "owner": "task",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy quy tắc chuyển trạng thái.",
+        "en": "Transition rule not found."
+      }
+    },
+    "TASK_TRANSITION_ALREADY_EXISTS": {
+      "owner": "task",
+      "grpcCode": "AlreadyExists",
+      "httpStatus": 409,
+      "message": {
+        "vi": "Quy tắc chuyển trạng thái này đã tồn tại.",
+        "en": "This transition rule already exists."
+      }
+    }
+  }
+}

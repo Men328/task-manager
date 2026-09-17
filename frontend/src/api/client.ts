@@ -6,6 +6,9 @@
  * crashing when the Go/gRPC services are not running yet.
  */
 
+import i18n from '../i18n';
+import { DEFAULT_ERROR_CODE, fallbackCodeForStatus, messageForCode } from '../lib/errorCatalog';
+
 export const IDENTITY_BASE_URL: string =
   (import.meta.env.VITE_IDENTITY_API_URL as string | undefined) ?? '/api/identity';
 
@@ -122,22 +125,70 @@ export async function request<T>(
   return payload as T;
 }
 
-/** Best-effort, user friendly message for any thrown value. */
+const ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9_]{2,}$/;
+
+const FLAT_CODE_KEYS = ['error_code', 'errorCode', 'reason', 'code'] as const;
+
+interface ErrorInfoLike {
+  reason?: unknown;
+  '@type'?: unknown;
+}
+
+export function getErrorCode(error: unknown): string | null {
+  if (!(error instanceof ApiError) || error.payload === null || typeof error.payload !== 'object') {
+    return null;
+  }
+
+  const record = error.payload as Record<string, unknown>;
+
+  for (const key of FLAT_CODE_KEYS) {
+    const value = record[key];
+    if (typeof value === 'string' && ERROR_CODE_PATTERN.test(value.trim())) {
+      return value.trim();
+    }
+  }
+
+  const details = record.details;
+  if (Array.isArray(details)) {
+    for (const detail of details as ErrorInfoLike[]) {
+      if (detail !== null && typeof detail === 'object') {
+        const reason = detail.reason;
+        if (typeof reason === 'string' && ERROR_CODE_PATTERN.test(reason.trim())) {
+          return reason.trim();
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 export function getErrorMessage(error: unknown): string {
+  const language = i18n.resolvedLanguage ?? i18n.language;
+
   if (error instanceof ApiError) {
+    const code = getErrorCode(error);
+
+    if (import.meta.env.DEV && code === null) {
+      console.warn('[api] lỗi không có mã lỗi chuẩn:', error.status, error.url, error.payload);
+    }
+
+    return (
+      messageForCode(code, language) ??
+      messageForCode(fallbackCodeForStatus(error.status), language) ??
+      messageForCode(DEFAULT_ERROR_CODE, language) ??
+      'Unknown error'
+    );
+  }
+
+  if (error instanceof Error && error.message) {
     return error.message;
   }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === 'string') {
+  if (typeof error === 'string' && error) {
     return error;
   }
-  try {
-    return JSON.stringify(error);
-  } catch {
-    return 'Unknown error';
-  }
+
+  return messageForCode(DEFAULT_ERROR_CODE, language) ?? 'Unknown error';
 }
 
 /**

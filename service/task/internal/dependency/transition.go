@@ -1,34 +1,33 @@
 package dependency
 
 import (
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"taskmanager/common/errorcode"
 	taskv1 "taskmanager/common/gen/go/task/v1"
 	"taskmanager/service/task/internal/model"
 )
 
 func ValidateCreateStatusTransition(req *taskv1.CreateStatusTransitionRequest) error {
 	if req.GetProfileId() == "" || req.GetFromStatusId() == "" || req.GetToStatusId() == "" {
-		return status.Error(codes.InvalidArgument, "profile_id, from_status_id, to_status_id là bắt buộc")
+		return errorcode.Error(errorcode.TaskTransitionFieldsRequired, "profile_id, from_status_id, to_status_id là bắt buộc")
 	}
 	if req.GetFromStatusId() == req.GetToStatusId() {
-		return status.Error(codes.InvalidArgument, "from_status_id và to_status_id không được trùng nhau")
+		return errorcode.Error(errorcode.TaskTransitionSameStatus, "from_status_id và to_status_id không được trùng nhau")
 	}
 	return nil
 }
 
 func ValidateStatusTransitionRequest(req *taskv1.ValidateStatusTransitionRequest) error {
 	if req.GetProfileId() == "" || req.GetFromStatusId() == "" || req.GetToStatusId() == "" {
-		return status.Error(codes.InvalidArgument, "profile_id, from_status_id, to_status_id là bắt buộc")
+		return errorcode.Error(errorcode.TaskTransitionFieldsRequired, "profile_id, from_status_id, to_status_id là bắt buộc")
 	}
 	return nil
 }
 
 func ValidateStatusTransitionID(id string) error {
 	if id == "" {
-		return status.Error(codes.InvalidArgument, "id là bắt buộc")
+		return errorcode.Error(errorcode.TaskTransitionIDRequired, "id là bắt buộc")
 	}
 	return nil
 }
