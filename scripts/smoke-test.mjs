@@ -36,6 +36,24 @@ function check(label, r, expectedStatus, assert) {
   return r.data;
 }
 
+function errorCodeOf(data) {
+  const details = data?.details;
+  if (Array.isArray(details)) {
+    const info = details.find((item) => item && typeof item.reason === 'string');
+    if (info) return info.reason;
+  }
+  return data?.error_code ?? data?.errorCode ?? null;
+}
+
+function checkCode(label, r, expectedStatus, expectedCode, extra) {
+  return check(
+    label,
+    r,
+    expectedStatus,
+    (res) => errorCodeOf(res.data) === expectedCode && (extra ? extra(res) : true),
+  );
+}
+
 // ---------------------------------------------------------------- health
 check('GET /healthz (identity)', await req('GET', `${IDENTITY}/healthz`), 200);
 check('GET /healthz (task)', await req('GET', `${TASK}/healthz`), 200);
@@ -53,8 +71,10 @@ check('GET /v1/profiles/{id}', await req('GET', `${IDENTITY}/v1/profiles/${profi
   (r) => r.data.profile?.email === 'a@example.com');
 check('GET /v1/profiles', await req('GET', `${IDENTITY}/v1/profiles`), 200,
   (r) => Array.isArray(r.data.profiles) && r.data.profiles.length === 1);
-check('GET profile không tồn tại -> 404', await req('GET', `${IDENTITY}/v1/profiles/khong-ton-tai`), 404);
-check('POST profile thiếu email -> 400', await req('POST', `${IDENTITY}/v1/profiles`, { display_name: 'x' }), 400);
+checkCode('GET profile không tồn tại -> 404 + IDENTITY_PROFILE_NOT_FOUND',
+  await req('GET', `${IDENTITY}/v1/profiles/khong-ton-tai`), 404, 'IDENTITY_PROFILE_NOT_FOUND');
+checkCode('POST profile thiếu email -> 400 + IDENTITY_EMAIL_REQUIRED',
+  await req('POST', `${IDENTITY}/v1/profiles`, { display_name: 'x' }), 400, 'IDENTITY_EMAIL_REQUIRED');
 
 // ---------------------------------------------------------------- status
 const todo = check(
@@ -96,10 +116,12 @@ check('POST /v1/transitions Todo->Doing',
   await req('POST', `${TASK}/v1/transitions`, { profile_id: profileId, from_status_id: todoId, to_status_id: doingId }), 200);
 check('POST /v1/transitions Doing->Done',
   await req('POST', `${TASK}/v1/transitions`, { profile_id: profileId, from_status_id: doingId, to_status_id: doneId }), 200);
-check('POST /v1/transitions trùng rule -> 409',
-  await req('POST', `${TASK}/v1/transitions`, { profile_id: profileId, from_status_id: todoId, to_status_id: doingId }), 409);
-check('POST /v1/transitions from == to -> 400',
-  await req('POST', `${TASK}/v1/transitions`, { profile_id: profileId, from_status_id: todoId, to_status_id: todoId }), 400);
+checkCode('POST /v1/transitions trùng rule -> 409 + TASK_TRANSITION_ALREADY_EXISTS',
+  await req('POST', `${TASK}/v1/transitions`, { profile_id: profileId, from_status_id: todoId, to_status_id: doingId }),
+  409, 'TASK_TRANSITION_ALREADY_EXISTS');
+checkCode('POST /v1/transitions from == to -> 400 + TASK_TRANSITION_SAME_STATUS',
+  await req('POST', `${TASK}/v1/transitions`, { profile_id: profileId, from_status_id: todoId, to_status_id: todoId }),
+  400, 'TASK_TRANSITION_SAME_STATUS');
 check('POST /v1/transitions/validate Todo->Doing => allowed=true',
   await req('POST', `${TASK}/v1/transitions/validate`, { profile_id: profileId, from_status_id: todoId, to_status_id: doingId }), 200,
   (r) => r.data.allowed === true);
@@ -132,8 +154,8 @@ check('GET /v1/tasks/{id}?include_subtasks=true',
   (r) => r.data.task?.subtasks?.length === 1);
 
 // --------------------------------------------- lifecycle enforcement
-check('POST /v1/tasks/{id}/status Todo->Done (không có rule) -> 400',
-  await req('POST', `${TASK}/v1/tasks/${taskId}/status`, { status_id: doneId }), 400,
+checkCode('POST /v1/tasks/{id}/status Todo->Done (không có rule) -> 400 + TASK_TRANSITION_NOT_ALLOWED',
+  await req('POST', `${TASK}/v1/tasks/${taskId}/status`, { status_id: doneId }), 400, 'TASK_TRANSITION_NOT_ALLOWED',
   (r) => /không được phép chuyển/.test(r.data.message ?? ''));
 check('POST /v1/tasks/{id}/status Todo->Doing (có rule)',
   await req('POST', `${TASK}/v1/tasks/${taskId}/status`, { status_id: doingId, note: 'bắt đầu làm' }), 200,
@@ -143,15 +165,15 @@ check('POST /v1/tasks/{id}/status Doing->Done (tự set completed_at)',
   (r) => r.data.task?.statusId === doneId && Boolean(r.data.task?.completedAt));
 
 // ---------------------------------------------------------------- ràng buộc
-check('DELETE /v1/tasks/{id} khi còn task con -> 400',
-  await req('DELETE', `${TASK}/v1/tasks/${taskId}`), 400);
-check('DELETE /v1/statuses/{id} khi đang được task dùng -> 400',
-  await req('DELETE', `${TASK}/v1/statuses/${todoId}`), 400);
+checkCode('DELETE /v1/tasks/{id} khi còn task con -> 400 + TASK_HAS_SUBTASKS',
+  await req('DELETE', `${TASK}/v1/tasks/${taskId}`), 400, 'TASK_HAS_SUBTASKS');
+checkCode('DELETE /v1/statuses/{id} khi đang được task dùng -> 400 + TASK_STATUS_IN_USE',
+  await req('DELETE', `${TASK}/v1/statuses/${todoId}`), 400, 'TASK_STATUS_IN_USE');
 check('PATCH /v1/tasks/{id}',
   await req('PATCH', `${TASK}/v1/tasks/${subId}`, { title: 'Thu thập số liệu (đã sửa)' }), 200,
   (r) => r.data.task?.title === 'Thu thập số liệu (đã sửa)');
-check('PATCH /v1/tasks/{id} tạo vòng lặp -> 400',
-  await req('PATCH', `${TASK}/v1/tasks/${taskId}`, { parent_task_id: subId }), 400);
+checkCode('PATCH /v1/tasks/{id} tạo vòng lặp -> 400 + TASK_CYCLE_DETECTED',
+  await req('PATCH', `${TASK}/v1/tasks/${taskId}`, { parent_task_id: subId }), 400, 'TASK_CYCLE_DETECTED');
 check('DELETE /v1/tasks/{id} (con)', await req('DELETE', `${TASK}/v1/tasks/${subId}`), 200);
 check('DELETE /v1/tasks/{id} (cha)', await req('DELETE', `${TASK}/v1/tasks/${taskId}`), 200);
 

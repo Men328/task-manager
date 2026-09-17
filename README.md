@@ -10,6 +10,7 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 ├── common/                     # Go module `taskmanager/common`
 │   ├── proto/                  # INTERFACE: toàn bộ file .proto
 │   ├── gen/                    # CODE GEN (go + openapi swagger)
+│   ├── errorcode/              # BỘ MÃ LỖI CHUẨN: error_codes.json + Go helper
 │   ├── go.mod / go.sum
 │   └── README.md
 ├── service/                    # mỗi thư mục là 1 Go module + 1 service riêng
@@ -78,6 +79,32 @@ New Task) và board 4 cột. Không có nhân sự/project/sprint.
 
 Chi tiết: `frontend/README.md`.
 
+## Bộ mã lỗi chuẩn
+
+Mọi lỗi backend đều kèm **mã lỗi chuẩn** để frontend dịch thành message đẹp, không hiển thị
+HTTP status / URL / text kỹ thuật lên notification.
+
+- Nguồn sự thật: `common/errorcode/error_codes.json` (mã + grpc code + http status + message vi/en).
+  Go embed file này và build lỗi qua `errorcode.Error(code, message)`.
+- Trên dây: gRPC status kèm `google.rpc.ErrorInfo`, grpc-gateway render thành
+  `details[].reason`. Ví dụ lỗi thiếu title:
+
+  ```json
+  {
+    "code": 3,
+    "message": "title là bắt buộc",
+    "details": [
+      { "@type": "type.googleapis.com/google.rpc.ErrorInfo", "reason": "TASK_TITLE_REQUIRED", "domain": "taskmanager" }
+    ]
+  }
+  ```
+
+- Frontend (`frontend/src/lib/errorCatalog.ts` + `getErrorMessage` trong `api/client.ts`) map
+  `reason` → message theo ngôn ngữ; mã lạ thì fallback theo HTTP status, tuyệt đối không show mã thô.
+- Đổi bộ mã: sửa JSON canonical rồi `make error-codes` để sinh bản mirror cho FE
+  (`frontend/src/config/error_codes.json`, có commit sẵn để Docker build chỉ với context `frontend/`).
+  `make check-error-codes` fail nếu mirror lệch.
+
 ## Quickstart (Docker)
 
 ```bash
@@ -108,13 +135,14 @@ Chi tiết: `deployments/migrations/README.md`.
 make quality-all
 ```
 
-Chạy 3 nhóm kiểm tra:
+Chạy 4 nhóm kiểm tra:
 
 | Target | Việc |
 |---|---|
 | `quality-fmt` | `gofmt -l` — fail nếu file chưa format |
 | `quality-vet` | `go vet` từng module |
 | `quality-arch` | Đọc `quality.json`, kiểm tra rules kiến trúc bằng `tools/quality` |
+| `check-error-codes` | Fail nếu mirror bộ mã lỗi của FE lệch bản canonical |
 
 Rules khai báo trong `quality.json` (nguồn duy nhất): hướng phụ thuộc giữa các tầng, `model` là core,
 tầng phải flat, `service/interfaces.go` bắt buộc, không comment trong code Go, `cmd` dùng `fx`

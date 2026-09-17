@@ -3,10 +3,9 @@ package dependency
 import (
 	"strings"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"taskmanager/common/errorcode"
 	identityv1 "taskmanager/common/gen/go/identity/v1"
 	"taskmanager/service/identity/internal/model"
 )
@@ -18,17 +17,17 @@ const (
 
 func ValidateCreateProfile(req *identityv1.CreateProfileRequest) error {
 	if strings.TrimSpace(req.GetEmail()) == "" {
-		return status.Error(codes.InvalidArgument, "email là bắt buộc")
+		return errorcode.Error(errorcode.IdentityEmailRequired, "email là bắt buộc")
 	}
 	if strings.TrimSpace(req.GetDisplayName()) == "" {
-		return status.Error(codes.InvalidArgument, "display_name là bắt buộc")
+		return errorcode.Error(errorcode.IdentityDisplayNameRequired, "display_name là bắt buộc")
 	}
 	return nil
 }
 
 func ValidateProfileID(id string) error {
 	if id == "" {
-		return status.Error(codes.InvalidArgument, "id là bắt buộc")
+		return errorcode.Error(errorcode.IdentityProfileIDRequired, "id là bắt buộc")
 	}
 	return nil
 }

@@ -3,44 +3,49 @@ package dependency
 import (
 	"errors"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
+	"taskmanager/common/errorcode"
 	"taskmanager/service/task/internal/model"
 )
 
 func ToGRPCError(err error) error {
 	var domainErr *model.Error
 	if errors.As(err, &domainErr) {
-		return status.Error(errorCode(domainErr.Kind), domainErr.Message)
+		return errorcode.Error(codeForKind(domainErr.Kind), domainErr.Message)
 	}
 
 	switch {
 	case errors.Is(err, model.ErrNotFound):
-		return status.Error(codes.NotFound, err.Error())
+		return errorcode.Error(errorcode.CommonNotFound, err.Error())
 	case errors.Is(err, model.ErrAlreadyExists):
-		return status.Error(codes.AlreadyExists, err.Error())
+		return errorcode.Error(errorcode.TaskTransitionAlreadyExists, err.Error())
 	case errors.Is(err, model.ErrInUse):
-		return status.Error(codes.FailedPrecondition, err.Error())
+		return errorcode.Error(errorcode.CommonFailedPrecondition, err.Error())
 	case errors.Is(err, model.ErrCycle):
-		return status.Error(codes.InvalidArgument, err.Error())
+		return errorcode.Error(errorcode.TaskCycleDetected, err.Error())
 	default:
-		return status.Error(codes.Internal, err.Error())
+		return errorcode.Error(errorcode.CommonInternal, err.Error())
 	}
 }
 
-func errorCode(kind model.ErrorKind) codes.Code {
+func codeForKind(kind model.ErrorKind) string {
 	switch kind {
-	case model.ErrorKindStatusNotInProfile, model.ErrorKindParentNotInProfile:
-		return codes.InvalidArgument
-	case model.ErrorKindNoStatusAvailable,
-		model.ErrorKindStatusProfileMismatch,
-		model.ErrorKindTaskStatusSame,
-		model.ErrorKindTransitionNotAllowed,
-		model.ErrorKindTaskHasSubtasks,
-		model.ErrorKindStatusInUse:
-		return codes.FailedPrecondition
+	case model.ErrorKindStatusNotInProfile:
+		return errorcode.TaskStatusNotInProfile
+	case model.ErrorKindParentNotInProfile:
+		return errorcode.TaskParentNotInProfile
+	case model.ErrorKindNoStatusAvailable:
+		return errorcode.TaskNoStatusAvailable
+	case model.ErrorKindStatusProfileMismatch:
+		return errorcode.TaskStatusProfileMismatch
+	case model.ErrorKindTaskStatusSame:
+		return errorcode.TaskStatusSame
+	case model.ErrorKindTransitionNotAllowed:
+		return errorcode.TaskTransitionNotAllowed
+	case model.ErrorKindTaskHasSubtasks:
+		return errorcode.TaskHasSubtasks
+	case model.ErrorKindStatusInUse:
+		return errorcode.TaskStatusInUse
 	default:
-		return codes.Internal
+		return errorcode.CommonInternal
 	}
 }

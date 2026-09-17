@@ -45,10 +45,13 @@ src/
 │   ├── board/                  # slice BoardPage: statuses/transitions/tasks, filter, CRUD
 │   └── statuses/               # slice StatusesPage: statuses/transitions/tasks, seed
 ├── api/
-│   ├── client.ts               # fetch wrapper, ApiError, asList/unwrap envelope
+│   ├── client.ts               # fetch wrapper, ApiError, getErrorCode/getErrorMessage, asList/unwrap envelope
 │   ├── identity.ts             # /v1/profiles
 │   └── task.ts                 # /v1/statuses, /v1/transitions, /v1/tasks
+├── config/
+│   └── error_codes.json        # MIRROR bộ mã lỗi chuẩn (sinh bằng `make error-codes`, không sửa tay)
 ├── lib/
+│   ├── errorCatalog.ts         # đọc bộ mã lỗi + map mã -> message theo ngôn ngữ
 │   ├── tokens.ts               # nhãn priority, màu status fallback, sort order
 │   └── format.ts               # format ngày, initials, progress suy ra từ subtask
 ├── components/                 # mỗi component có <Name>.module.css đi kèm
@@ -149,6 +152,20 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 - Prod (Docker): nginx proxy y hệt, xem `nginx.conf`.
 - Response của gateway là **camelCase** (protojson mặc định); **query param** phải snake_case
   (`?profile_id=...`); body nhận cả `snake_case` (đang dùng) và camelCase.
+
+## Bộ mã lỗi & message hiển thị
+
+- Backend gắn mã lỗi chuẩn vào mọi response lỗi (grpc-gateway trả ở `details[].reason`,
+  `@type = google.rpc.ErrorInfo`). FE **không** show `message` thô / HTTP status / URL lên notification.
+- `api/client.ts`:
+  - `getErrorCode(error)` bóc mã từ `details[].reason` (hoặc field phẳng `error_code`).
+  - `getErrorMessage(error)` map mã → message theo ngôn ngữ qua `lib/errorCatalog.ts`; mã lạ thì
+    fallback theo HTTP status (`CLIENT_*`), lỗi mạng (`status 0`) → `CLIENT_NETWORK_ERROR`.
+    Ở `import.meta.env.DEV`, lỗi thiếu mã được `console.warn` để debug (không lên UI).
+- Bộ mã nằm ở `src/config/error_codes.json` — **mirror** của `common/errorcode/error_codes.json`
+  (nguồn sự thật ở backend). Sinh lại bằng `make error-codes`; `make check-error-codes` phát hiện lệch.
+- Thêm/sửa mã: sửa JSON canonical ở backend (kèm `message.vi` + `message.en`) → `make error-codes`.
+  Không cần sửa component: mọi notification/alert đều đi qua `getErrorMessage`.
 
 ## Nghiệp vụ đã nối
 

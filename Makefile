@@ -12,7 +12,7 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
 
 .DEFAULT_GOAL := help
 
-.PHONY: help tools gen tidy work build test fmt vet smoke seed-demo migrate-up migrate-down \
+.PHONY: help tools gen error-codes check-error-codes tidy work build test fmt vet smoke seed-demo migrate-up migrate-down \
         up down logs ps build-images web-install web-dev web-build \
         run-identity run-identity-grpc run-identity-http run-task run-task-grpc run-task-http \
         quality-all quality-fmt quality-vet quality-arch
@@ -27,6 +27,12 @@ tools: ## Cài buf + các protoc plugin
 
 gen: ## Sinh code từ common/proto vào common/gen
 	bash scripts/gen.sh
+
+error-codes: ## Sinh bản mirror bộ mã lỗi cho frontend từ common/errorcode
+	node scripts/sync-error-codes.mjs
+
+check-error-codes: ## Fail nếu mirror bộ mã lỗi của FE lệch bản canonical
+	node scripts/sync-error-codes.mjs --check
 
 tidy: ## go mod tidy cho từng module
 	@for m in $(MODULES); do echo "==> $$m"; (cd $$m && go mod tidy) || exit 1; done
@@ -48,7 +54,7 @@ fmt: ## gofmt
 	gofmt -l -w common service tools
 
 # ------------------------------------------------------------------- quality
-quality-all: quality-fmt quality-vet quality-arch ## Kiểm tra chất lượng code (fmt + vet + rules kiến trúc)
+quality-all: quality-fmt quality-vet quality-arch check-error-codes ## Kiểm tra chất lượng code (fmt + vet + rules kiến trúc + error codes)
 
 quality-fmt: ## gofmt: fail nếu file chưa format
 	@out="$$(gofmt -l common service tools)"; \
@@ -113,8 +119,8 @@ run-task-http: ## Chỉ chạy HTTP gateway task (:8082)
 web-install: ## Cài dependency frontend
 	cd frontend && npm install
 
-web-dev: ## Chạy frontend dev server
+web-dev: error-codes ## Chạy frontend dev server
 	cd frontend && npm run dev
 
-web-build: ## Build frontend
+web-build: error-codes ## Build frontend
 	cd frontend && npm run build

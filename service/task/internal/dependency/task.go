@@ -4,34 +4,33 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"taskmanager/common/errorcode"
 	taskv1 "taskmanager/common/gen/go/task/v1"
 	"taskmanager/service/task/internal/model"
 )
 
 func ValidateCreateTask(req *taskv1.CreateTaskRequest) error {
 	if req.GetProfileId() == "" {
-		return status.Error(codes.InvalidArgument, "profile_id là bắt buộc")
+		return errorcode.Error(errorcode.TaskProfileIDRequired, "profile_id là bắt buộc")
 	}
 	if strings.TrimSpace(req.GetTitle()) == "" {
-		return status.Error(codes.InvalidArgument, "title là bắt buộc")
+		return errorcode.Error(errorcode.TaskTitleRequired, "title là bắt buộc")
 	}
 	return nil
 }
 
 func ValidateTaskID(id string) error {
 	if id == "" {
-		return status.Error(codes.InvalidArgument, "id là bắt buộc")
+		return errorcode.Error(errorcode.TaskIDRequired, "id là bắt buộc")
 	}
 	return nil
 }
 
 func ValidateChangeTaskStatus(req *taskv1.ChangeTaskStatusRequest) error {
 	if req.GetId() == "" || req.GetStatusId() == "" {
-		return status.Error(codes.InvalidArgument, "id và status_id là bắt buộc")
+		return errorcode.Error(errorcode.TaskIDAndStatusIDRequired, "id và status_id là bắt buộc")
 	}
 	return nil
 }
