@@ -125,6 +125,8 @@ node scripts/smoke-test.mjs
 |---|---|
 | `InvalidArgument` | 400 |
 | `FailedPrecondition` | 400 |
+| `Unauthenticated` | 401 |
+| `PermissionDenied` | 403 |
 | `NotFound` | 404 |
 | `AlreadyExists` | 409 |
 | `Internal` | 500 |
@@ -205,9 +207,51 @@ Mỗi service đọc env với default như sau:
 | `HTTP_ADDR` | `:8081` | `:8082` |
 | `GRPC_DIAL_ADDR` | (rỗng) | (rỗng) |
 | `LOG_LEVEL` | `info` | `info` |
+| `DATABASE_URL` | (rỗng → in-memory) | (chưa dùng) |
+| `GOOGLE_CLIENT_ID` | (rỗng) | — |
+| `GOOGLE_CLIENT_SECRET` | (rỗng) | — |
+| `GOOGLE_REDIRECT_URL` | `http://localhost:8081/v1/auth/google/callback` | — |
+| `FRONTEND_BASE_URL` | `http://localhost:5173` | — |
+| `SESSION_SECRET` | (rỗng) | — |
+| `SESSION_TTL` | `720h` | — |
+| `COOKIE_SECURE` | `false` | — |
 
 `GRPC_ADDR` là địa chỉ `cmd/grpc` listen; `GRPC_DIAL_ADDR` là target `cmd/http` dial tới
 (rỗng → tự suy ra `127.0.0.1:<port>`; đặt trong Docker, ví dụ `identity-grpc:9081`).
+
+`DATABASE_URL` chỉ `cmd/grpc` của identity dùng: có giá trị thì chạy repository Postgres, rỗng thì
+quay về in-memory stub (log cảnh báo). Các biến `GOOGLE_*`, `FRONTEND_BASE_URL`, `SESSION_*` chỉ
+gateway identity (`cmd/http`) dùng cho luồng đăng nhập Google.
+
+## Đăng nhập Google (local)
+
+```bash
+export SESSION_SECRET="$(openssl rand -base64 48)"
+
+# OAuth client loại "Web application", redirect URI:
+#   http://localhost:5173/api/identity/v1/auth/google/callback
+export GOOGLE_CLIENT_ID="....apps.googleusercontent.com"
+export GOOGLE_CLIENT_SECRET="...."
+export GOOGLE_REDIRECT_URL="http://localhost:5173/api/identity/v1/auth/google/callback"
+export FRONTEND_BASE_URL="http://localhost:5173"
+
+make run-identity   # gRPC :9081 + gateway :8081
+make web-dev        # http://localhost:5173
+```
+
+Mở http://localhost:5173 → tự chuyển tới `/login` → **Đăng nhập với Google**. Backend đổi
+authorization code, tạo profile (kèm dòng `identity.auth_providers`) nếu là user mới, rồi redirect
+về `/auth/callback#token=<JWT>`. Token nằm ở fragment nên không lọt vào access log; frontend lưu vào
+`localStorage` và xoá fragment khỏi address bar.
+
+Callback trỏ về origin của Vite (`:5173`) chứ không phải `:8081` để request đi qua proxy và giữ
+cùng origin với SPA — nhớ khai báo đúng URI này ở Google Cloud Console.
+
+Muốn dữ liệu tồn tại qua restart thì trỏ `DATABASE_URL` vào Postgres đã migrate:
+
+```bash
+export DATABASE_URL="postgres://task_manager:task_manager@localhost:5432/task_manager?sslmode=disable"
+```
 
 ## Lệnh hữu ích
 

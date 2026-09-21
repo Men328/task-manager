@@ -11,10 +11,11 @@ import (
 type ProfileHandler struct {
 	identityv1.UnimplementedProfileServiceServer
 	profiles service.ProfileService
+	auth     service.AuthService
 }
 
-func NewProfileHandler(profiles service.ProfileService) *ProfileHandler {
-	return &ProfileHandler{profiles: profiles}
+func NewProfileHandler(profiles service.ProfileService, auth service.AuthService) *ProfileHandler {
+	return &ProfileHandler{profiles: profiles, auth: auth}
 }
 
 func (h *ProfileHandler) CreateProfile(ctx context.Context, req *identityv1.CreateProfileRequest) (*identityv1.CreateProfileResponse, error) {

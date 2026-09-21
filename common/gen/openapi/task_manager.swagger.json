@@ -1183,6 +1183,10 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "date-time"
         }
       },
       "title": "Profile là hồ sơ của một identity.\nMapping DB: identity.PROFILES"

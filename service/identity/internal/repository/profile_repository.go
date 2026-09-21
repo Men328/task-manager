@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,10 +25,18 @@ func (r *InMemoryProfileRepository) Create(_ context.Context, p model.Profile) (
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	email := strings.ToLower(strings.TrimSpace(p.Email))
+	for _, existing := range r.items {
+		if strings.EqualFold(existing.Email, email) {
+			return model.Profile{}, model.ErrEmailExists
+		}
+	}
+
 	now := time.Now().UTC()
 	if p.ID == "" {
 		p.ID = uuid.NewString()
 	}
+	p.Email = email
 	p.CreatedAt = now
 	p.UpdatedAt = now
 	r.items[p.ID] = p
@@ -43,6 +52,19 @@ func (r *InMemoryProfileRepository) Get(_ context.Context, id string) (model.Pro
 		return model.Profile{}, model.ErrNotFound
 	}
 	return p, nil
+}
+
+func (r *InMemoryProfileRepository) GetByEmail(_ context.Context, email string) (model.Profile, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	needle := strings.ToLower(strings.TrimSpace(email))
+	for _, p := range r.items {
+		if strings.EqualFold(p.Email, needle) {
+			return p, nil
+		}
+	}
+	return model.Profile{}, model.ErrNotFound
 }
 
 func (r *InMemoryProfileRepository) List(_ context.Context, limit int) ([]model.Profile, error) {
@@ -85,6 +107,21 @@ func (r *InMemoryProfileRepository) Update(_ context.Context, id string, upd mod
 		p.IsActive = *upd.IsActive
 	}
 	p.UpdatedAt = time.Now().UTC()
+	r.items[id] = p
+	return p, nil
+}
+
+func (r *InMemoryProfileRepository) TouchLastLogin(_ context.Context, id string) (model.Profile, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	p, ok := r.items[id]
+	if !ok {
+		return model.Profile{}, model.ErrNotFound
+	}
+	now := time.Now().UTC()
+	p.LastLoginAt = &now
+	p.UpdatedAt = now
 	r.items[id] = p
 	return p, nil
 }

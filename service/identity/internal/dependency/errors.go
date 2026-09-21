@@ -8,8 +8,14 @@ import (
 )
 
 func ToGRPCError(err error) error {
-	if errors.Is(err, model.ErrNotFound) {
+	switch {
+	case errors.Is(err, model.ErrNotFound):
 		return errorcode.Error(errorcode.IdentityProfileNotFound, err.Error())
+	case errors.Is(err, model.ErrEmailExists):
+		return errorcode.Error(errorcode.IdentityEmailAlreadyExists, err.Error())
+	case errors.Is(err, model.ErrProfileInactive):
+		return errorcode.Error(errorcode.IdentityAuthProfileInactive, err.Error())
+	default:
+		return errorcode.Error(errorcode.CommonInternal, err.Error())
 	}
-	return errorcode.Error(errorcode.CommonInternal, err.Error())
 }

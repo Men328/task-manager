@@ -28,6 +28,18 @@ const (
 	IdentityDisplayNameRequired = "IDENTITY_DISPLAY_NAME_REQUIRED"
 	IdentityProfileIDRequired   = "IDENTITY_PROFILE_ID_REQUIRED"
 	IdentityProfileNotFound     = "IDENTITY_PROFILE_NOT_FOUND"
+	IdentityEmailAlreadyExists  = "IDENTITY_EMAIL_ALREADY_EXISTS"
+
+	IdentityAuthProviderRequired       = "IDENTITY_AUTH_PROVIDER_REQUIRED"
+	IdentityAuthProviderUserIDRequired = "IDENTITY_AUTH_PROVIDER_USER_ID_REQUIRED"
+	IdentityAuthProviderUnsupported    = "IDENTITY_AUTH_PROVIDER_UNSUPPORTED"
+	IdentityAuthProfileInactive        = "IDENTITY_AUTH_PROFILE_INACTIVE"
+	IdentityAuthStateInvalid           = "IDENTITY_AUTH_STATE_INVALID"
+	IdentityAuthCodeRequired           = "IDENTITY_AUTH_CODE_REQUIRED"
+	IdentityAuthExchangeFailed         = "IDENTITY_AUTH_EXCHANGE_FAILED"
+	IdentityAuthTokenMissing           = "IDENTITY_AUTH_TOKEN_MISSING"
+	IdentityAuthTokenInvalid           = "IDENTITY_AUTH_TOKEN_INVALID"
+	IdentityAuthNotConfigured          = "IDENTITY_AUTH_NOT_CONFIGURED"
 
 	TaskProfileIDRequired        = "TASK_PROFILE_ID_REQUIRED"
 	TaskTitleRequired            = "TASK_TITLE_REQUIRED"

@@ -26,7 +26,8 @@
     "identityOffline": "Identity service offline",
     "notifications": "Notifications",
     "language": "Language",
-    "theme": "Appearance"
+    "theme": "Appearance",
+    "signOut": "Sign out"
   },
   "theme": {
     "light": "Light",
@@ -168,5 +169,15 @@
     "loadProfiles": "Could not load profiles",
     "loadBoard": "Could not load board data",
     "loadStatuses": "Could not load status data"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Use your Google account to open your board.",
+    "withGoogle": "Sign in with Google",
+    "failedTitle": "Sign-in failed",
+    "failedFallback": "We could not complete the sign-in. Please try again."
+  },
+  "authCallback": {
+    "signingIn": "Finishing sign-in…"
   }
 }

@@ -19,6 +19,7 @@ message Profile {
   bool is_active = 7;
   google.protobuf.Timestamp created_at = 8;
   google.protobuf.Timestamp updated_at = 9;
+  google.protobuf.Timestamp last_login_at = 10;
 }
 
 message CreateProfileRequest {
@@ -71,6 +72,27 @@ message DeleteProfileRequest {
 
 message DeleteProfileResponse {}
 
+// LoginWithProvider nhận danh tính đã được xác thực ở provider ngoài (ví dụ
+// Google) và trả về profile nội bộ, tạo mới khi chưa tồn tại.
+//
+// Cố ý KHÔNG khai báo google.api.http: đây là RPC nội bộ, chỉ gateway gọi được
+// sau khi đã đổi authorization code lấy thông tin user. Nếu expose ra HTTP thì
+// bất kỳ ai cũng tạo được profile với email tuỳ ý.
+message LoginWithProviderRequest {
+  string provider = 1;
+  string provider_user_id = 2;
+  string email = 3;
+  string display_name = 4;
+  string avatar_url = 5;
+  string timezone = 6;
+  string locale = 7;
+}
+
+message LoginWithProviderResponse {
+  Profile profile = 1;
+  bool created = 2;
+}
+
 service ProfileService {
   rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse) {
     option (google.api.http) = {
@@ -97,4 +119,6 @@ service ProfileService {
   rpc DeleteProfile(DeleteProfileRequest) returns (DeleteProfileResponse) {
     option (google.api.http) = {delete: "/v1/profiles/{id}"};
   }
+
+  rpc LoginWithProvider(LoginWithProviderRequest) returns (LoginWithProviderResponse);
 }

@@ -2,13 +2,20 @@ import { useMemo } from 'react';
 
 import type { CreateProfileInput } from '../../types';
 import { useAppDispatch, useAppSelector } from '../hooks';
-import { createProfileAndRefresh, fetchProfiles, selectProfile, setQuery } from './sessionSlice';
+import {
+  createProfileAndRefresh,
+  fetchProfiles,
+  selectProfile,
+  setQuery,
+  signOut,
+} from './sessionSlice';
 
 export function useSession() {
   const dispatch = useAppDispatch();
   const profiles = useAppSelector((state) => state.session.profiles);
   const profileId = useAppSelector((state) => state.session.profileId);
   const query = useAppSelector((state) => state.session.query);
+  const token = useAppSelector((state) => state.session.token);
   const loading = useAppSelector((state) => state.session.loading);
   const error = useAppSelector((state) => state.session.error);
 
@@ -22,6 +29,8 @@ export function useSession() {
     profile,
     profileId,
     query,
+    token,
+    authenticated: token !== null,
     loading,
     error,
     selectProfile: (id: string) => dispatch(selectProfile(id)),
@@ -32,5 +41,6 @@ export function useSession() {
     createProfile: async (input: CreateProfileInput) => {
       await dispatch(createProfileAndRefresh(input)).unwrap();
     },
+    signOut: () => dispatch(signOut()),
   };
 }
