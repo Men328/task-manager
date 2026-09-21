@@ -26,7 +26,8 @@
     "identityOffline": "Dịch vụ identity ngoại tuyến",
     "notifications": "Thông báo",
     "language": "Ngôn ngữ",
-    "theme": "Giao diện"
+    "theme": "Giao diện",
+    "signOut": "Đăng xuất"
   },
   "theme": {
     "light": "Sáng",
@@ -168,5 +169,15 @@
     "loadProfiles": "Không tải được hồ sơ",
     "loadBoard": "Không tải được dữ liệu board",
     "loadStatuses": "Không tải được dữ liệu trạng thái"
+  },
+  "login": {
+    "title": "Đăng nhập",
+    "subtitle": "Dùng tài khoản Google của bạn để vào bảng công việc.",
+    "withGoogle": "Đăng nhập với Google",
+    "failedTitle": "Đăng nhập không thành công",
+    "failedFallback": "Không hoàn tất được đăng nhập. Vui lòng thử lại."
+  },
+  "authCallback": {
+    "signingIn": "Đang hoàn tất đăng nhập…"
   }
 }

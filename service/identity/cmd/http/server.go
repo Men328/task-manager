@@ -42,7 +42,7 @@ func newGRPCConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
 	return conn, nil
 }
 
-func newServeMux(cfg config.Config, conn *grpc.ClientConn) (*runtime.ServeMux, error) {
+func newServeMux(cfg config.Config, conn *grpc.ClientConn, auth *authRoutes) (*runtime.ServeMux, error) {
 	mux := runtime.NewServeMux(
 		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{
 			MarshalOptions: protojson.MarshalOptions{
@@ -54,6 +54,10 @@ func newServeMux(cfg config.Config, conn *grpc.ClientConn) (*runtime.ServeMux, e
 
 	if err := identityv1.RegisterProfileServiceHandler(context.Background(), mux, conn); err != nil {
 		return nil, fmt.Errorf("register gateway handler: %w", err)
+	}
+
+	if err := auth.register(mux); err != nil {
+		return nil, fmt.Errorf("register auth routes: %w", err)
 	}
 
 	healthClient := healthpb.NewHealthClient(conn)

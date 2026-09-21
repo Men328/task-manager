@@ -8,7 +8,6 @@ import (
 
 	"taskmanager/service/identity/internal/config"
 	"taskmanager/service/identity/internal/handler"
-	"taskmanager/service/identity/internal/repository"
 	"taskmanager/service/identity/internal/service"
 )
 
@@ -18,8 +17,11 @@ func main() {
 			config.Load,
 			newListener,
 			newGRPCServer,
-			fx.Annotate(repository.NewInMemoryProfileRepository, fx.As(new(service.ProfileRepository))),
+			newPostgresPool,
+			fx.Annotate(newProfileRepository, fx.As(new(service.ProfileRepository))),
+			fx.Annotate(newAuthProviderRepository, fx.As(new(service.AuthProviderRepository))),
 			service.NewProfileService,
+			service.NewAuthService,
 			handler.NewProfileHandler,
 		),
 		fx.Invoke(setupLogger, serveGRPC),

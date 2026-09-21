@@ -4,11 +4,13 @@ import {
   Burger,
   Group,
   Indicator,
+  Menu,
   Stack,
   Text,
   TextInput,
+  UnstyledButton,
 } from '@mantine/core';
-import { IconBell, IconSearch } from '@tabler/icons-react';
+import { IconBell, IconLogout, IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import { useSession } from '../../context';
@@ -20,7 +22,7 @@ import classes from './TopBar.module.css';
 
 export function TopBar({ navOpened, onToggleNav }: { navOpened: boolean; onToggleNav: () => void }) {
   const { t } = useTranslation();
-  const { profile, query, setQuery } = useSession();
+  const { profile, query, setQuery, signOut } = useSession();
 
   const name = profile?.displayName ?? t('topbar.noProfile');
   const subtitle = profile?.email ?? t('topbar.identityOffline');
@@ -70,19 +72,36 @@ export function TopBar({ navOpened, onToggleNav }: { navOpened: boolean; onToggl
           </ActionIcon>
         </Indicator>
 
-        <Group gap={9} wrap="nowrap" pl={4}>
-          <Avatar size={34} radius={999} color={avatarColor(name)}>
-            {initials(name)}
-          </Avatar>
-          <Stack gap={0} visibleFrom="sm">
-            <Text fz={12.5} fw={700} c={tokens.text} truncate maw={150}>
-              {name}
-            </Text>
-            <Text fz={11} c={tokens.textMuted} truncate maw={150}>
-              {subtitle}
-            </Text>
-          </Stack>
-        </Group>
+        <Menu shadow="md" width={220} position="bottom-end" radius="md" withinPortal>
+          <Menu.Target>
+            <UnstyledButton aria-label={t('topbar.signOut')}>
+              <Group gap={9} wrap="nowrap" pl={4}>
+                <Avatar size={34} radius={999} color={avatarColor(name)}>
+                  {initials(name)}
+                </Avatar>
+                <Stack gap={0} visibleFrom="sm">
+                  <Text fz={12.5} fw={700} c={tokens.text} truncate maw={150}>
+                    {name}
+                  </Text>
+                  <Text fz={11} c={tokens.textMuted} truncate maw={150}>
+                    {subtitle}
+                  </Text>
+                </Stack>
+              </Group>
+            </UnstyledButton>
+          </Menu.Target>
+
+          <Menu.Dropdown>
+            <Menu.Label>
+              <Text fz={11} truncate>
+                {subtitle}
+              </Text>
+            </Menu.Label>
+            <Menu.Item leftSection={<IconLogout size={15} />} color="red" onClick={signOut}>
+              {t('topbar.signOut')}
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
       </Group>
     </Group>
   );

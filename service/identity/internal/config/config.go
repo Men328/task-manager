@@ -3,7 +3,9 @@ package config
 import (
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -14,6 +16,18 @@ type Config struct {
 	GRPCDialAddr string
 	HTTPAddr     string
 	LogLevel     string
+
+	DatabaseURL string
+
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURL  string
+
+	FrontendBaseURL string
+
+	SessionSecret string
+	SessionTTL    time.Duration
+	CookieSecure  bool
 }
 
 func Load() Config {
@@ -23,7 +37,27 @@ func Load() Config {
 		GRPCDialAddr: getenv("GRPC_DIAL_ADDR", ""),
 		HTTPAddr:     getenv("HTTP_ADDR", ":8081"),
 		LogLevel:     getenv("LOG_LEVEL", "info"),
+
+		DatabaseURL: os.Getenv("DATABASE_URL"),
+
+		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		GoogleRedirectURL:  getenv("GOOGLE_REDIRECT_URL", "http://localhost:8081/v1/auth/google/callback"),
+
+		FrontendBaseURL: strings.TrimRight(getenv("FRONTEND_BASE_URL", "http://localhost:5173"), "/"),
+
+		SessionSecret: os.Getenv("SESSION_SECRET"),
+		SessionTTL:    getduration("SESSION_TTL", 720*time.Hour),
+		CookieSecure:  getbool("COOKIE_SECURE", false),
 	}
+}
+
+func (c Config) GoogleOAuthConfigured() bool {
+	return c.GoogleClientID != "" && c.GoogleClientSecret != ""
+}
+
+func (c Config) SessionConfigured() bool {
+	return len(c.SessionSecret) >= 16
 }
 
 func (c Config) SlogLevel() slog.Level {
@@ -54,4 +88,28 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getbool(key string, fallback bool) bool {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(v)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func getduration(key string, fallback time.Duration) time.Duration {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(v)
+	if err != nil || parsed <= 0 {
+		return fallback
+	}
+	return parsed
 }

@@ -16,6 +16,28 @@ deployments/migrations/
 - Mặc định mỗi file chạy trong 1 transaction. Cần chạy ngoài transaction (vd: `CREATE INDEX CONCURRENTLY`)
   thì thêm dòng `-- migrate: no-transaction` ở đầu file.
 
+## Tên object thực tế trong DB
+
+`design/db_schema.dbml` quy ước tên bảng viết HOA (`PROFILES`, `TASKS`), nhưng SQL trong migration
+**không quote** identifier, nên PostgreSQL đã fold về chữ thường:
+
+| DBML | Tên thật trong Postgres |
+|---|---|
+| `identity.PROFILES` | `identity.profiles` |
+| `identity.AUTH_PROVIDERS` | `identity.auth_providers` |
+| `task.TASKS` | `task.tasks` |
+| `task.TASK_STATUSES` | `task.task_statuses` |
+| `task.STATUS_TRANSITIONS` | `task.status_transitions` |
+| `task.TASK_STATUS_LOGS` | `task.task_status_logs` |
+
+Cột, index và constraint cũng vậy (`uq_profiles_email`, `uq_auth_providers_provider_uid`, ...).
+
+→ SQL trong code phải dùng **tên chữ thường** (`identity.profiles`), hoặc quote đúng chữ thường
+(`identity."profiles"`). Viết `identity."PROFILES"` sẽ lỗi `relation does not exist`.
+Xem `service/identity/internal/repository/postgres_profile_repository.go`.
+
+Đừng sửa migration cũ sang dạng quote chữ HOA: phải rename table kèm mọi FK đang trỏ tới.
+
 ## Chạy
 
 ```bash

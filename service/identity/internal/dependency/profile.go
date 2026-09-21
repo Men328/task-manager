@@ -10,11 +10,6 @@ import (
 	"taskmanager/service/identity/internal/model"
 )
 
-const (
-	defaultTimezone = "Asia/Ho_Chi_Minh"
-	defaultLocale   = "vi"
-)
-
 func ValidateCreateProfile(req *identityv1.CreateProfileRequest) error {
 	if strings.TrimSpace(req.GetEmail()) == "" {
 		return errorcode.Error(errorcode.IdentityEmailRequired, "email là bắt buộc")
@@ -37,8 +32,8 @@ func ProfileFromCreateRequest(req *identityv1.CreateProfileRequest) model.Profil
 		Email:       req.GetEmail(),
 		DisplayName: req.GetDisplayName(),
 		AvatarURL:   req.GetAvatarUrl(),
-		Timezone:    orDefault(req.GetTimezone(), defaultTimezone),
-		Locale:      orDefault(req.GetLocale(), defaultLocale),
+		Timezone:    orDefault(req.GetTimezone(), model.DefaultTimezone),
+		Locale:      orDefault(req.GetLocale(), model.DefaultLocale),
 		IsActive:    true,
 	}
 }
@@ -54,7 +49,7 @@ func ProfileUpdateFromRequest(req *identityv1.UpdateProfileRequest) model.Profil
 }
 
 func ProfileToProto(p model.Profile) *identityv1.Profile {
-	return &identityv1.Profile{
+	out := &identityv1.Profile{
 		Id:          p.ID,
 		Email:       p.Email,
 		DisplayName: p.DisplayName,
@@ -65,6 +60,10 @@ func ProfileToProto(p model.Profile) *identityv1.Profile {
 		CreatedAt:   timestamppb.New(p.CreatedAt),
 		UpdatedAt:   timestamppb.New(p.UpdatedAt),
 	}
+	if p.LastLoginAt != nil {
+		out.LastLoginAt = timestamppb.New(*p.LastLoginAt)
+	}
+	return out
 }
 
 func orDefault(v, fallback string) string {

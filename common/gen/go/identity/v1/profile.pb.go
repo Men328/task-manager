@@ -36,6 +36,7 @@ type Profile struct {
 	IsActive      bool                   `protobuf:"varint,7,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	LastLoginAt   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=last_login_at,json=lastLoginAt,proto3" json:"last_login_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -129,6 +130,13 @@ func (x *Profile) GetCreatedAt() *timestamppb.Timestamp {
 func (x *Profile) GetUpdatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *Profile) GetLastLoginAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastLoginAt
 	}
 	return nil
 }
@@ -654,11 +662,161 @@ func (*DeleteProfileResponse) Descriptor() ([]byte, []int) {
 	return file_identity_v1_profile_proto_rawDescGZIP(), []int{10}
 }
 
+// LoginWithProvider nhận danh tính đã được xác thực ở provider ngoài (ví dụ
+// Google) và trả về profile nội bộ, tạo mới khi chưa tồn tại.
+//
+// Cố ý KHÔNG khai báo google.api.http: đây là RPC nội bộ, chỉ gateway gọi được
+// sau khi đã đổi authorization code lấy thông tin user. Nếu expose ra HTTP thì
+// bất kỳ ai cũng tạo được profile với email tuỳ ý.
+type LoginWithProviderRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Provider       string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	ProviderUserId string                 `protobuf:"bytes,2,opt,name=provider_user_id,json=providerUserId,proto3" json:"provider_user_id,omitempty"`
+	Email          string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	DisplayName    string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	AvatarUrl      string                 `protobuf:"bytes,5,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	Timezone       string                 `protobuf:"bytes,6,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	Locale         string                 `protobuf:"bytes,7,opt,name=locale,proto3" json:"locale,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *LoginWithProviderRequest) Reset() {
+	*x = LoginWithProviderRequest{}
+	mi := &file_identity_v1_profile_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoginWithProviderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoginWithProviderRequest) ProtoMessage() {}
+
+func (x *LoginWithProviderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_identity_v1_profile_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoginWithProviderRequest.ProtoReflect.Descriptor instead.
+func (*LoginWithProviderRequest) Descriptor() ([]byte, []int) {
+	return file_identity_v1_profile_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *LoginWithProviderRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *LoginWithProviderRequest) GetProviderUserId() string {
+	if x != nil {
+		return x.ProviderUserId
+	}
+	return ""
+}
+
+func (x *LoginWithProviderRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *LoginWithProviderRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *LoginWithProviderRequest) GetAvatarUrl() string {
+	if x != nil {
+		return x.AvatarUrl
+	}
+	return ""
+}
+
+func (x *LoginWithProviderRequest) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+func (x *LoginWithProviderRequest) GetLocale() string {
+	if x != nil {
+		return x.Locale
+	}
+	return ""
+}
+
+type LoginWithProviderResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Profile       *Profile               `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
+	Created       bool                   `protobuf:"varint,2,opt,name=created,proto3" json:"created,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoginWithProviderResponse) Reset() {
+	*x = LoginWithProviderResponse{}
+	mi := &file_identity_v1_profile_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoginWithProviderResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoginWithProviderResponse) ProtoMessage() {}
+
+func (x *LoginWithProviderResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_identity_v1_profile_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoginWithProviderResponse.ProtoReflect.Descriptor instead.
+func (*LoginWithProviderResponse) Descriptor() ([]byte, []int) {
+	return file_identity_v1_profile_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *LoginWithProviderResponse) GetProfile() *Profile {
+	if x != nil {
+		return x.Profile
+	}
+	return nil
+}
+
+func (x *LoginWithProviderResponse) GetCreated() bool {
+	if x != nil {
+		return x.Created
+	}
+	return false
+}
+
 var File_identity_v1_profile_proto protoreflect.FileDescriptor
 
 const file_identity_v1_profile_proto_rawDesc = "" +
 	"\n" +
-	"\x19identity/v1/profile.proto\x12\videntity.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb8\x02\n" +
+	"\x19identity/v1/profile.proto\x12\videntity.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf8\x02\n" +
 	"\aProfile\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12!\n" +
@@ -671,7 +829,9 @@ const file_identity_v1_profile_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xa2\x01\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12>\n" +
+	"\rlast_login_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\vlastLoginAt\"\xa2\x01\n" +
 	"\x14CreateProfileRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1d\n" +
@@ -710,14 +870,27 @@ const file_identity_v1_profile_proto_rawDesc = "" +
 	"\aprofile\x18\x01 \x01(\v2\x14.identity.v1.ProfileR\aprofile\"&\n" +
 	"\x14DeleteProfileRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x17\n" +
-	"\x15DeleteProfileResponse2\xbf\x04\n" +
+	"\x15DeleteProfileResponse\"\xec\x01\n" +
+	"\x18LoginWithProviderRequest\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12(\n" +
+	"\x10provider_user_id\x18\x02 \x01(\tR\x0eproviderUserId\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12!\n" +
+	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12\x1d\n" +
+	"\n" +
+	"avatar_url\x18\x05 \x01(\tR\tavatarUrl\x12\x1a\n" +
+	"\btimezone\x18\x06 \x01(\tR\btimezone\x12\x16\n" +
+	"\x06locale\x18\a \x01(\tR\x06locale\"e\n" +
+	"\x19LoginWithProviderResponse\x12.\n" +
+	"\aprofile\x18\x01 \x01(\v2\x14.identity.v1.ProfileR\aprofile\x12\x18\n" +
+	"\acreated\x18\x02 \x01(\bR\acreated2\xa3\x05\n" +
 	"\x0eProfileService\x12o\n" +
 	"\rCreateProfile\x12!.identity.v1.CreateProfileRequest\x1a\".identity.v1.CreateProfileResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/profiles\x12h\n" +
 	"\n" +
 	"GetProfile\x12\x1e.identity.v1.GetProfileRequest\x1a\x1f.identity.v1.GetProfileResponse\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/v1/profiles/{id}\x12i\n" +
 	"\fListProfiles\x12 .identity.v1.ListProfilesRequest\x1a!.identity.v1.ListProfilesResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/profiles\x12t\n" +
 	"\rUpdateProfile\x12!.identity.v1.UpdateProfileRequest\x1a\".identity.v1.UpdateProfileResponse\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*2\x11/v1/profiles/{id}\x12q\n" +
-	"\rDeleteProfile\x12!.identity.v1.DeleteProfileRequest\x1a\".identity.v1.DeleteProfileResponse\"\x19\x82\xd3\xe4\x93\x02\x13*\x11/v1/profiles/{id}B2Z0taskmanager/common/gen/go/identity/v1;identityv1b\x06proto3"
+	"\rDeleteProfile\x12!.identity.v1.DeleteProfileRequest\x1a\".identity.v1.DeleteProfileResponse\"\x19\x82\xd3\xe4\x93\x02\x13*\x11/v1/profiles/{id}\x12b\n" +
+	"\x11LoginWithProvider\x12%.identity.v1.LoginWithProviderRequest\x1a&.identity.v1.LoginWithProviderResponseB2Z0taskmanager/common/gen/go/identity/v1;identityv1b\x06proto3"
 
 var (
 	file_identity_v1_profile_proto_rawDescOnce sync.Once
@@ -731,43 +904,49 @@ func file_identity_v1_profile_proto_rawDescGZIP() []byte {
 	return file_identity_v1_profile_proto_rawDescData
 }
 
-var file_identity_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_identity_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_identity_v1_profile_proto_goTypes = []any{
-	(*Profile)(nil),               // 0: identity.v1.Profile
-	(*CreateProfileRequest)(nil),  // 1: identity.v1.CreateProfileRequest
-	(*CreateProfileResponse)(nil), // 2: identity.v1.CreateProfileResponse
-	(*GetProfileRequest)(nil),     // 3: identity.v1.GetProfileRequest
-	(*GetProfileResponse)(nil),    // 4: identity.v1.GetProfileResponse
-	(*ListProfilesRequest)(nil),   // 5: identity.v1.ListProfilesRequest
-	(*ListProfilesResponse)(nil),  // 6: identity.v1.ListProfilesResponse
-	(*UpdateProfileRequest)(nil),  // 7: identity.v1.UpdateProfileRequest
-	(*UpdateProfileResponse)(nil), // 8: identity.v1.UpdateProfileResponse
-	(*DeleteProfileRequest)(nil),  // 9: identity.v1.DeleteProfileRequest
-	(*DeleteProfileResponse)(nil), // 10: identity.v1.DeleteProfileResponse
-	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
+	(*Profile)(nil),                   // 0: identity.v1.Profile
+	(*CreateProfileRequest)(nil),      // 1: identity.v1.CreateProfileRequest
+	(*CreateProfileResponse)(nil),     // 2: identity.v1.CreateProfileResponse
+	(*GetProfileRequest)(nil),         // 3: identity.v1.GetProfileRequest
+	(*GetProfileResponse)(nil),        // 4: identity.v1.GetProfileResponse
+	(*ListProfilesRequest)(nil),       // 5: identity.v1.ListProfilesRequest
+	(*ListProfilesResponse)(nil),      // 6: identity.v1.ListProfilesResponse
+	(*UpdateProfileRequest)(nil),      // 7: identity.v1.UpdateProfileRequest
+	(*UpdateProfileResponse)(nil),     // 8: identity.v1.UpdateProfileResponse
+	(*DeleteProfileRequest)(nil),      // 9: identity.v1.DeleteProfileRequest
+	(*DeleteProfileResponse)(nil),     // 10: identity.v1.DeleteProfileResponse
+	(*LoginWithProviderRequest)(nil),  // 11: identity.v1.LoginWithProviderRequest
+	(*LoginWithProviderResponse)(nil), // 12: identity.v1.LoginWithProviderResponse
+	(*timestamppb.Timestamp)(nil),     // 13: google.protobuf.Timestamp
 }
 var file_identity_v1_profile_proto_depIdxs = []int32{
-	11, // 0: identity.v1.Profile.created_at:type_name -> google.protobuf.Timestamp
-	11, // 1: identity.v1.Profile.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 2: identity.v1.CreateProfileResponse.profile:type_name -> identity.v1.Profile
-	0,  // 3: identity.v1.GetProfileResponse.profile:type_name -> identity.v1.Profile
-	0,  // 4: identity.v1.ListProfilesResponse.profiles:type_name -> identity.v1.Profile
-	0,  // 5: identity.v1.UpdateProfileResponse.profile:type_name -> identity.v1.Profile
-	1,  // 6: identity.v1.ProfileService.CreateProfile:input_type -> identity.v1.CreateProfileRequest
-	3,  // 7: identity.v1.ProfileService.GetProfile:input_type -> identity.v1.GetProfileRequest
-	5,  // 8: identity.v1.ProfileService.ListProfiles:input_type -> identity.v1.ListProfilesRequest
-	7,  // 9: identity.v1.ProfileService.UpdateProfile:input_type -> identity.v1.UpdateProfileRequest
-	9,  // 10: identity.v1.ProfileService.DeleteProfile:input_type -> identity.v1.DeleteProfileRequest
-	2,  // 11: identity.v1.ProfileService.CreateProfile:output_type -> identity.v1.CreateProfileResponse
-	4,  // 12: identity.v1.ProfileService.GetProfile:output_type -> identity.v1.GetProfileResponse
-	6,  // 13: identity.v1.ProfileService.ListProfiles:output_type -> identity.v1.ListProfilesResponse
-	8,  // 14: identity.v1.ProfileService.UpdateProfile:output_type -> identity.v1.UpdateProfileResponse
-	10, // 15: identity.v1.ProfileService.DeleteProfile:output_type -> identity.v1.DeleteProfileResponse
-	11, // [11:16] is the sub-list for method output_type
-	6,  // [6:11] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	13, // 0: identity.v1.Profile.created_at:type_name -> google.protobuf.Timestamp
+	13, // 1: identity.v1.Profile.updated_at:type_name -> google.protobuf.Timestamp
+	13, // 2: identity.v1.Profile.last_login_at:type_name -> google.protobuf.Timestamp
+	0,  // 3: identity.v1.CreateProfileResponse.profile:type_name -> identity.v1.Profile
+	0,  // 4: identity.v1.GetProfileResponse.profile:type_name -> identity.v1.Profile
+	0,  // 5: identity.v1.ListProfilesResponse.profiles:type_name -> identity.v1.Profile
+	0,  // 6: identity.v1.UpdateProfileResponse.profile:type_name -> identity.v1.Profile
+	0,  // 7: identity.v1.LoginWithProviderResponse.profile:type_name -> identity.v1.Profile
+	1,  // 8: identity.v1.ProfileService.CreateProfile:input_type -> identity.v1.CreateProfileRequest
+	3,  // 9: identity.v1.ProfileService.GetProfile:input_type -> identity.v1.GetProfileRequest
+	5,  // 10: identity.v1.ProfileService.ListProfiles:input_type -> identity.v1.ListProfilesRequest
+	7,  // 11: identity.v1.ProfileService.UpdateProfile:input_type -> identity.v1.UpdateProfileRequest
+	9,  // 12: identity.v1.ProfileService.DeleteProfile:input_type -> identity.v1.DeleteProfileRequest
+	11, // 13: identity.v1.ProfileService.LoginWithProvider:input_type -> identity.v1.LoginWithProviderRequest
+	2,  // 14: identity.v1.ProfileService.CreateProfile:output_type -> identity.v1.CreateProfileResponse
+	4,  // 15: identity.v1.ProfileService.GetProfile:output_type -> identity.v1.GetProfileResponse
+	6,  // 16: identity.v1.ProfileService.ListProfiles:output_type -> identity.v1.ListProfilesResponse
+	8,  // 17: identity.v1.ProfileService.UpdateProfile:output_type -> identity.v1.UpdateProfileResponse
+	10, // 18: identity.v1.ProfileService.DeleteProfile:output_type -> identity.v1.DeleteProfileResponse
+	12, // 19: identity.v1.ProfileService.LoginWithProvider:output_type -> identity.v1.LoginWithProviderResponse
+	14, // [14:20] is the sub-list for method output_type
+	8,  // [8:14] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_identity_v1_profile_proto_init() }
@@ -782,7 +961,7 @@ func file_identity_v1_profile_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_identity_v1_profile_proto_rawDesc), len(file_identity_v1_profile_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

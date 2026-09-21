@@ -1,9 +1,10 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
-import { getErrorMessage } from '../../api/client';
-import { createProfile, listProfiles } from '../../api/identity';
+import { getErrorCode, getErrorMessage } from '../../api/client';
+import { createProfile, getCurrentProfile, listProfiles } from '../../api/identity';
 import i18n from '../../i18n';
+import { clearToken, readToken, writeToken } from '../../lib/session';
 import type { CreateProfileInput, Profile } from '../../types';
 
 export const fetchProfiles = createAsyncThunk<Profile[], void, { rejectValue: string }>(
@@ -30,10 +31,27 @@ export const createProfileAndRefresh = createAsyncThunk<
   }
 });
 
+export const restoreSession = createAsyncThunk<
+  Profile,
+  void,
+  { rejectValue: string; state: { session: SessionState } }
+>('session/restore', async (_arg, { getState, rejectWithValue }) => {
+  const token = getState().session.token;
+  if (!token) {
+    return rejectWithValue('anonymous');
+  }
+  try {
+    return await getCurrentProfile(token);
+  } catch (cause) {
+    return rejectWithValue(getErrorCode(cause) ?? getErrorMessage(cause));
+  }
+});
+
 export interface SessionState {
   profiles: Profile[];
   profileId: string | null;
   query: string;
+  token: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -42,6 +60,7 @@ const initialState: SessionState = {
   profiles: [],
   profileId: null,
   query: '',
+  token: readToken(),
   loading: true,
   error: null,
 };
@@ -55,6 +74,21 @@ const sessionSlice = createSlice({
     },
     setQuery(state, action: PayloadAction<string>) {
       state.query = action.payload;
+    },
+    setToken(state, action: PayloadAction<string>) {
+      state.token = action.payload;
+      state.loading = true;
+      state.error = null;
+      writeToken(action.payload);
+    },
+    signOut(state) {
+      state.token = null;
+      state.profiles = [];
+      state.profileId = null;
+      state.query = '';
+      state.loading = false;
+      state.error = null;
+      clearToken();
     },
   },
   extraReducers: (builder) => {
@@ -74,9 +108,26 @@ const sessionSlice = createSlice({
       .addCase(fetchProfiles.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload ?? action.error.message ?? i18n.t('errors.loadProfiles');
+      })
+      .addCase(restoreSession.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(restoreSession.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        state.profiles = [action.payload];
+        state.profileId = action.payload.id;
+      })
+      .addCase(restoreSession.rejected, (state) => {
+        state.loading = false;
+        state.token = null;
+        state.profiles = [];
+        state.profileId = null;
+        state.error = null;
+        clearToken();
       });
   },
 });
 
-export const { selectProfile, setQuery } = sessionSlice.actions;
+export const { selectProfile, setQuery, setToken, signOut } = sessionSlice.actions;
 export const sessionReducer = sessionSlice.reducer;

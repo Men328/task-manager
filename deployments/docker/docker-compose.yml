@@ -58,8 +58,8 @@ services:
       SERVICE_NAME: identity
       GRPC_ADDR: ":9081"
       LOG_LEVEL: info
-      # Chưa dùng: repository hiện là in-memory stub
-      # DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+      # Repository Postgres: bỏ trống biến này thì identity quay về in-memory stub.
+      DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
     ports:
       - "9081:9081"
     depends_on:
@@ -80,6 +80,16 @@ services:
       HTTP_ADDR: ":8081"
       GRPC_DIAL_ADDR: "identity-grpc:9081"
       LOG_LEVEL: info
+      # Đăng nhập Google. Đặt trong deployments/docker/.env (xem .env.example).
+      # GOOGLE_REDIRECT_URL phải trùng khít redirect URI đã đăng ký ở Google Cloud
+      # Console, và phải trỏ vào chính origin của frontend để nginx proxy tiếp.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-http://localhost:3000/api/identity/v1/auth/google/callback}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      SESSION_TTL: ${SESSION_TTL:-720h}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     ports:
       - "8081:8081"
     depends_on:
