@@ -1,6 +1,6 @@
 {
   "_note": "Bộ mã lỗi chuẩn (canonical). Backend gắn mã này vào google.rpc.ErrorInfo; FE map mã sang message. Bản mirror cho FE: frontend/src/config/error_codes.json - sinh bằng `make error-codes`, không sửa tay.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "domain": "taskmanager",
   "defaultCode": "COMMON_INTERNAL",
   "codes": {
@@ -280,6 +280,15 @@
       "message": {
         "vi": "Thiếu mã hồ sơ.",
         "en": "Profile id is required."
+      }
+    },
+    "TASK_WORKSPACE_ID_REQUIRED": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã không gian làm việc.",
+        "en": "Workspace id is required."
       }
     },
     "TASK_TITLE_REQUIRED": {

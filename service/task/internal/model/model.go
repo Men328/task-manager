@@ -5,6 +5,7 @@ import "time"
 type Task struct {
 	ID           string
 	ProfileID    string
+	WorkspaceID  string
 	ParentTaskID string
 	StatusID     string
 	Title        string
@@ -21,6 +22,7 @@ type Task struct {
 
 type TaskFilter struct {
 	ProfileID       string
+	WorkspaceID     string
 	ParentTaskID    string
 	RootOnly        bool
 	StatusID        string

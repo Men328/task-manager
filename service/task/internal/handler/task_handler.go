@@ -53,6 +53,10 @@ func (h *TaskHandler) GetTask(ctx context.Context, req *taskv1.GetTaskRequest) (
 }
 
 func (h *TaskHandler) ListTasks(ctx context.Context, req *taskv1.ListTasksRequest) (*taskv1.ListTasksResponse, error) {
+	if err := dependency.ValidateListTasks(req); err != nil {
+		return nil, err
+	}
+
 	items, err := h.tasks.List(ctx, dependency.TaskFilterFromRequest(req))
 	if err != nil {
 		return nil, dependency.ToGRPCError(err)

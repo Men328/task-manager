@@ -66,6 +66,9 @@ func (r *InMemoryTaskRepository) List(_ context.Context, f model.TaskFilter) ([]
 		if f.ProfileID != "" && t.ProfileID != f.ProfileID {
 			continue
 		}
+		if f.WorkspaceID != "" && t.WorkspaceID != f.WorkspaceID {
+			continue
+		}
 		if f.RootOnly {
 			if t.ParentTaskID != "" {
 				continue

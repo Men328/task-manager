@@ -75,6 +75,9 @@ Kanban dashboard tối giản cho **người dùng cá nhân**: sidebar (brand +
 New Task) và board 4 cột. Không có nhân sự/project/sprint.
 
 - Cột lấy từ **status của profile** (`position` + `color`), card lấy từ **task gốc**.
+- Sidebar có **workspace switcher**: chọn workspace, tạo qua modal form (nút lớn khi chưa có gì),
+  sửa bằng icon bút chì; workspace đang chọn lưu ở localStorage (`tm-workspace-id`), gửi kèm khi tạo
+  task và là tham số **bắt buộc** của `GET /v1/tasks` (board chỉ fetch khi đã có workspace).
 - Progress trên card suy ra từ task con (`done/total` theo `category = DONE`).
 - **Kéo thả card** sang cột khác gọi `POST /v1/tasks/{id}/status`; rule allowlist ở backend chặn thì UI
   hiện notification đỏ — đúng nghiệp vụ lifecycle.
@@ -171,8 +174,9 @@ tầng phải flat, `service/interfaces.go` bắt buộc, không comment trong c
   bắt signal/graceful shutdown. Adapter repository được inject vào port qua `fx.As`.
 - **Proto tập trung** ở `common/proto/<service>/v1/*.proto`, code gen đổ về `common/gen`.
 - HTTP path chuẩn hoá `/v1/<resource>`, khai báo bằng `option (google.api.http)` trong proto.
+  `GET /v1/tasks` **bắt buộc** query `workspace_id` (thiếu -> 400 `TASK_WORKSPACE_ID_REQUIRED`).
 - JSON trả về dùng **lowerCamelCase** (mặc định protojson) — khớp type của frontend.
-  Riêng **query param** phải dùng tên field proto: `GET /v1/tasks?profile_id=...`.
+  Riêng **query param** phải dùng tên field proto: `GET /v1/tasks?profile_id=...&workspace_id=...`.
 - Tên bảng DB theo `<service>.<TABLES>` — xem `design/db_schema.dbml`.
 - **Chất lượng code**: `make quality-all` = `gofmt` + `go vet` + rules kiến trúc trong `quality.json`
   (checker ở `tools/quality`).

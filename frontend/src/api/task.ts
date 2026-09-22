@@ -38,6 +38,7 @@ function toStatusBody(input: CreateStatusInput): Record<string, unknown> {
 function toTaskBody(input: CreateTaskInput): Record<string, unknown> {
   return {
     profile_id: input.profileId,
+    workspace_id: input.workspaceId,
     title: input.title,
     status_id: input.statusId,
     description: input.description,
@@ -100,6 +101,7 @@ export async function listTasks(params: ListTasksParams): Promise<Task[]> {
     taskApi,
     `${TASKS_PATH}${buildQuery({
       profile_id: params.profileId,
+      workspace_id: params.workspaceId,
       status_id: params.statusId,
       parent_task_id: params.parentTaskId,
       root_only: params.rootOnly,

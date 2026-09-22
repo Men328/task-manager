@@ -404,6 +404,12 @@
             "in": "query",
             "required": false,
             "type": "boolean"
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -1167,6 +1173,9 @@
         "dueAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "workspaceId": {
+          "type": "string"
         }
       }
     },
@@ -1505,6 +1514,9 @@
             "$ref": "#/definitions/v1Task"
           },
           "title": "chỉ được fill khi request yêu cầu include_subtasks"
+        },
+        "workspaceId": {
+          "type": "string"
         }
       },
       "title": "Task cá nhân, hỗ trợ task cha - con qua parent_task_id.\nMapping DB: task.TASKS"

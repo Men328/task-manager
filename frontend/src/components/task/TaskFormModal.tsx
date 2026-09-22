@@ -8,6 +8,7 @@ import { getErrorMessage } from '../../api/client';
 import { useBoard } from '../../context';
 import { hasText } from '../../lib/format';
 import { PRIORITY_LABEL_KEY } from '../../lib/tokens';
+import { readWorkspaceId } from '../../lib/workspace';
 import { tokens } from '../../theme';
 import { TASK_PRIORITIES } from '../../types';
 import type { TaskPriority } from '../../types';
@@ -68,10 +69,20 @@ export function TaskFormModal({ opened, onClose, presetStatusId }: TaskFormModal
     if (!title.trim()) {
       return;
     }
+    const workspaceId = readWorkspaceId();
+    if (!workspaceId) {
+      notifications.show({
+        title: t('taskForm.createFailed'),
+        message: t('taskForm.noWorkspace'),
+        color: 'red',
+      });
+      return;
+    }
     setSubmitting(true);
     try {
       await addTask({
         title: title.trim(),
+        workspaceId,
         description: description.trim() || undefined,
         statusId: statusId ?? undefined,
         priority,

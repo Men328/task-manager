@@ -32,6 +32,10 @@ nhất wiring concrete vào interface.
 ## Nghiệp vụ đã có trong base
 
 - **Task cha/con**: `parent_task_id`, chặn tạo vòng lặp (`ErrCycle`), không xoá task còn task con.
+- **Task thuộc workspace**: mọi task có `workspace_id`; `POST /v1/tasks` bắt buộc truyền
+  `workspace_id` (thiếu -> 400 `TASK_WORKSPACE_ID_REQUIRED`).
+- **List theo workspace**: `GET /v1/tasks` bắt buộc query `workspace_id` (thiếu -> 400
+  `TASK_WORKSPACE_ID_REQUIRED`); chỉ trả task thuộc workspace đó.
 - **Status theo profile**: mỗi profile có bộ status riêng; set `is_default` sẽ tự bỏ default của status khác; không xoá status đang được task dùng (giống `ON DELETE RESTRICT`).
 - **Lifecycle allowlist** (`STATUS_TRANSITIONS`): `ChangeTaskStatus` chỉ cho phép khi tồn tại rule `from -> to` đang active. Không có rule = cấm. `ValidateStatusTransition` để check trước.
 - **Audit**: mỗi lần tạo task / đổi status ghi 1 dòng `TaskStatusLog` (in-memory).
@@ -55,6 +59,7 @@ make run-task
 
 ```bash
 P=<profile_id>
+W=<workspace_id>
 
 # 1. tạo 3 status
 curl -s -X POST localhost:8082/v1/statuses -H 'Content-Type: application/json' \
@@ -68,9 +73,12 @@ curl -s -X POST localhost:8082/v1/statuses -H 'Content-Type: application/json' \
 curl -s -X POST localhost:8082/v1/transitions -H 'Content-Type: application/json' \
   -d "{\"profile_id\":\"$P\",\"from_status_id\":\"<todo_id>\",\"to_status_id\":\"<doing_id>\"}"
 
-# 3. tạo task (không truyền status_id -> dùng status default)
+# 3. tạo task trong workspace (không truyền status_id -> dùng status default)
 curl -s -X POST localhost:8082/v1/tasks -H 'Content-Type: application/json' \
-  -d "{\"profile_id\":\"$P\",\"title\":\"Viết báo cáo\"}"
+  -d "{\"profile_id\":\"$P\",\"workspace_id\":\"$W\",\"title\":\"Viết báo cáo\"}"
+
+# 3b. list task của workspace (thiếu workspace_id -> 400 TASK_WORKSPACE_ID_REQUIRED)
+curl -s "localhost:8082/v1/tasks?profile_id=$P&workspace_id=$W&root_only=true"
 
 # 4. đổi status
 curl -s -X POST localhost:8082/v1/tasks/<task_id>/status -H 'Content-Type: application/json' \

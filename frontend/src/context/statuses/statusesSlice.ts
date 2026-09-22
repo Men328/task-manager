@@ -13,33 +13,40 @@ interface StatusesPageData {
   tasks: Task[];
 }
 
-export const fetchStatusesPage = createAsyncThunk<StatusesPageData, string, { rejectValue: string }>(
-  'statusesPage/fetch',
-  async (profileId, { rejectWithValue }) => {
-    try {
-      const [statuses, transitions, tasks] = await Promise.all([
-        listStatuses(profileId),
-        listTransitions(profileId),
-        listTasks({ profileId, includeSubtasks: true }),
-      ]);
-      return { statuses, transitions, tasks };
-    } catch (cause) {
-      return rejectWithValue(getErrorMessage(cause));
-    }
-  },
-);
+interface FetchStatusesPageArgs {
+  profileId: string;
+  workspaceId: string | null;
+}
 
-export const seedStatusesPage = createAsyncThunk<void, string, { rejectValue: string }>(
-  'statusesPage/seedStatuses',
-  async (profileId, { dispatch, rejectWithValue }) => {
-    try {
-      await seedDefaultStatuses(profileId);
-      await dispatch(fetchStatusesPage(profileId)).unwrap();
-    } catch (cause) {
-      return rejectWithValue(getErrorMessage(cause));
-    }
-  },
-);
+export const fetchStatusesPage = createAsyncThunk<
+  StatusesPageData,
+  FetchStatusesPageArgs,
+  { rejectValue: string }
+>('statusesPage/fetch', async ({ profileId, workspaceId }, { rejectWithValue }) => {
+  try {
+    const [statuses, transitions, tasks] = await Promise.all([
+      listStatuses(profileId),
+      listTransitions(profileId),
+      workspaceId ? listTasks({ profileId, workspaceId, includeSubtasks: true }) : Promise.resolve([]),
+    ]);
+    return { statuses, transitions, tasks };
+  } catch (cause) {
+    return rejectWithValue(getErrorMessage(cause));
+  }
+});
+
+export const seedStatusesPage = createAsyncThunk<
+  void,
+  FetchStatusesPageArgs,
+  { rejectValue: string }
+>('statusesPage/seedStatuses', async ({ profileId, workspaceId }, { dispatch, rejectWithValue }) => {
+  try {
+    await seedDefaultStatuses(profileId);
+    await dispatch(fetchStatusesPage({ profileId, workspaceId })).unwrap();
+  } catch (cause) {
+    return rejectWithValue(getErrorMessage(cause));
+  }
+});
 
 export interface StatusesPageState {
   statuses: TaskStatus[];

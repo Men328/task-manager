@@ -27,14 +27,19 @@ interface BoardData {
 
 const optimisticMove = createAction<{ taskId: string; statusId: string }>('board/optimisticMove');
 
-export const fetchBoard = createAsyncThunk<BoardData, string, { rejectValue: string }>(
+interface FetchBoardArgs {
+  profileId: string;
+  workspaceId: string;
+}
+
+export const fetchBoard = createAsyncThunk<BoardData, FetchBoardArgs, { rejectValue: string }>(
   'board/fetchBoard',
-  async (profileId, { rejectWithValue }) => {
+  async ({ profileId, workspaceId }, { rejectWithValue }) => {
     try {
       const [statuses, transitions, tasks] = await Promise.all([
         listStatuses(profileId),
         listTransitions(profileId),
-        listTasks({ profileId, includeSubtasks: true }),
+        listTasks({ profileId, workspaceId, includeSubtasks: true }),
       ]);
       return { statuses, transitions, tasks };
     } catch (cause) {
@@ -50,7 +55,7 @@ export const createTaskAndRefresh = createAsyncThunk<
 >('board/createTask', async ({ profileId, input }, { dispatch, rejectWithValue }) => {
   try {
     await createTask({ ...input, profileId });
-    await dispatch(fetchBoard(profileId)).unwrap();
+    await dispatch(fetchBoard({ profileId, workspaceId: input.workspaceId })).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
@@ -58,7 +63,7 @@ export const createTaskAndRefresh = createAsyncThunk<
 
 export const moveTask = createAsyncThunk<
   void,
-  { profileId: string; taskId: string; statusId: string; note?: string },
+  { profileId: string; workspaceId: string; taskId: string; statusId: string; note?: string },
   { state: RootState; rejectValue: string }
 >('board/moveTask', async (args, { dispatch, getState, rejectWithValue }) => {
   const previous = getState().board.tasks.find((task) => task.id === args.taskId);
@@ -70,7 +75,9 @@ export const moveTask = createAsyncThunk<
 
   try {
     await changeTaskStatus(args.taskId, args.statusId, args.note);
-    await dispatch(fetchBoard(args.profileId)).unwrap();
+    await dispatch(
+      fetchBoard({ profileId: args.profileId, workspaceId: args.workspaceId }),
+    ).unwrap();
   } catch (cause) {
     dispatch(optimisticMove({ taskId: args.taskId, statusId: previous.statusId }));
     return rejectWithValue(getErrorMessage(cause));
@@ -79,28 +86,29 @@ export const moveTask = createAsyncThunk<
 
 export const removeTask = createAsyncThunk<
   void,
-  { profileId: string; taskId: string },
+  { profileId: string; workspaceId: string; taskId: string },
   { rejectValue: string }
->('board/removeTask', async ({ profileId, taskId }, { dispatch, rejectWithValue }) => {
+>('board/removeTask', async ({ profileId, workspaceId, taskId }, { dispatch, rejectWithValue }) => {
   try {
     await deleteTask(taskId);
-    await dispatch(fetchBoard(profileId)).unwrap();
+    await dispatch(fetchBoard({ profileId, workspaceId })).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
 });
 
-export const seedBoardStatuses = createAsyncThunk<void, string, { rejectValue: string }>(
-  'board/seedStatuses',
-  async (profileId, { dispatch, rejectWithValue }) => {
-    try {
-      await seedDefaultStatuses(profileId);
-      await dispatch(fetchBoard(profileId)).unwrap();
-    } catch (cause) {
-      return rejectWithValue(getErrorMessage(cause));
-    }
-  },
-);
+export const seedBoardStatuses = createAsyncThunk<
+  void,
+  { profileId: string; workspaceId: string },
+  { rejectValue: string }
+>('board/seedStatuses', async ({ profileId, workspaceId }, { dispatch, rejectWithValue }) => {
+  try {
+    await seedDefaultStatuses(profileId);
+    await dispatch(fetchBoard({ profileId, workspaceId })).unwrap();
+  } catch (cause) {
+    return rejectWithValue(getErrorMessage(cause));
+  }
+});
 
 export interface BoardState {
   statuses: TaskStatus[];

@@ -11,6 +11,8 @@
 const IDENTITY = process.env.IDENTITY_URL ?? 'http://localhost:8081';
 const TASK = process.env.TASK_URL ?? 'http://localhost:8082';
 
+const WORKSPACE_ID = '11111111-1111-1111-1111-111111111111';
+
 async function req(method, url, body) {
   const res = await fetch(url, {
     method,
@@ -130,25 +132,40 @@ check('POST /v1/transitions/validate Todo->Done => allowed=false (không khai b�
   (r) => r.data.allowed === false);
 
 // ---------------------------------------------------------------- task
+checkCode('POST /v1/tasks thiếu workspace_id -> 400 + TASK_WORKSPACE_ID_REQUIRED',
+  await req('POST', `${TASK}/v1/tasks`, { profile_id: profileId, title: 'Thiếu workspace' }),
+  400, 'TASK_WORKSPACE_ID_REQUIRED');
+
 const task = check(
   'POST /v1/tasks (không truyền status_id -> dùng status default)',
-  await req('POST', `${TASK}/v1/tasks`, { profile_id: profileId, title: 'Viết báo cáo', priority: 'TASK_PRIORITY_HIGH' }),
+  await req('POST', `${TASK}/v1/tasks`, {
+    profile_id: profileId, workspace_id: WORKSPACE_ID, title: 'Viết báo cáo', priority: 'TASK_PRIORITY_HIGH',
+  }),
   200,
-  (r) => r.data.task?.statusId === todoId && r.data.task?.parentTaskId === '',
+  (r) => r.data.task?.statusId === todoId && r.data.task?.parentTaskId === '' &&
+    r.data.task?.workspaceId === WORKSPACE_ID,
 );
 const taskId = task.task.id;
 
 const sub = check(
   'POST /v1/tasks (task con)',
-  await req('POST', `${TASK}/v1/tasks`, { profile_id: profileId, title: 'Thu thập số liệu', parent_task_id: taskId }),
+  await req('POST', `${TASK}/v1/tasks`, {
+    profile_id: profileId, workspace_id: WORKSPACE_ID, title: 'Thu thập số liệu', parent_task_id: taskId,
+  }),
   200,
   (r) => r.data.task?.parentTaskId === taskId,
 );
 const subId = sub.task.id;
 
-check('GET /v1/tasks?root_only=true&include_subtasks=true',
-  await req('GET', `${TASK}/v1/tasks?profile_id=${profileId}&root_only=true&include_subtasks=true`), 200,
+checkCode('GET /v1/tasks thiếu workspace_id -> 400 + TASK_WORKSPACE_ID_REQUIRED',
+  await req('GET', `${TASK}/v1/tasks?profile_id=${profileId}&root_only=true`),
+  400, 'TASK_WORKSPACE_ID_REQUIRED');
+check('GET /v1/tasks?workspace_id=...&root_only=true&include_subtasks=true',
+  await req('GET', `${TASK}/v1/tasks?profile_id=${profileId}&workspace_id=${WORKSPACE_ID}&root_only=true&include_subtasks=true`), 200,
   (r) => r.data.tasks?.length === 1 && r.data.tasks[0].subtasks?.length === 1);
+check('GET /v1/tasks workspace khác -> rỗng',
+  await req('GET', `${TASK}/v1/tasks?profile_id=${profileId}&workspace_id=22222222-2222-2222-2222-222222222222`), 200,
+  (r) => (r.data.tasks?.length ?? 0) === 0);
 check('GET /v1/tasks/{id}?include_subtasks=true',
   await req('GET', `${TASK}/v1/tasks/${taskId}?include_subtasks=true`), 200,
   (r) => r.data.task?.subtasks?.length === 1);

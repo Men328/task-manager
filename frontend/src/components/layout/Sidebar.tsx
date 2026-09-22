@@ -7,9 +7,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { useSidebarCounts } from '../../context';
 import scrollClasses from '../../styles/scroll.module.css';
 import { tokens } from '../../theme';
+import { WorkspaceSwitcher } from '../workspace/WorkspaceSwitcher';
 import classes from './Sidebar.module.css';
 
 type IconComponent = typeof IconChecklist;
@@ -91,29 +91,6 @@ function WorkspaceHeader() {
   );
 }
 
-function SpaceBox() {
-  const { t } = useTranslation();
-  const { tasks, statuses } = useSidebarCounts();
-
-  return (
-    <Box px={11} py={10} className={classes.spaceBox}>
-      <Group gap={10} wrap="nowrap">
-        <ThemeIcon size={28} radius={8} variant="light" color="brand">
-          <IconChecklist size={16} />
-        </ThemeIcon>
-        <div className={classes.spaceBoxBody}>
-          <Text fz={12.5} fw={700} c={tokens.text} truncate>
-            {t('sidebar.spaceTitle')}
-          </Text>
-          <Text fz={11} c={tokens.textMuted} truncate>
-            {t('sidebar.spaceMeta', { tasks, statuses })}
-          </Text>
-        </div>
-      </Group>
-    </Box>
-  );
-}
-
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -129,7 +106,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <Box px="md" pt="md">
         <WorkspaceHeader />
         <Box mt={14}>
-          <SpaceBox />
+          <WorkspaceSwitcher />
         </Box>
       </Box>
 

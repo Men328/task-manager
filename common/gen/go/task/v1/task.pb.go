@@ -100,6 +100,7 @@ type Task struct {
 	UpdatedAt    *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// chỉ được fill khi request yêu cầu include_subtasks
 	Subtasks      []*Task `protobuf:"bytes,15,rep,name=subtasks,proto3" json:"subtasks,omitempty"`
+	WorkspaceId   string  `protobuf:"bytes,16,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -239,6 +240,13 @@ func (x *Task) GetSubtasks() []*Task {
 	return nil
 }
 
+func (x *Task) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
 type CreateTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProfileId     string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
@@ -250,6 +258,7 @@ type CreateTaskRequest struct {
 	Position      int32                  `protobuf:"varint,7,opt,name=position,proto3" json:"position,omitempty"`
 	StartAt       *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
 	DueAt         *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=due_at,json=dueAt,proto3" json:"due_at,omitempty"`
+	WorkspaceId   string                 `protobuf:"bytes,10,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -345,6 +354,13 @@ func (x *CreateTaskRequest) GetDueAt() *timestamppb.Timestamp {
 		return x.DueAt
 	}
 	return nil
+}
+
+func (x *CreateTaskRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
 }
 
 type CreateTaskResponse struct {
@@ -497,6 +513,7 @@ type ListTasksRequest struct {
 	StatusId        string `protobuf:"bytes,4,opt,name=status_id,json=statusId,proto3" json:"status_id,omitempty"`
 	IncludeArchived bool   `protobuf:"varint,5,opt,name=include_archived,json=includeArchived,proto3" json:"include_archived,omitempty"`
 	IncludeSubtasks bool   `protobuf:"varint,6,opt,name=include_subtasks,json=includeSubtasks,proto3" json:"include_subtasks,omitempty"`
+	WorkspaceId     string `protobuf:"bytes,7,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -571,6 +588,13 @@ func (x *ListTasksRequest) GetIncludeSubtasks() bool {
 		return x.IncludeSubtasks
 	}
 	return false
+}
+
+func (x *ListTasksRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
 }
 
 type ListTasksResponse struct {
@@ -958,7 +982,7 @@ var File_task_v1_task_proto protoreflect.FileDescriptor
 
 const file_task_v1_task_proto_rawDesc = "" +
 	"\n" +
-	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xea\x04\n" +
+	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8d\x05\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -979,7 +1003,8 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12)\n" +
-	"\bsubtasks\x18\x0f \x03(\v2\r.task.v1.TaskR\bsubtasks\"\xe6\x02\n" +
+	"\bsubtasks\x18\x0f \x03(\v2\r.task.v1.TaskR\bsubtasks\x12!\n" +
+	"\fworkspace_id\x18\x10 \x01(\tR\vworkspaceId\"\x89\x03\n" +
 	"\x11CreateTaskRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12$\n" +
@@ -990,14 +1015,16 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\bpriority\x18\x06 \x01(\x0e2\x15.task.v1.TaskPriorityR\bpriority\x12\x1a\n" +
 	"\bposition\x18\a \x01(\x05R\bposition\x125\n" +
 	"\bstart_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x121\n" +
-	"\x06due_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x05dueAt\"7\n" +
+	"\x06due_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x05dueAt\x12!\n" +
+	"\fworkspace_id\x18\n" +
+	" \x01(\tR\vworkspaceId\"7\n" +
 	"\x12CreateTaskResponse\x12!\n" +
 	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"K\n" +
 	"\x0eGetTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12)\n" +
 	"\x10include_subtasks\x18\x02 \x01(\bR\x0fincludeSubtasks\"4\n" +
 	"\x0fGetTaskResponse\x12!\n" +
-	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"\xe7\x01\n" +
+	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"\x8a\x02\n" +
 	"\x10ListTasksRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12$\n" +
@@ -1005,7 +1032,8 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\troot_only\x18\x03 \x01(\bR\brootOnly\x12\x1b\n" +
 	"\tstatus_id\x18\x04 \x01(\tR\bstatusId\x12)\n" +
 	"\x10include_archived\x18\x05 \x01(\bR\x0fincludeArchived\x12)\n" +
-	"\x10include_subtasks\x18\x06 \x01(\bR\x0fincludeSubtasks\"8\n" +
+	"\x10include_subtasks\x18\x06 \x01(\bR\x0fincludeSubtasks\x12!\n" +
+	"\fworkspace_id\x18\a \x01(\tR\vworkspaceId\"8\n" +
 	"\x11ListTasksResponse\x12#\n" +
 	"\x05tasks\x18\x01 \x03(\v2\r.task.v1.TaskR\x05tasks\"\xd0\x03\n" +
 	"\x11UpdateTaskRequest\x12\x0e\n" +

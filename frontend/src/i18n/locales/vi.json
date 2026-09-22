@@ -16,8 +16,29 @@
   },
   "sidebar": {
     "brand": "Quản lý công việc",
-    "spaceTitle": "Công việc của tôi",
     "spaceMeta": "{{tasks}} công việc · {{statuses}} trạng thái"
+  },
+  "workspace": {
+    "label": "Không gian làm việc",
+    "placeholder": "Chọn không gian làm việc",
+    "defaultName": "Không gian {{n}}",
+    "create": "Tạo không gian làm việc",
+    "createFirst": "Tạo không gian làm việc",
+    "createHint": "Bắt đầu bằng một không gian mới",
+    "createTitle": "Tạo không gian làm việc",
+    "createSubmit": "Tạo không gian",
+    "edit": "Sửa không gian làm việc",
+    "empty": "Chưa có không gian làm việc nào",
+    "created": "Đã tạo không gian làm việc",
+    "createFailed": "Không tạo được không gian làm việc",
+    "updated": "Đã cập nhật không gian làm việc",
+    "updateFailed": "Không cập nhật được không gian làm việc",
+    "formTitle": "Sửa không gian làm việc",
+    "nameLabel": "Tên",
+    "namePlaceholder": "Ví dụ: Công việc",
+    "descriptionLabel": "Mô tả",
+    "descriptionPlaceholder": "Mô tả ngắn...",
+    "save": "Lưu"
   },
   "topbar": {
     "openMenu": "Mở menu",
@@ -99,12 +120,15 @@
     "dueLabel": "Hạn hoàn thành",
     "submit": "Tạo công việc",
     "created": "Đã tạo công việc",
-    "createFailed": "Không tạo được công việc"
+    "createFailed": "Không tạo được công việc",
+    "noWorkspace": "Hãy chọn hoặc tạo không gian làm việc trước khi tạo công việc."
   },
   "boardPage": {
     "noProfileTitle": "Chưa có hồ sơ",
     "noProfileDesc": "Dịch vụ identity chưa có hồ sơ nào. Tạo một hồ sơ để bắt đầu.",
     "createProfile": "Tạo hồ sơ",
+    "noWorkspaceTitle": "Chưa có không gian làm việc",
+    "noWorkspaceDesc": "Công việc được tổ chức theo không gian làm việc. Tạo một không gian ở sidebar để bắt đầu.",
     "noStatusTitle": "Chưa có trạng thái nào",
     "noStatusDesc": "Cột trên board lấy từ trạng thái của hồ sơ. Tạo nhanh bộ 4 trạng thái kèm quy tắc vòng đời để bắt đầu.",
     "seedStatuses": "Tạo bộ trạng thái mặc định",
@@ -166,6 +190,7 @@
   },
   "errors": {
     "noProfile": "Chưa chọn hồ sơ",
+    "noWorkspace": "Chưa chọn không gian làm việc",
     "loadProfiles": "Không tải được hồ sơ",
     "loadBoard": "Không tải được dữ liệu board",
     "loadStatuses": "Không tải được dữ liệu trạng thái"
