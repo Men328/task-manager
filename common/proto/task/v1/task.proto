@@ -36,6 +36,7 @@ message Task {
   google.protobuf.Timestamp updated_at = 14;
   // chỉ được fill khi request yêu cầu include_subtasks
   repeated Task subtasks = 15;
+  string workspace_id = 16;
 }
 
 message CreateTaskRequest {
@@ -48,6 +49,7 @@ message CreateTaskRequest {
   int32 position = 7;
   google.protobuf.Timestamp start_at = 8;
   google.protobuf.Timestamp due_at = 9;
+  string workspace_id = 10;
 }
 
 message CreateTaskResponse {
@@ -72,6 +74,7 @@ message ListTasksRequest {
   string status_id = 4;
   bool include_archived = 5;
   bool include_subtasks = 6;
+  string workspace_id = 7;
 }
 
 message ListTasksResponse {

@@ -16,8 +16,29 @@
   },
   "sidebar": {
     "brand": "Task Manager",
-    "spaceTitle": "My Tasks",
     "spaceMeta": "{{tasks}} tasks · {{statuses}} statuses"
+  },
+  "workspace": {
+    "label": "Workspace",
+    "placeholder": "Select a workspace",
+    "defaultName": "Workspace {{n}}",
+    "create": "Create workspace",
+    "createFirst": "Create workspace",
+    "createHint": "Start with a new workspace",
+    "createTitle": "Create workspace",
+    "createSubmit": "Create workspace",
+    "edit": "Edit workspace",
+    "empty": "No workspace yet",
+    "created": "Workspace created",
+    "createFailed": "Could not create workspace",
+    "updated": "Workspace updated",
+    "updateFailed": "Could not update workspace",
+    "formTitle": "Edit workspace",
+    "nameLabel": "Name",
+    "namePlaceholder": "e.g. Personal",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Short description...",
+    "save": "Save"
   },
   "topbar": {
     "openMenu": "Open menu",
@@ -99,12 +120,15 @@
     "dueLabel": "Due date",
     "submit": "Create task",
     "created": "Task created",
-    "createFailed": "Could not create task"
+    "createFailed": "Could not create task",
+    "noWorkspace": "Select or create a workspace before creating a task."
   },
   "boardPage": {
     "noProfileTitle": "No profile yet",
     "noProfileDesc": "The identity service has no profile. Create one to get started.",
     "createProfile": "Create profile",
+    "noWorkspaceTitle": "No workspace yet",
+    "noWorkspaceDesc": "Tasks are organised by workspace. Create one in the sidebar to get started.",
     "noStatusTitle": "No status yet",
     "noStatusDesc": "Board columns come from the profile statuses. Create the default 4-status set with lifecycle rules to start.",
     "seedStatuses": "Create default statuses",
@@ -166,6 +190,7 @@
   },
   "errors": {
     "noProfile": "No profile selected",
+    "noWorkspace": "No workspace selected",
     "loadProfiles": "Could not load profiles",
     "loadBoard": "Could not load board data",
     "loadStatuses": "Could not load status data"

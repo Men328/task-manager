@@ -55,7 +55,7 @@ export function StatusesPage() {
     refresh: refreshSession,
   } = useSession();
   const statusesState = useStatuses();
-  const { statuses, transitions, statusById, tasks, seedDefaultStatuses } = statusesState;
+  const { statuses, transitions, statusById, tasks, seedDefaultStatuses, workspaceId } = statusesState;
   const [busy, setBusy] = useState(false);
 
   const loading = sessionLoading || statusesState.loading;
@@ -67,9 +67,9 @@ export function StatusesPage() {
 
   useEffect(() => {
     if (profileId) {
-      void dispatch(fetchStatusesPage(profileId));
+      void dispatch(fetchStatusesPage({ profileId, workspaceId }));
     }
-  }, [profileId, dispatch]);
+  }, [profileId, workspaceId, dispatch]);
 
   const handleSeed = async () => {
     setBusy(true);

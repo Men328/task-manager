@@ -39,6 +39,7 @@ export function useBoard() {
   const loading = useAppSelector(selectBoardLoading);
   const error = useAppSelector(selectBoardError);
   const profileId = useAppSelector((state) => state.session.profileId);
+  const workspaceId = useAppSelector((state) => state.workspace.selectedId);
 
   const isStatusDone = useCallback(
     (statusId: string) => isDoneCategory(statusById.get(statusId)?.category),
@@ -69,6 +70,7 @@ export function useBoard() {
     priorityFilter,
     loading,
     error,
+    workspaceId,
     isStatusDone,
     allowedTargets,
     togglePriority: (priority: TaskPriority) => dispatch(togglePriority(priority)),
@@ -77,33 +79,39 @@ export function useBoard() {
       dispatch(setQuery(''));
     },
     refresh: () => {
-      if (profileId) {
-        void dispatch(fetchBoard(profileId));
+      if (profileId && workspaceId) {
+        void dispatch(fetchBoard({ profileId, workspaceId }));
       }
     },
     addTask: async (input: NewTaskInput) => {
       if (!profileId) {
         throw new Error(i18n.t('errors.noProfile'));
       }
+      if (!workspaceId) {
+        throw new Error(i18n.t('errors.noWorkspace'));
+      }
       await dispatch(createTaskAndRefresh({ profileId, input })).unwrap();
     },
     moveTask: async (taskId: string, statusId: string, note?: string) => {
-      if (!profileId) {
+      if (!profileId || !workspaceId) {
         return;
       }
-      await dispatch(moveTaskThunk({ profileId, taskId, statusId, note })).unwrap();
+      await dispatch(moveTaskThunk({ profileId, workspaceId, taskId, statusId, note })).unwrap();
     },
     removeTask: async (taskId: string) => {
-      if (!profileId) {
+      if (!profileId || !workspaceId) {
         return;
       }
-      await dispatch(removeTaskThunk({ profileId, taskId })).unwrap();
+      await dispatch(removeTaskThunk({ profileId, workspaceId, taskId })).unwrap();
     },
     seedDefaultStatuses: async () => {
       if (!profileId) {
         throw new Error(i18n.t('errors.noProfile'));
       }
-      await dispatch(seedBoardStatuses(profileId)).unwrap();
+      if (!workspaceId) {
+        throw new Error(i18n.t('errors.noWorkspace'));
+      }
+      await dispatch(seedBoardStatuses({ profileId, workspaceId })).unwrap();
     },
   };
 }

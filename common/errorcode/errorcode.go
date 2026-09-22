@@ -44,6 +44,7 @@ const (
 	IdentityAuthNotConfigured          = "IDENTITY_AUTH_NOT_CONFIGURED"
 
 	TaskProfileIDRequired        = "TASK_PROFILE_ID_REQUIRED"
+	TaskWorkspaceIDRequired      = "TASK_WORKSPACE_ID_REQUIRED"
 	TaskTitleRequired            = "TASK_TITLE_REQUIRED"
 	TaskIDRequired               = "TASK_ID_REQUIRED"
 	TaskIDAndStatusIDRequired    = "TASK_ID_AND_STATUS_ID_REQUIRED"

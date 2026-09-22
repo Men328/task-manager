@@ -57,6 +57,22 @@ export interface Profile {
   updatedAt?: string;
 }
 
+export interface Workspace {
+  id: string;
+  ownerProfileId: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  color?: string | null;
+  icon?: string | null;
+  isDefault: boolean;
+  position?: number;
+  isArchived?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+}
+
 /** task service: TASK_STATUSES */
 export interface TaskStatus {
   id: string;
@@ -92,6 +108,7 @@ export interface StatusTransition {
 export interface Task {
   id: string;
   profileId: string;
+  workspaceId?: string | null;
   parentTaskId?: string | null;
   statusId: string;
   title: string;
@@ -121,6 +138,27 @@ export interface CreateProfileInput {
   locale?: string;
 }
 
+export interface CreateWorkspaceInput {
+  ownerProfileId: string;
+  name: string;
+  slug: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  isDefault?: boolean;
+  position?: number;
+}
+
+export interface UpdateWorkspaceInput {
+  name?: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  isDefault?: boolean;
+  position?: number;
+  isArchived?: boolean;
+}
+
 export interface CreateStatusInput {
   profileId: string;
   name: string;
@@ -135,6 +173,7 @@ export interface CreateStatusInput {
 
 export interface ListTasksParams {
   profileId: string;
+  workspaceId: string;
   statusId?: string;
   parentTaskId?: string;
   rootOnly?: boolean;
@@ -152,6 +191,7 @@ export interface CreateTransitionInput {
 export interface CreateTaskInput {
   profileId: string;
   title: string;
+  workspaceId: string;
   statusId?: string;
   description?: string;
   priority?: TaskPriority;

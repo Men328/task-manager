@@ -15,11 +15,16 @@ export const IDENTITY_BASE_URL: string =
 export const TASK_BASE_URL: string =
   (import.meta.env.VITE_TASK_API_URL as string | undefined) ?? '/api/task';
 
+export const WORKSPACE_BASE_URL: string =
+  (import.meta.env.VITE_WORKSPACE_API_URL as string | undefined) ?? '/api/workspace';
+
 /** Base URL used by the identity service calls. */
 export const identityApi = IDENTITY_BASE_URL;
 
 /** Base URL used by the task service calls. */
 export const taskApi = TASK_BASE_URL;
+
+export const workspaceApi = WORKSPACE_BASE_URL;
 
 export class ApiError extends Error {
   /** HTTP status code, or 0 when the request never reached the server. */

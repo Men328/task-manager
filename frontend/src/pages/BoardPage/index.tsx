@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Alert, Box, Button, Flex, Group, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconAlertTriangle, IconChecklist, IconPlus, IconSparkles } from '@tabler/icons-react';
+import {
+  IconAlertTriangle,
+  IconChecklist,
+  IconFolderPlus,
+  IconPlus,
+  IconSparkles,
+} from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
@@ -11,7 +17,7 @@ import KanbanBoard from '../../components/board/KanbanBoard';
 import TaskTable from '../../components/board/TaskTable';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
 import TaskFormModal from '../../components/task/TaskFormModal';
-import { useAppDispatch, useBoard, useSession } from '../../context';
+import { useAppDispatch, useBoard, useSession, useWorkspace } from '../../context';
 import { fetchBoard } from '../../context/board/boardSlice';
 import { tokens } from '../../theme';
 import classes from './BoardPage.module.css';
@@ -20,6 +26,7 @@ export function BoardPage() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const session = useSession();
+  const workspace = useWorkspace();
   const board = useBoard();
 
   const [view, setView] = useState<BoardView>('kanban');
@@ -28,13 +35,16 @@ export function BoardPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (session.profileId) {
-      void dispatch(fetchBoard(session.profileId));
+    if (session.profileId && workspace.selectedId) {
+      void dispatch(
+        fetchBoard({ profileId: session.profileId, workspaceId: workspace.selectedId }),
+      );
     }
-  }, [session.profileId, dispatch]);
+  }, [session.profileId, workspace.selectedId, dispatch]);
 
-  const loading = session.loading || board.loading;
+  const loading = session.loading || board.loading || workspace.loading;
   const error = session.error ?? board.error;
+  const workspaceReady = workspace.selectedId !== null;
 
   const refresh = () => {
     session.refresh();
@@ -42,6 +52,14 @@ export function BoardPage() {
   };
 
   const openNewTask = (statusId?: string) => {
+    if (!workspaceReady) {
+      notifications.show({
+        title: t('boardPage.noWorkspaceTitle'),
+        message: t('boardPage.noWorkspaceDesc'),
+        color: 'yellow',
+      });
+      return;
+    }
     setPresetStatusId(statusId ?? null);
     setModalOpened(true);
   };
@@ -95,7 +113,7 @@ export function BoardPage() {
   };
 
   const hasFilter = session.query.trim().length > 0 || board.priorityFilter.length > 0;
-  const ready = !error && session.profile !== null && board.statuses.length > 0;
+  const ready = !error && session.profile !== null && workspaceReady && board.statuses.length > 0;
 
   return (
     <Flex direction="column" h="100%" className={classes.root}>
@@ -119,7 +137,15 @@ export function BoardPage() {
           />
         ) : null}
 
-        {!error && !loading && session.profile && board.statuses.length === 0 ? (
+        {!error && !loading && session.profile && !workspaceReady ? (
+          <CenteredPanel
+            icon={IconFolderPlus}
+            title={t('boardPage.noWorkspaceTitle')}
+            description={t('boardPage.noWorkspaceDesc')}
+          />
+        ) : null}
+
+        {!error && !loading && session.profile && workspaceReady && board.statuses.length === 0 ? (
           <CenteredPanel
             icon={IconSparkles}
             title={t('boardPage.noStatusTitle')}

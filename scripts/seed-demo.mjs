@@ -6,6 +6,7 @@
  */
 const ID = process.env.IDENTITY_URL ?? 'http://localhost:8081';
 const TK = process.env.TASK_URL ?? 'http://localhost:8082';
+const WS = process.env.WORKSPACE_URL ?? 'http://localhost:8083';
 
 async function req(method, url, body) {
   const res = await fetch(url, {
@@ -36,6 +37,16 @@ const profile = (
   })
 ).profile;
 const pid = profile.id;
+
+const workspace = (
+  await req('POST', `${WS}/v1/workspaces`, {
+    owner_profile_id: pid,
+    name: 'Công việc của tôi',
+    slug: 'cong-viec-cua-toi',
+    is_default: true,
+  })
+).workspace;
+const wid = workspace.id;
 
 const defs = [
   ['To Do', 'todo', '#9aa0ae', 'TASK_STATUS_CATEGORY_TODO', true, false],
@@ -82,6 +93,7 @@ const inDays = (n) => {
 async function makeTask({ title, status, priority, dueAt, subtasks }) {
   const created = await req('POST', `${TK}/v1/tasks`, {
     profile_id: pid,
+    workspace_id: wid,
     title,
     status_id: S[status],
     priority,
@@ -95,6 +107,7 @@ async function makeTask({ title, status, priority, dueAt, subtasks }) {
     for (let i = 0; i < total; i += 1) {
       await req('POST', `${TK}/v1/tasks`, {
         profile_id: pid,
+        workspace_id: wid,
         title: `${title} — bước ${i + 1}`,
         // tạo thẳng ở status đích để không phải đi qua transition
         status_id: i < done ? S.completed : S.todo,
@@ -120,4 +133,4 @@ await makeTask({ title: 'CRM Layout Outline', status: 'in-review', priority: 'TA
 await makeTask({ title: 'CRM Layout Design', status: 'completed', priority: 'TASK_PRIORITY_URGENT' });
 await makeTask({ title: 'CRM Layout Draft', status: 'completed', priority: 'TASK_PRIORITY_URGENT' });
 
-console.log('SEED DONE. profileId =', pid);
+console.log('SEED DONE. profileId =', pid, 'workspaceId =', wid);
