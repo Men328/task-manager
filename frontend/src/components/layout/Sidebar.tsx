@@ -1,30 +1,13 @@
 import { Box, Group, Stack, Text, ThemeIcon, UnstyledButton } from '@mantine/core';
-import {
-  IconArrowsExchange,
-  IconChecklist,
-  IconSparkles,
-} from '@tabler/icons-react';
+import { IconSparkles } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import scrollClasses from '../../styles/scroll.module.css';
 import { tokens } from '../../theme';
 import { WorkspaceSwitcher } from '../workspace/WorkspaceSwitcher';
+import { NAV_SECTIONS, type NavItem } from './navigation';
 import classes from './Sidebar.module.css';
-
-type IconComponent = typeof IconChecklist;
-
-interface NavEntry {
-  labelKey: string;
-  icon: IconComponent;
-  to: string;
-}
-
-/** Chỉ giữ những mục phục vụ personal hub: task + cấu hình trạng thái. */
-const MAIN_MENU: NavEntry[] = [
-  { labelKey: 'nav.myTask', icon: IconChecklist, to: '/' },
-  { labelKey: 'nav.statusesLifecycle', icon: IconArrowsExchange, to: '/statuses' },
-];
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -43,12 +26,22 @@ function SectionLabel({ children }: { children: string }) {
   );
 }
 
-function NavItem({
+function EmptySectionHint() {
+  const { t } = useTranslation();
+
+  return (
+    <Text fz={12} c={tokens.textFaint} className={classes.emptyHint} px={10} py={7}>
+      {t('nav.emptyGroup')}
+    </Text>
+  );
+}
+
+function NavItemRow({
   entry,
   active,
   onSelect,
 }: {
-  entry: NavEntry;
+  entry: NavItem;
   active: boolean;
   onSelect: (to: string) => void;
 }) {
@@ -111,17 +104,25 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </Box>
 
       <Box className={`${scrollClasses.scroll} ${classes.scrollArea}`} px="md" pb="md">
-        <SectionLabel>{t('nav.mainMenu')}</SectionLabel>
-        <Stack gap={2}>
-          {MAIN_MENU.map((entry) => (
-            <NavItem
-              key={entry.labelKey}
-              entry={entry}
-              active={pathname === entry.to}
-              onSelect={select}
-            />
-          ))}
-        </Stack>
+        {NAV_SECTIONS.map((section) => (
+          <Box key={section.key}>
+            <SectionLabel>{t(section.labelKey)}</SectionLabel>
+            {section.items.length === 0 ? (
+              <EmptySectionHint />
+            ) : (
+              <Stack gap={2}>
+                {section.items.map((entry) => (
+                  <NavItemRow
+                    key={entry.key}
+                    entry={entry}
+                    active={pathname === entry.to}
+                    onSelect={select}
+                  />
+                ))}
+              </Stack>
+            )}
+          </Box>
+        ))}
       </Box>
     </Stack>
   );

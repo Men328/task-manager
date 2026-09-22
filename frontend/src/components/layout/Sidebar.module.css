@@ -6,6 +6,11 @@
   letter-spacing: 0.09em;
 }
 
+.emptyHint {
+  font-style: italic;
+  opacity: 0.75;
+}
+
 .navItem {
   display: block;
   width: 100%;
