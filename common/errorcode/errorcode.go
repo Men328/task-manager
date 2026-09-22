@@ -64,6 +64,13 @@ const (
 	TaskTransitionIDRequired     = "TASK_TRANSITION_ID_REQUIRED"
 	TaskTransitionNotFound       = "TASK_TRANSITION_NOT_FOUND"
 	TaskTransitionAlreadyExists  = "TASK_TRANSITION_ALREADY_EXISTS"
+
+	WorkspaceOwnerProfileIDRequired = "WORKSPACE_OWNER_PROFILE_ID_REQUIRED"
+	WorkspaceNameRequired           = "WORKSPACE_NAME_REQUIRED"
+	WorkspaceSlugRequired           = "WORKSPACE_SLUG_REQUIRED"
+	WorkspaceIDRequired             = "WORKSPACE_ID_REQUIRED"
+	WorkspaceNotFound               = "WORKSPACE_NOT_FOUND"
+	WorkspaceSlugAlreadyExists      = "WORKSPACE_SLUG_ALREADY_EXISTS"
 )
 
 type LocalizedMessage struct {

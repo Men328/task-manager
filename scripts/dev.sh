@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Chạy đồng thời tất cả service Go ở local (Ctrl+C để dừng cả hai).
 # Mỗi service gồm 2 process: gRPC server (cmd/grpc) + HTTP gateway (cmd/http).
-# Port: identity gRPC :9081 / HTTP :8081, task gRPC :9082 / HTTP :8082
+# Port: identity gRPC :9081 / HTTP :8081, task gRPC :9082 / HTTP :8082,
+#       workspace gRPC :9083 / HTTP :8083
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -25,6 +26,12 @@ pids+=("$!")
 go run ./service/task/cmd/http &
 pids+=("$!")
 
-echo "==> identity: http://localhost:8081  (gRPC :9081)"
-echo "==> task:     http://localhost:8082  (gRPC :9082)"
+go run ./service/workspace/cmd/grpc &
+pids+=("$!")
+go run ./service/workspace/cmd/http &
+pids+=("$!")
+
+echo "==> identity:  http://localhost:8081  (gRPC :9081)"
+echo "==> task:      http://localhost:8082  (gRPC :9082)"
+echo "==> workspace: http://localhost:8083  (gRPC :9083)"
 wait
