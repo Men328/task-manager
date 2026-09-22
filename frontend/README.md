@@ -59,7 +59,8 @@ src/
 │   ├── workspace.ts            # workspace đang chọn ở localStorage (key tm-workspace-id) + slug
 │   └── format.ts               # format ngày, initials, progress suy ra từ subtask
 ├── components/                 # mỗi component có <Name>.module.css đi kèm
-│   ├── layout/                 # AppLayout (shell), TopBar, Sidebar, ThemeSwitcher, LanguageSwitcher
+│   ├── layout/                 # AppLayout (shell), TopBar, Sidebar, navigation.ts (3 vùng menubar),
+│   │                           # ThemeSwitcher, LanguageSwitcher
 │   ├── workspace/              # WorkspaceSwitcher (select/create/edit) + WorkspaceFormModal
 │   ├── board/                  # BoardHeader, KanbanBoard, KanbanColumn, TaskCard,
 │   │                           # TaskTable, PriorityBadge, TaskProgress
@@ -81,7 +82,7 @@ src/
 
 ## Workspace switcher (sidebar)
 
-Khối "Công việc của tôi" ở sidebar là workspace switcher (`components/workspace/`):
+Khối chọn không gian làm việc ở đầu sidebar là workspace switcher (`components/workspace/`):
 
 - **Chọn workspace** bằng `Select` — danh sách lấy từ `GET /v1/workspaces?owner_profile_id=...`.
   Khi chưa có workspace nào, thay cho `Select` là **nút tạo lớn** (kiểu dashed) để bấm vào mở form.
@@ -216,16 +217,30 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
   các con số ảo trong design.
 - Chưa có form sửa status/rule (trang Statuses hiện read-only).
 
+## Menubar (sidebar) — 3 vùng
+
+Sidebar đọc từ `components/layout/navigation.ts` (`NAV_SECTIONS`), chia 3 vùng cố định:
+
+| Vùng | Nhãn i18n | Nội dung dự kiến | Hiện tại |
+|---|---|---|---|
+| `dashboard` | `nav.groups.dashboard` | menu thống kê | trống (hiện gợi ý "sắp có") |
+| `planning` | `nav.groups.planning` | task, calendar… | chỉ **Công việc của tôi** (`/`) |
+| `config` | `nav.groups.config` | cấu hình (status…) | **Trạng thái & vòng đời** (`/statuses`) |
+
+Thêm mục mới = thêm entry `{ key, labelKey, icon, to }` vào `items` của vùng tương ứng. Vùng rỗng vẫn
+hiển thị tiêu đề kèm gợi ý "sắp có" nên cấu trúc 3 vùng luôn nhìn thấy được. Đổi tên vùng ở
+`nav.groups.*` trong `locales/{vi,en}.json`.
+
 ## Hướng personal hub (đang đơn giản hoá)
 
 App target **người dùng cá nhân**, không có nhân sự / project / sprint. Menu chỉ giữ những gì phục vụ
 việc gom task + quan sát/phân tích:
 
-- **Công việc của tôi** (`/`) — kanban + table.
-- **Trạng thái & vòng đời** (`/statuses`) — cấu hình cột cho board.
+- **Kế hoạch → Công việc của tôi** (`/`) — kanban + table.
+- **Cấu hình → Trạng thái & vòng đời** (`/statuses`) — cấu hình cột cho board.
 
 Đã bỏ: các navlink doanh nghiệp (Department/Employee/Payroll/Schedule/Design/Project Manager/HR/
 Development), card **Upgrade PRO**, breadcrumb Dashboard/Project, nút **Invite**, cụm avatar nhóm.
 Dự kiến bổ sung sau (dùng lại dữ liệu task hiện có, chưa cần backend mới): **Lịch** (theo `dueAt`/
-`startAt`), **Hộp thư/Noti** (quá hạn, đến hạn, task chưa có trạng thái) và **Tổng quan/Insights**
-(thống kê theo trạng thái & độ ưu tiên).
+`startAt`) vào vùng **Kế hoạch**, **Hộp thư/Noti** (quá hạn, đến hạn, task chưa có trạng thái) và
+**Tổng quan/Insights** (thống kê theo trạng thái & độ ưu tiên) vào vùng **Tổng quan**.

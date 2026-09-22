@@ -10,7 +10,12 @@
     "retry": "Retry"
   },
   "nav": {
-    "mainMenu": "Menu",
+    "groups": {
+      "dashboard": "Dashboard",
+      "planning": "Planning",
+      "config": "Configuration"
+    },
+    "emptyGroup": "Coming soon",
     "myTask": "My Tasks",
     "statusesLifecycle": "Statuses & Lifecycle"
   },
@@ -144,7 +149,7 @@
     "createProfileFailedTitle": "Could not create profile"
   },
   "statusesPage": {
-    "breadcrumb": "Dashboard",
+    "breadcrumb": "Configuration",
     "title": "Statuses & Lifecycle",
     "subtitle": "Statuses belong to each profile; transitions are an allowlist.",
     "seedStatuses": "Create default statuses",

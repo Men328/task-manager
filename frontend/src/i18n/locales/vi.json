@@ -10,7 +10,12 @@
     "retry": "Thử lại"
   },
   "nav": {
-    "mainMenu": "Menu",
+    "groups": {
+      "dashboard": "Tổng quan",
+      "planning": "Kế hoạch",
+      "config": "Cấu hình"
+    },
+    "emptyGroup": "Sắp có",
     "myTask": "Công việc của tôi",
     "statusesLifecycle": "Trạng thái & vòng đời"
   },
@@ -144,7 +149,7 @@
     "createProfileFailedTitle": "Không tạo được hồ sơ"
   },
   "statusesPage": {
-    "breadcrumb": "Tổng quan",
+    "breadcrumb": "Cấu hình",
     "title": "Trạng thái & vòng đời",
     "subtitle": "Trạng thái thuộc từng hồ sơ; quy tắc chuyển là danh sách được phép.",
     "seedStatuses": "Tạo bộ trạng thái mặc định",
