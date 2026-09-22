@@ -13,6 +13,8 @@ import (
 
 const Domain = "taskmanager"
 
+const DefaultLanguage = "en"
+
 //go:embed error_codes.json
 var catalogJSON []byte
 
@@ -121,20 +123,20 @@ func Message(code, lang string) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	if primary := strings.ToLower(firstLanguage(lang)); primary == "en" {
-		if entry.Message.EN != "" {
-			return entry.Message.EN, true
-		}
+	if primary := strings.ToLower(firstLanguage(lang)); primary == "vi" {
 		if entry.Message.VI != "" {
 			return entry.Message.VI, true
 		}
+		if entry.Message.EN != "" {
+			return entry.Message.EN, true
+		}
 		return "", false
-	}
-	if entry.Message.VI != "" {
-		return entry.Message.VI, true
 	}
 	if entry.Message.EN != "" {
 		return entry.Message.EN, true
+	}
+	if entry.Message.VI != "" {
+		return entry.Message.VI, true
 	}
 	return "", false
 }
@@ -142,13 +144,23 @@ func Message(code, lang string) (string, bool) {
 func firstLanguage(lang string) string {
 	lang = strings.TrimSpace(lang)
 	if lang == "" {
-		return "vi"
+		return DefaultLanguage
 	}
 	return strings.SplitN(lang, "-", 2)[0]
 }
 
-func Error(code, message string) error {
-	st := status.New(grpcCode(code), message)
+func DefaultMessage(code string) string {
+	if message, ok := Message(code, DefaultLanguage); ok {
+		return message
+	}
+	if message, ok := Message(DefaultCode(), DefaultLanguage); ok {
+		return message
+	}
+	return DefaultCode()
+}
+
+func Error(code string) error {
+	st := status.New(grpcCode(code), DefaultMessage(code))
 	detailed, err := st.WithDetails(&errdetails.ErrorInfo{
 		Reason: code,
 		Domain: Domain,

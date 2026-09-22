@@ -156,7 +156,7 @@ check('GET /v1/tasks/{id}?include_subtasks=true',
 // --------------------------------------------- lifecycle enforcement
 checkCode('POST /v1/tasks/{id}/status Todo->Done (không có rule) -> 400 + TASK_TRANSITION_NOT_ALLOWED',
   await req('POST', `${TASK}/v1/tasks/${taskId}/status`, { status_id: doneId }), 400, 'TASK_TRANSITION_NOT_ALLOWED',
-  (r) => /không được phép chuyển/.test(r.data.message ?? ''));
+  (r) => /status change isn't allowed/.test(r.data.message ?? ''));
 check('POST /v1/tasks/{id}/status Todo->Doing (có rule)',
   await req('POST', `${TASK}/v1/tasks/${taskId}/status`, { status_id: doingId, note: 'bắt đầu làm' }), 200,
   (r) => r.data.task?.statusId === doingId && r.data.task?.completedAt == null);

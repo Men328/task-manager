@@ -12,20 +12,20 @@ import (
 
 func ValidateCreateTaskStatus(req *taskv1.CreateTaskStatusRequest) error {
 	if req.GetProfileId() == "" {
-		return errorcode.Error(errorcode.TaskProfileIDRequired, "profile_id là bắt buộc")
+		return errorcode.Error(errorcode.TaskProfileIDRequired)
 	}
 	if strings.TrimSpace(req.GetName()) == "" {
-		return errorcode.Error(errorcode.TaskStatusNameRequired, "name là bắt buộc")
+		return errorcode.Error(errorcode.TaskStatusNameRequired)
 	}
 	if strings.TrimSpace(req.GetSlug()) == "" {
-		return errorcode.Error(errorcode.TaskStatusSlugRequired, "slug là bắt buộc")
+		return errorcode.Error(errorcode.TaskStatusSlugRequired)
 	}
 	return nil
 }
 
 func ValidateTaskStatusID(id string) error {
 	if id == "" {
-		return errorcode.Error(errorcode.TaskStatusIDRequired, "id là bắt buộc")
+		return errorcode.Error(errorcode.TaskStatusIDRequired)
 	}
 	return nil
 }

@@ -90,11 +90,31 @@ func TestMessageFallsBackAcrossLanguages(t *testing.T) {
 	}
 }
 
+func TestDefaultLanguageIsEnglish(t *testing.T) {
+	en, ok := Message(TaskTitleRequired, "en")
+	if !ok || en == "" {
+		t.Fatalf("không lấy được message tiếng Anh")
+	}
+	if got := DefaultMessage(TaskTitleRequired); got != en {
+		t.Fatalf("DefaultMessage = %q, muốn %q", got, en)
+	}
+	if got := DefaultMessage("KHONG_TON_TAI"); got != DefaultMessage(DefaultCode()) {
+		t.Fatalf("mã lạ phải fallback về %q, nhận %q", DefaultCode(), got)
+	}
+}
+
 func TestErrorCarriesErrorInfoDetail(t *testing.T) {
-	err := Error(TaskTitleRequired, "title là bắt buộc")
+	err := Error(TaskTitleRequired)
 	st := status.Convert(err)
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("grpc code = %v, muốn InvalidArgument", st.Code())
+	}
+	wantMessage := DefaultMessage(TaskTitleRequired)
+	if st.Message() != wantMessage {
+		t.Fatalf("message = %q, muốn %q", st.Message(), wantMessage)
+	}
+	if strings.Contains(st.Message(), "bắt buộc") {
+		t.Fatalf("message không được hardcode tiếng Việt: %q", st.Message())
 	}
 
 	var info *errdetails.ErrorInfo

@@ -11,16 +11,16 @@ import (
 func ValidateLoginWithProvider(req *identityv1.LoginWithProviderRequest) error {
 	provider := strings.ToLower(strings.TrimSpace(req.GetProvider()))
 	if provider == "" {
-		return errorcode.Error(errorcode.IdentityAuthProviderRequired, "provider là bắt buộc")
+		return errorcode.Error(errorcode.IdentityAuthProviderRequired)
 	}
 	if provider != model.ProviderGoogle {
-		return errorcode.Error(errorcode.IdentityAuthProviderUnsupported, "provider không được hỗ trợ: "+provider)
+		return errorcode.Error(errorcode.IdentityAuthProviderUnsupported)
 	}
 	if strings.TrimSpace(req.GetProviderUserId()) == "" {
-		return errorcode.Error(errorcode.IdentityAuthProviderUserIDRequired, "provider_user_id là bắt buộc")
+		return errorcode.Error(errorcode.IdentityAuthProviderUserIDRequired)
 	}
 	if strings.TrimSpace(req.GetEmail()) == "" {
-		return errorcode.Error(errorcode.IdentityEmailRequired, "email là bắt buộc")
+		return errorcode.Error(errorcode.IdentityEmailRequired)
 	}
 	return nil
 }

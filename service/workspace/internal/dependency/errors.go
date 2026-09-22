@@ -10,16 +10,16 @@ import (
 func ToGRPCError(err error) error {
 	var domainErr *model.Error
 	if errors.As(err, &domainErr) {
-		return errorcode.Error(codeForKind(domainErr.Kind), domainErr.Message)
+		return errorcode.Error(codeForKind(domainErr.Kind))
 	}
 
 	switch {
 	case errors.Is(err, model.ErrNotFound):
-		return errorcode.Error(errorcode.WorkspaceNotFound, err.Error())
+		return errorcode.Error(errorcode.WorkspaceNotFound)
 	case errors.Is(err, model.ErrAlreadyExists):
-		return errorcode.Error(errorcode.WorkspaceSlugAlreadyExists, err.Error())
+		return errorcode.Error(errorcode.WorkspaceSlugAlreadyExists)
 	default:
-		return errorcode.Error(errorcode.CommonInternal, err.Error())
+		return errorcode.Error(errorcode.CommonInternal)
 	}
 }
 
