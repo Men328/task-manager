@@ -13,24 +13,24 @@ import (
 
 func ValidateCreateTask(req *taskv1.CreateTaskRequest) error {
 	if req.GetProfileId() == "" {
-		return errorcode.Error(errorcode.TaskProfileIDRequired, "profile_id là bắt buộc")
+		return errorcode.Error(errorcode.TaskProfileIDRequired)
 	}
 	if strings.TrimSpace(req.GetTitle()) == "" {
-		return errorcode.Error(errorcode.TaskTitleRequired, "title là bắt buộc")
+		return errorcode.Error(errorcode.TaskTitleRequired)
 	}
 	return nil
 }
 
 func ValidateTaskID(id string) error {
 	if id == "" {
-		return errorcode.Error(errorcode.TaskIDRequired, "id là bắt buộc")
+		return errorcode.Error(errorcode.TaskIDRequired)
 	}
 	return nil
 }
 
 func ValidateChangeTaskStatus(req *taskv1.ChangeTaskStatusRequest) error {
 	if req.GetId() == "" || req.GetStatusId() == "" {
-		return errorcode.Error(errorcode.TaskIDAndStatusIDRequired, "id và status_id là bắt buộc")
+		return errorcode.Error(errorcode.TaskIDAndStatusIDRequired)
 	}
 	return nil
 }

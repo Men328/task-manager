@@ -12,20 +12,20 @@ import (
 
 func ValidateCreateWorkspace(req *workspacev1.CreateWorkspaceRequest) error {
 	if strings.TrimSpace(req.GetOwnerProfileId()) == "" {
-		return errorcode.Error(errorcode.WorkspaceOwnerProfileIDRequired, "owner_profile_id là bắt buộc")
+		return errorcode.Error(errorcode.WorkspaceOwnerProfileIDRequired)
 	}
 	if strings.TrimSpace(req.GetName()) == "" {
-		return errorcode.Error(errorcode.WorkspaceNameRequired, "name là bắt buộc")
+		return errorcode.Error(errorcode.WorkspaceNameRequired)
 	}
 	if strings.TrimSpace(req.GetSlug()) == "" {
-		return errorcode.Error(errorcode.WorkspaceSlugRequired, "slug là bắt buộc")
+		return errorcode.Error(errorcode.WorkspaceSlugRequired)
 	}
 	return nil
 }
 
 func ValidateWorkspaceID(id string) error {
 	if strings.TrimSpace(id) == "" {
-		return errorcode.Error(errorcode.WorkspaceIDRequired, "id là bắt buộc")
+		return errorcode.Error(errorcode.WorkspaceIDRequired)
 	}
 	return nil
 }

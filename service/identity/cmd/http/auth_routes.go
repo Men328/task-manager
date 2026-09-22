@@ -254,7 +254,7 @@ func writeAPIError(w http.ResponseWriter, code string) {
 	if found && entry.HTTPStatus > 0 {
 		httpStatus = entry.HTTPStatus
 	}
-	message, _ := errorcode.Message(code, "vi")
+	message := errorcode.DefaultMessage(code)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatus)

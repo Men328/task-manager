@@ -88,14 +88,16 @@ Mọi lỗi backend đều kèm **mã lỗi chuẩn** để frontend dịch thà
 HTTP status / URL / text kỹ thuật lên notification.
 
 - Nguồn sự thật: `common/errorcode/error_codes.json` (mã + grpc code + http status + message vi/en).
-  Go embed file này và build lỗi qua `errorcode.Error(code, message)`.
+  Go embed file này; build lỗi chỉ bằng mã qua `errorcode.Error(code)`, message được tra từ chính
+  mã lỗi với locale mặc định `en` (`errorcode.DefaultLanguage`). Khi cần ngôn ngữ khác thì dùng
+  `errorcode.Message(code, lang)`.
 - Trên dây: gRPC status kèm `google.rpc.ErrorInfo`, grpc-gateway render thành
   `details[].reason`. Ví dụ lỗi thiếu title:
 
   ```json
   {
     "code": 3,
-    "message": "title là bắt buộc",
+    "message": "Task title is required.",
     "details": [
       { "@type": "type.googleapis.com/google.rpc.ErrorInfo", "reason": "TASK_TITLE_REQUIRED", "domain": "taskmanager" }
     ]

@@ -12,17 +12,17 @@ import (
 
 func ValidateCreateProfile(req *identityv1.CreateProfileRequest) error {
 	if strings.TrimSpace(req.GetEmail()) == "" {
-		return errorcode.Error(errorcode.IdentityEmailRequired, "email là bắt buộc")
+		return errorcode.Error(errorcode.IdentityEmailRequired)
 	}
 	if strings.TrimSpace(req.GetDisplayName()) == "" {
-		return errorcode.Error(errorcode.IdentityDisplayNameRequired, "display_name là bắt buộc")
+		return errorcode.Error(errorcode.IdentityDisplayNameRequired)
 	}
 	return nil
 }
 
 func ValidateProfileID(id string) error {
 	if id == "" {
-		return errorcode.Error(errorcode.IdentityProfileIDRequired, "id là bắt buộc")
+		return errorcode.Error(errorcode.IdentityProfileIDRequired)
 	}
 	return nil
 }

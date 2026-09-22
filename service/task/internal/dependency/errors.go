@@ -10,20 +10,20 @@ import (
 func ToGRPCError(err error) error {
 	var domainErr *model.Error
 	if errors.As(err, &domainErr) {
-		return errorcode.Error(codeForKind(domainErr.Kind), domainErr.Message)
+		return errorcode.Error(codeForKind(domainErr.Kind))
 	}
 
 	switch {
 	case errors.Is(err, model.ErrNotFound):
-		return errorcode.Error(errorcode.CommonNotFound, err.Error())
+		return errorcode.Error(errorcode.CommonNotFound)
 	case errors.Is(err, model.ErrAlreadyExists):
-		return errorcode.Error(errorcode.TaskTransitionAlreadyExists, err.Error())
+		return errorcode.Error(errorcode.TaskTransitionAlreadyExists)
 	case errors.Is(err, model.ErrInUse):
-		return errorcode.Error(errorcode.CommonFailedPrecondition, err.Error())
+		return errorcode.Error(errorcode.CommonFailedPrecondition)
 	case errors.Is(err, model.ErrCycle):
-		return errorcode.Error(errorcode.TaskCycleDetected, err.Error())
+		return errorcode.Error(errorcode.TaskCycleDetected)
 	default:
-		return errorcode.Error(errorcode.CommonInternal, err.Error())
+		return errorcode.Error(errorcode.CommonInternal)
 	}
 }
 

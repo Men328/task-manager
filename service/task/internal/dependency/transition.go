@@ -10,24 +10,24 @@ import (
 
 func ValidateCreateStatusTransition(req *taskv1.CreateStatusTransitionRequest) error {
 	if req.GetProfileId() == "" || req.GetFromStatusId() == "" || req.GetToStatusId() == "" {
-		return errorcode.Error(errorcode.TaskTransitionFieldsRequired, "profile_id, from_status_id, to_status_id là bắt buộc")
+		return errorcode.Error(errorcode.TaskTransitionFieldsRequired)
 	}
 	if req.GetFromStatusId() == req.GetToStatusId() {
-		return errorcode.Error(errorcode.TaskTransitionSameStatus, "from_status_id và to_status_id không được trùng nhau")
+		return errorcode.Error(errorcode.TaskTransitionSameStatus)
 	}
 	return nil
 }
 
 func ValidateStatusTransitionRequest(req *taskv1.ValidateStatusTransitionRequest) error {
 	if req.GetProfileId() == "" || req.GetFromStatusId() == "" || req.GetToStatusId() == "" {
-		return errorcode.Error(errorcode.TaskTransitionFieldsRequired, "profile_id, from_status_id, to_status_id là bắt buộc")
+		return errorcode.Error(errorcode.TaskTransitionFieldsRequired)
 	}
 	return nil
 }
 
 func ValidateStatusTransitionID(id string) error {
 	if id == "" {
-		return errorcode.Error(errorcode.TaskTransitionIDRequired, "id là bắt buộc")
+		return errorcode.Error(errorcode.TaskTransitionIDRequired)
 	}
 	return nil
 }
