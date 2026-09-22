@@ -21,12 +21,12 @@ sau). Là **1 Go module riêng** (`taskmanager/service/workspace`), dùng code c
 
 ```
 Dockerfile                       # build 2 binary grpc + http (build context = root repo)
-cmd/grpc/                        # fx app: gRPC server (:9083) + health/reflection + lifecycle
+cmd/grpc/                        # fx app: gRPC server (:9083) + health/reflection + lifecycle + chọn repo
 cmd/http/                        # fx app: grpc-gateway (:8083) + /healthz, dial qua GRPC_DIAL_ADDR
-internal/config/config.go
+internal/config/config.go        # có DATABASE_URL
 internal/model/                  # CORE: Workspace, WorkspaceFilter, WorkspaceUpdate + lỗi domain (chỉ stdlib)
 internal/service/                # NGHIỆP VỤ + interface contract (interfaces.go): 1 port + 1 service
-internal/repository/             # adapter I/O (in-memory stub), KHÔNG import service
+internal/repository/             # adapter I/O: postgres_workspace_repository.go + in-memory fallback
 internal/dependency/             # validate + mapping (model <-> proto) + map lỗi -> gRPC
 internal/handler/                # transport gRPC mỏng
 ```
@@ -55,6 +55,7 @@ make run-workspace
 | `HTTP_ADDR` | `:8083` (cmd/http listen) |
 | `GRPC_DIAL_ADDR` | rỗng -> suy ra `127.0.0.1:9083` (cmd/http dial target) |
 | `LOG_LEVEL` | `info` |
+| `DATABASE_URL` | rỗng -> in-memory stub; set thì dùng PostgreSQL |
 
 ## Thử API
 

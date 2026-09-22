@@ -59,6 +59,7 @@ const (
 	TaskCycleDetected            = "TASK_CYCLE_DETECTED"
 	TaskStatusNameRequired       = "TASK_STATUS_NAME_REQUIRED"
 	TaskStatusSlugRequired       = "TASK_STATUS_SLUG_REQUIRED"
+	TaskStatusSlugAlreadyExists  = "TASK_STATUS_SLUG_ALREADY_EXISTS"
 	TaskStatusIDRequired         = "TASK_STATUS_ID_REQUIRED"
 	TaskStatusNotFound           = "TASK_STATUS_NOT_FOUND"
 	TaskStatusInUse              = "TASK_STATUS_IN_USE"

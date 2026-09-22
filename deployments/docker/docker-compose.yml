@@ -114,8 +114,7 @@ services:
       SERVICE_NAME: task
       GRPC_ADDR: ":9082"
       LOG_LEVEL: info
-      # Chưa dùng: repository hiện là in-memory stub
-      # DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+      DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
     ports:
       - "9082:9082"
     depends_on:
@@ -160,8 +159,7 @@ services:
       SERVICE_NAME: workspace
       GRPC_ADDR: ":9083"
       LOG_LEVEL: info
-      # Chưa dùng: repository hiện là in-memory stub
-      # DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+      DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
     ports:
       - "9083:9083"
     depends_on:
