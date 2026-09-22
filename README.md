@@ -19,7 +19,8 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 │   │   ├── Dockerfile          # image chứa 2 binary: grpc + http
 │   │   ├── cmd/grpc, cmd/http  # entrypoint gRPC server / grpc-gateway (fx app)
 │   │   └── internal/{config,dependency,handler,model,repository,service}
-│   └── task/                   # task, status, lifecycle (gRPC :9082 / HTTP :8082)
+│   ├── task/                   # task, status, lifecycle (gRPC :9082 / HTTP :8082)
+│   └── workspace/              # workspace - namespace gốc (gRPC :9083 / HTTP :8083)
 ├── frontend/                   # React + TSX + Mantine + Vite (+ Dockerfile, nginx.conf)
 ├── deployments/                # hạ tầng: docker/ (compose) + migrations/ (SQL)
 ├── scripts/                    # gen grpc, cài tool, dev, smoke test
@@ -34,8 +35,9 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 | `taskmanager/common` | `common/` |
 | `taskmanager/service/identity` | `service/identity/` |
 | `taskmanager/service/task` | `service/task/` |
+| `taskmanager/service/workspace` | `service/workspace/` |
 
-- Root `go.work` gom 3 module lại để phát triển local.
+- Root `go.work` gom 4 module lại để phát triển local.
 - Service dùng code chung qua module `common`:
   `require taskmanager/common v0.0.0-...` + `replace taskmanager/common => ../../common`.
   Nhờ `replace`, service build được **cả khi không có `go.work`** (đúng cách Dockerfile đang build).
@@ -61,7 +63,8 @@ make smoke      # verify end-to-end (build + start + gọi API thật)
 
 make run-identity   # terminal 1  -> :8081 / :9081
 make run-task       # terminal 2  -> :8082 / :9082
-make web-install && make web-dev    # terminal 3 -> :5173
+make run-workspace  # terminal 3  -> :8083 / :9083
+make web-install && make web-dev    # terminal 4 -> :5173
 make seed-demo      # (tuỳ chọn) seed dữ liệu demo giống design/ui.png
 ```
 
@@ -108,7 +111,7 @@ HTTP status / URL / text kỹ thuật lên notification.
 ## Quickstart (Docker)
 
 ```bash
-make up     # postgres + migrate + identity + task + frontend
+make up     # postgres + migrate + identity + task + workspace + frontend
 make ps
 make down
 ```
@@ -118,6 +121,7 @@ make down
 | frontend | http://localhost:3000 |
 | identity | http://localhost:8081 (`/healthz`) |
 | task | http://localhost:8082 (`/healthz`) |
+| workspace | http://localhost:8083 (`/healthz`) |
 | postgres | localhost:5432 |
 
 ## Migration
@@ -177,7 +181,7 @@ tầng phải flat, `service/interfaces.go` bắt buộc, không comment trong c
 (ví dụ do chạy `go work init` bằng Go mới hơn). Sửa:
 
 ```bash
-go work edit -go=1.25.0    # go.work + 3 go.mod đang ở 1.25.0 -> Go >= 1.25 là chạy được
+go work edit -go=1.25.0    # go.work + 4 go.mod đang ở 1.25.0 -> Go >= 1.25 là chạy được
 ```
 
 rồi reload IDE để gopls load lại. **`make vet`** dùng `scripts/vet.sh` để bỏ qua cảnh báo vet phát sinh
@@ -185,6 +189,6 @@ trong source của dependency (Go 1.26 hay gặp với protobuf).
 
 ## Trạng thái hiện tại
 
-Base scaffold: repository của 2 service Go là **in-memory stub**, chưa nối DB (migration + schema
+Base scaffold: repository của 3 service Go là **in-memory stub**, chưa nối DB (migration + schema
 đã sẵn). Business logic nằm ở `internal/service` (DI qua interface), transport gRPC ở
 `internal/handler`, validate/mapping ở `internal/dependency`.

@@ -4,5 +4,6 @@ use (
 	./common
 	./service/identity
 	./service/task
+	./service/workspace
 	./tools/quality
 )

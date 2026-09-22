@@ -9,15 +9,20 @@
 //   - Tham chiếu bảng  : <service>.<TABLES>
 //
 // PHẠM VI
-//   identity service : PROFILES (hồ sơ identity) + AUTH_PROVIDERS (đăng nhập)
-//   task service     : TASKS (cha/con), TASK_STATUSES (status của profile, 1-n),
-//                      STATUS_TRANSITIONS (lifecycle rule), TASK_STATUS_LOGS
+//   identity  service : PROFILES (hồ sơ identity) + AUTH_PROVIDERS (đăng nhập)
+//   workspace service : WORKSPACES (namespace gốc chứa mọi tài nguyên)
+//   task      service : TASKS (cha/con), TASK_STATUSES (status của profile, 1-n),
+//                       STATUS_TRANSITIONS (lifecycle rule), TASK_STATUS_LOGS
 //
 // NGUYÊN TẮC
+//   - WORKSPACES là namespace gốc: profile sở hữu workspace, tài nguyên (task,
+//     và các loại khác thêm sau) trỏ về workspace_id: TASKS.workspace_id ->
+//     WORKSPACES.id.
 //   - Status/transition thuộc sở hữu của profile_id.
 //   - Rule chuyển trạng thái = ALLOWLIST: có row => được phép, không có => cấm.
-//   - Dùng composite FK (id, profile_id) để DB tự chặn việc trộn dữ liệu
-//     giữa các profile.
+//   - Ref khai báo theo TỪNG CỘT (single-column): mỗi Ref chỉ nối 1 cột -> 1 cột,
+//     không dùng composite FK. Việc đảm bảo các bảng con cùng profile/workspace
+//     được enforce ở tầng service (hoặc trigger).
 //   - LƯU Ý: tên bảng viết HOA nên PostgreSQL luôn phải quote:
 //     SELECT ... FROM "task"."TASKS". ORM cần mapping tên bảng.
 // =============================================================================
@@ -88,6 +93,49 @@ Table identity.AUTH_PROVIDERS {
 }
 
 // =============================================================================
+// SERVICE: workspace
+// =============================================================================
+
+// --- Namespace gốc: mọi tài nguyên (task, ...) đều nằm trong 1 workspace ---
+Table workspace.WORKSPACES {
+  id               uuid         [pk, default: `gen_random_uuid()`]
+  owner_profile_id uuid         [not null, note: 'Profile sở hữu workspace (hiện tại 1-n: 1 profile nhiều workspace)']
+  name             varchar(120) [not null, note: 'Tên hiển thị: Cá nhân, Công việc...']
+  slug             varchar(120) [not null, note: 'Key ổn định cho API/logic, unique theo owner']
+  description      text
+  color            varchar(9)   [note: '#RRGGBB hoặc #RRGGBBAA']
+  icon             varchar(64)  [note: 'Tên icon hoặc emoji (tuỳ chọn)']
+  is_default       boolean      [not null, default: false, note: 'Workspace mặc định khi tạo tài nguyên không chỉ định']
+  position         integer      [not null, default: 0, note: 'Thứ tự hiển thị trên workspace switcher']
+  is_archived      boolean      [not null, default: false, note: 'Ẩn khỏi UI nhưng giữ nguyên tài nguyên bên trong']
+  created_at       timestamptz  [not null, default: `now()`]
+  updated_at       timestamptz  [not null, default: `now()`]
+  deleted_at       timestamptz  [note: 'Soft delete; không cascade xoá tài nguyên bên trong']
+
+  Note: '''
+  Namespace gốc của hệ thống. TASKS (và các tài nguyên khác) trỏ về đây qua
+  workspace_id -> WORKSPACES.id. Việc task phải cùng profile với workspace được
+  enforce ở tầng service (vì ref khai báo single-column, không dùng composite FK).
+
+  Ràng buộc cần enforce thêm ở tầng DB (PostgreSQL partial unique index):
+    CREATE UNIQUE INDEX uq_workspaces_one_default
+      ON workspace.WORKSPACES (owner_profile_id)
+      WHERE is_default AND NOT is_archived AND deleted_at IS NULL;
+  Không hard-delete workspace đang có tài nguyên -> dùng is_archived/deleted_at.
+
+  Mở rộng (chưa làm): nếu workspace chia sẻ cho nhiều người, thêm
+  workspace.WORKSPACE_MEMBERS(workspace_id, profile_id, role).
+  '''
+
+  indexes {
+    (id, owner_profile_id)   [unique, name: 'uq_workspaces_id_owner']
+    (owner_profile_id, slug) [unique, name: 'uq_workspaces_owner_slug']
+    (owner_profile_id, position)
+    (owner_profile_id, is_archived, deleted_at)
+  }
+}
+
+// =============================================================================
 // SERVICE: task
 // =============================================================================
 
@@ -115,7 +163,7 @@ Table task.TASK_STATUSES {
   '''
 
   indexes {
-    (id, profile_id)   [unique, name: 'uq_task_statuses_id_profile'] // cho composite FK
+    (id, profile_id)   [unique, name: 'uq_task_statuses_id_profile']
     (profile_id, slug) [unique, name: 'uq_task_statuses_profile_slug']
     (profile_id, position)
   }
@@ -152,6 +200,7 @@ Table task.STATUS_TRANSITIONS {
 // --- 3. Task (cha - con) ---
 Table task.TASKS {
   id             uuid          [pk, default: `gen_random_uuid()`]
+  workspace_id   uuid          [not null, note: 'Namespace chứa task; phải cùng profile sở hữu workspace (enforce ở service)']
   profile_id     uuid          [not null]
   parent_task_id uuid          [note: 'NULL = task gốc (root)']
   status_id      uuid          [not null]
@@ -168,22 +217,26 @@ Table task.TASKS {
   deleted_at     timestamptz   [note: 'Soft delete; xoá cha không tự xoá con']
 
   Note: '''
-  - Composite FK (parent_task_id, profile_id) -> task.TASKS(id, profile_id):
-    đảm bảo task cha thuộc cùng profile. Lưu ý ON DELETE SET NULL cho composite FK
+  - Ref single-column: TASKS.workspace_id -> workspace.WORKSPACES.id.
+    Task phải nằm trong workspace thuộc đúng profile sở hữu -> enforce ở service.
+  - Ref single-column: TASKS.status_id -> task.TASK_STATUSES.id (task cha - con:
+    TASKS.parent_task_id -> TASKS.id). Lưu ý ON DELETE SET NULL cho parent_task_id
     cần cú pháp Postgres 15+: ON DELETE SET NULL (parent_task_id).
+  - Migration dữ liệu cũ: tạo workspace mặc định cho mỗi profile rồi backfill
+    workspace_id trước khi set NOT NULL.
   - Chống vòng lặp (A là con của B, B là con của A) không thể khai báo thuần
     declarative -> enforce bằng trigger hoặc ở tầng service khi reparent.
   - Giới hạn độ sâu (ví dụ max 5 tầng) cũng nên enforce ở service/trigger.
-  - Truy vấn cây dùng recursive CTE trên (profile_id, parent_task_id);
+  - Truy vấn cây dùng recursive CTE trên (workspace_id, parent_task_id);
     nếu cây sâu/nặng có thể thêm cột materialized path sau.
   '''
 
   indexes {
-    (id, profile_id)               [unique, name: 'uq_tasks_id_profile'] // cho composite FK
-    (profile_id, status_id)
-    (parent_task_id, position)
-    (profile_id, due_at)
-    (profile_id, is_archived, deleted_at)
+    (id, profile_id)                          [unique, name: 'uq_tasks_id_profile']
+    (workspace_id, status_id)
+    (workspace_id, parent_task_id, position)
+    (workspace_id, due_at)
+    (workspace_id, is_archived, deleted_at)
   }
 }
 
@@ -215,23 +268,27 @@ Table task.TASK_STATUS_LOGS {
 // --- identity service ---
 Ref: identity.AUTH_PROVIDERS.profile_id > identity.PROFILES.id [delete: cascade]
 
+// --- workspace: profile sở hữu namespace ---
+Ref: workspace.WORKSPACES.owner_profile_id > identity.PROFILES.id [delete: cascade]
+
 // --- owner: mọi dữ liệu task đều thuộc 1 profile ---
 Ref: task.TASK_STATUSES.profile_id > identity.PROFILES.id [delete: cascade]
 Ref: task.STATUS_TRANSITIONS.profile_id > identity.PROFILES.id [delete: cascade]
 Ref: task.TASKS.profile_id > identity.PROFILES.id [delete: cascade]
 
-// --- lifecycle rules (cùng profile nhờ composite FK) ---
-Ref: task.STATUS_TRANSITIONS.(from_status_id, profile_id) > task.TASK_STATUSES.(id, profile_id) [delete: cascade]
-Ref: task.STATUS_TRANSITIONS.(to_status_id, profile_id)   > task.TASK_STATUSES.(id, profile_id) [delete: cascade]
+// --- lifecycle rules ---
+Ref: task.STATUS_TRANSITIONS.from_status_id > task.TASK_STATUSES.id [delete: cascade]
+Ref: task.STATUS_TRANSITIONS.to_status_id   > task.TASK_STATUSES.id [delete: cascade]
 
 // --- task ---
-Ref: task.TASKS.(status_id, profile_id) > task.TASK_STATUSES.(id, profile_id) [delete: restrict]
-Ref: task.TASKS.(parent_task_id, profile_id) > task.TASKS.(id, profile_id) [delete: no action]
+Ref: task.TASKS.workspace_id   > workspace.WORKSPACES.id [delete: cascade]
+Ref: task.TASKS.status_id      > task.TASK_STATUSES.id [delete: restrict]
+Ref: task.TASKS.parent_task_id > task.TASKS.id [delete: no action]
 
 // --- audit ---
-Ref: task.TASK_STATUS_LOGS.(task_id, profile_id) > task.TASKS.(id, profile_id) [delete: cascade]
-Ref: task.TASK_STATUS_LOGS.(from_status_id, profile_id) > task.TASK_STATUSES.(id, profile_id) [delete: no action]
-Ref: task.TASK_STATUS_LOGS.(to_status_id, profile_id)   > task.TASK_STATUSES.(id, profile_id) [delete: no action]
+Ref: task.TASK_STATUS_LOGS.task_id        > task.TASKS.id [delete: cascade]
+Ref: task.TASK_STATUS_LOGS.from_status_id > task.TASK_STATUSES.id [delete: no action]
+Ref: task.TASK_STATUS_LOGS.to_status_id   > task.TASK_STATUSES.id [delete: no action]
 
 // =============================================================================
 // TABLE GROUPS (chỉ để hiển thị đẹp trên dbdiagram, không ảnh hưởng DDL)
@@ -239,6 +296,10 @@ Ref: task.TASK_STATUS_LOGS.(to_status_id, profile_id)   > task.TASK_STATUSES.(id
 TableGroup identity_service {
   identity.PROFILES
   identity.AUTH_PROVIDERS
+}
+
+TableGroup workspace_service {
+  workspace.WORKSPACES
 }
 
 TableGroup task_service {
@@ -251,6 +312,10 @@ TableGroup task_service {
 // =============================================================================
 // GHI CHÚ MỞ RỘNG (chưa đưa vào scope hiện tại)
 // -----------------------------------------------------------------------------
+// - workspace: TASKS đã có workspace_id. TASK_STATUSES /
+//   STATUS_TRANSITIONS hiện vẫn thuộc profile_id; nếu muốn mỗi workspace có
+//   board/lifecycle riêng thì chuyển sang workspace_id (kèm backfill).
+// - workspace_members: chia sẻ workspace cho nhiều profile (role: owner/editor/viewer).
 // - lifecycles: nếu sau này 1 profile có NHIỀU workflow (Personal / Work / Study),
 //   thêm bảng task.LIFECYCLES(profile_id, name, is_default) và cho TASK_STATUSES +
 //   STATUS_TRANSITIONS trỏ về lifecycle_id thay vì trực tiếp profile_id.

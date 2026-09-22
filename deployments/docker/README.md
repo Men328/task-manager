@@ -2,11 +2,11 @@
 
 | File | Việc |
 |---|---|
-| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + identity(-grpc) + task(-grpc) + frontend |
+| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + identity(-grpc) + task(-grpc) + workspace(-grpc) + frontend |
 
 Dockerfile nằm **trong từng service** (`service/identity/Dockerfile`, `service/task/Dockerfile`,
-`frontend/Dockerfile`) để mỗi service tự đóng gói. Compose trỏ tới chúng với build context là
-**root repo**, vì mỗi service cần copy thêm module `common/`.
+`service/workspace/Dockerfile`, `frontend/Dockerfile`) để mỗi service tự đóng gói. Compose trỏ tới
+chúng với build context là **root repo**, vì mỗi service cần copy thêm module `common/`.
 
 Mỗi service Go build ra **2 binary** trong cùng image: `grpc` (gRPC server) và `http`
 (grpc-gateway). Compose tách thành 2 container: `<svc>-grpc` (nội bộ) và `<svc>` (HTTP public).
@@ -36,16 +36,18 @@ docker compose -f deployments/docker/docker-compose.yml up --build -d
 | identity-grpc | tm-identity-grpc | localhost:9081 | 9081 |
 | task (gateway) | tm-task | http://localhost:8082 | 8082 |
 | task-grpc | tm-task-grpc | localhost:9082 | 9082 |
+| workspace (gateway) | tm-workspace | http://localhost:8083 | 8083 |
+| workspace-grpc | tm-workspace-grpc | localhost:9083 | 9083 |
 | postgres | tm-postgres | localhost:5432 | 5432 |
 
-Tên service HTTP giữ nguyên (`identity`, `task`) nên nginx của frontend không phải đổi proxy.
+Tên service HTTP giữ nguyên (`identity`, `task`, `workspace`) nên nginx của frontend không phải đổi proxy.
 
 ## Thứ tự khởi động
 
 ```
 postgres (healthy) -> migrate (chạy xong, exit 0)
-  -> identity(-grpc)/task(-grpc)
-  -> gateway identity/task (healthy, /healthz chỉ 200 khi gọi được gRPC health)
+  -> identity(-grpc)/task(-grpc)/workspace(-grpc)
+  -> gateway identity/task/workspace (healthy, /healthz chỉ 200 khi gọi được gRPC health)
   -> frontend
 ```
 
@@ -61,7 +63,8 @@ make migrate-down      # rollback 1 bước
 ## Ghi chú
 
 - `identity-grpc` nối Postgres qua `DATABASE_URL` (đã bật sẵn trong compose). Bỏ trống biến này
-  thì service tự quay về repository in-memory stub và log cảnh báo. `task-grpc` vẫn in-memory.
+  thì service tự quay về repository in-memory stub và log cảnh báo. `task-grpc` và `workspace-grpc`
+  vẫn in-memory.
 - Image `migrate/migrate:latest` nên pin version khi dùng thật.
 
 ## Đăng nhập Google

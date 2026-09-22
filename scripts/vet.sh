@@ -10,7 +10,7 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
-MODULES="common service/identity service/task tools/quality"
+MODULES="common service/identity service/task service/workspace tools/quality"
 GOMODCACHE="$(go env GOMODCACHE 2>/dev/null || true)"
 
 status=0

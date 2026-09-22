@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Chạy 1 service Go ở local: gRPC server (cmd/grpc) + HTTP gateway (cmd/http).
-# Usage: scripts/run-service.sh <identity|task>
+# Usage: scripts/run-service.sh <identity|task|workspace>
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -9,7 +9,8 @@ service="${1:-}"
 case "$service" in
   identity) grpc_port=9081; http_port=8081 ;;
   task)     grpc_port=9082; http_port=8082 ;;
-  *) echo "usage: $0 <identity|task>" >&2; exit 1 ;;
+  workspace) grpc_port=9083; http_port=8083 ;;
+  *) echo "usage: $0 <identity|task|workspace>" >&2; exit 1 ;;
 esac
 
 pids=()

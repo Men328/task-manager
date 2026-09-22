@@ -19,7 +19,7 @@ make gen
 ```
 
 Luồng: `buf dep update` (tải `google/api/annotations.proto`) → `buf lint` → `buf generate` →
-`go mod tidy` cho **từng module** (`common`, `service/identity`, `service/task`).
+`go mod tidy` cho **từng module** (`common`, `service/identity`, `service/task`, `service/workspace`).
 
 Output:
 
@@ -28,6 +28,7 @@ common/gen/go/identity/v1/profile.pb.go
 common/gen/go/identity/v1/profile.pb.gw.go
 common/gen/go/identity/v1/profile_grpc.pb.go
 common/gen/go/task/v1/{task,status,transition}*.go
+common/gen/go/workspace/v1/workspace*.go
 common/gen/openapi/task_manager.swagger.json
 ```
 
@@ -38,10 +39,11 @@ common/gen/openapi/task_manager.swagger.json
 Mỗi service gồm 2 process: `cmd/grpc` (gRPC server) + `cmd/http` (grpc-gateway).
 
 ```bash
-bash scripts/dev.sh        # chạy cả 2 service (4 process), Ctrl+C để dừng
+bash scripts/dev.sh        # chạy cả 3 service (6 process), Ctrl+C để dừng
 # hoặc chạy 1 service (cả grpc + gateway)
 make run-identity
 make run-task
+make run-workspace
 
 # hoặc chạy riêng từng process
 make run-identity-grpc     # :9081
@@ -53,6 +55,7 @@ Kiểm tra:
 ```bash
 curl -s localhost:8081/healthz   # {"status":"ok","service":"identity"}
 curl -s localhost:8082/healthz   # {"status":"ok","service":"task"}
+curl -s localhost:8083/healthz   # {"status":"ok","service":"workspace"}
 ```
 
 `/healthz` chỉ trả 200 khi gateway gọi được gRPC health service của process gRPC tương ứng.
@@ -64,12 +67,13 @@ make web-install
 make web-dev
 ```
 
-Vite proxy `/api/identity/*` → `localhost:8081`, `/api/task/*` → `localhost:8082` (xem `frontend/vite.config.ts`).
+Vite proxy `/api/identity/*` → `localhost:8081`, `/api/task/*` → `localhost:8082`,
+`/api/workspace/*` → `localhost:8083` (xem `frontend/vite.config.ts`).
 
 ## 5. Chạy bằng Docker
 
 ```bash
-make up        # build + start: postgres, migrate, identity(-grpc), task(-grpc), frontend
+make up        # build + start: postgres, migrate, identity(-grpc), task(-grpc), workspace(-grpc), frontend
 make ps
 make logs
 make down
@@ -81,7 +85,7 @@ Hoặc trực tiếp:
 docker compose -f deployments/docker/docker-compose.yml up --build -d
 ```
 
-Thứ tự khởi động: `postgres (healthy)` → `migrate (exit 0)` → `*-grpc` → gateway `identity`/`task`
+Thứ tự khởi động: `postgres (healthy)` → `migrate (exit 0)` → `*-grpc` → gateway `identity`/`task`/`workspace`
 (healthy) → `frontend`. Mỗi service Go chạy 2 container: `<svc>-grpc` và `<svc>` (gateway).
 
 Dockerfile nằm trong từng service (`service/*/Dockerfile`, `frontend/Dockerfile`); build context là
@@ -200,21 +204,21 @@ trong module cache (không phải code của mình). `scripts/vet.sh` lọc các
 
 Mỗi service đọc env với default như sau:
 
-| Biến | identity | task |
-|---|---|---|
-| `SERVICE_NAME` | `identity` | `task` |
-| `GRPC_ADDR` | `:9081` | `:9082` |
-| `HTTP_ADDR` | `:8081` | `:8082` |
-| `GRPC_DIAL_ADDR` | (rỗng) | (rỗng) |
-| `LOG_LEVEL` | `info` | `info` |
-| `DATABASE_URL` | (rỗng → in-memory) | (chưa dùng) |
-| `GOOGLE_CLIENT_ID` | (rỗng) | — |
-| `GOOGLE_CLIENT_SECRET` | (rỗng) | — |
-| `GOOGLE_REDIRECT_URL` | `http://localhost:8081/v1/auth/google/callback` | — |
-| `FRONTEND_BASE_URL` | `http://localhost:5173` | — |
-| `SESSION_SECRET` | (rỗng) | — |
-| `SESSION_TTL` | `720h` | — |
-| `COOKIE_SECURE` | `false` | — |
+| Biến | identity | task | workspace |
+|---|---|---|---|
+| `SERVICE_NAME` | `identity` | `task` | `workspace` |
+| `GRPC_ADDR` | `:9081` | `:9082` | `:9083` |
+| `HTTP_ADDR` | `:8081` | `:8082` | `:8083` |
+| `GRPC_DIAL_ADDR` | (rỗng) | (rỗng) | (rỗng) |
+| `LOG_LEVEL` | `info` | `info` | `info` |
+| `DATABASE_URL` | (rỗng → in-memory) | (chưa dùng) | (chưa dùng) |
+| `GOOGLE_CLIENT_ID` | (rỗng) | — | — |
+| `GOOGLE_CLIENT_SECRET` | (rỗng) | — | — |
+| `GOOGLE_REDIRECT_URL` | `http://localhost:8081/v1/auth/google/callback` | — | — |
+| `FRONTEND_BASE_URL` | `http://localhost:5173` | — | — |
+| `SESSION_SECRET` | (rỗng) | — | — |
+| `SESSION_TTL` | `720h` | — | — |
+| `COOKIE_SECURE` | `false` | — | — |
 
 `GRPC_ADDR` là địa chỉ `cmd/grpc` listen; `GRPC_DIAL_ADDR` là target `cmd/http` dial tới
 (rỗng → tự suy ra `127.0.0.1:<port>`; đặt trong Docker, ví dụ `identity-grpc:9081`).

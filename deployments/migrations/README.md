@@ -5,7 +5,8 @@ Migration PostgreSQL, chạy bằng [golang-migrate](https://github.com/golang-m
 ```
 deployments/migrations/
 ├── 000001_init_identity.up.sql   / .down.sql   # schema identity: PROFILES, AUTH_PROVIDERS
-└── 000002_init_task.up.sql       / .down.sql   # schema task: TASK_STATUSES, STATUS_TRANSITIONS, TASKS, TASK_STATUS_LOGS
+├── 000002_init_task.up.sql       / .down.sql   # schema task: TASK_STATUSES, STATUS_TRANSITIONS, TASKS, TASK_STATUS_LOGS
+└── 000003_init_workspace.up.sql  / .down.sql   # schema workspace: WORKSPACES (namespace gốc)
 ```
 
 ## Quy ước
@@ -29,6 +30,7 @@ deployments/migrations/
 | `task.TASK_STATUSES` | `task.task_statuses` |
 | `task.STATUS_TRANSITIONS` | `task.status_transitions` |
 | `task.TASK_STATUS_LOGS` | `task.task_status_logs` |
+| `workspace.WORKSPACES` | `workspace.workspaces` |
 
 Cột, index và constraint cũng vậy (`uq_profiles_email`, `uq_auth_providers_provider_uid`, ...).
 
