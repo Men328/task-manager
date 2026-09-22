@@ -8,7 +8,6 @@ import (
 
 	"taskmanager/service/workspace/internal/config"
 	"taskmanager/service/workspace/internal/handler"
-	"taskmanager/service/workspace/internal/repository"
 	"taskmanager/service/workspace/internal/service"
 )
 
@@ -16,9 +15,10 @@ func main() {
 	app := fx.New(
 		fx.Provide(
 			config.Load,
+			newPostgresPool,
 			newListener,
 			newGRPCServer,
-			fx.Annotate(repository.NewInMemoryWorkspaceRepository, fx.As(new(service.WorkspaceRepository))),
+			newWorkspaceRepository,
 			service.NewWorkspaceService,
 			handler.NewWorkspaceHandler,
 		),

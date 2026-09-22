@@ -13,12 +13,12 @@ Service quản lý task, status và lifecycle (rule chuyển trạng thái). Là
 
 ```
 Dockerfile                       # build 2 binary grpc + http (build context = root repo)
-cmd/grpc/                        # fx app: gRPC server (:9082), register 3 service + lifecycle
+cmd/grpc/                        # fx app: gRPC server (:9082), register 3 service + lifecycle + chọn repo
 cmd/http/                        # fx app: grpc-gateway (:8082) + lifecycle, dial qua GRPC_DIAL_ADDR
 internal/config/config.go
 internal/model/                  # CORE: Task, Status, Transition, StatusLog + enum + lỗi domain (chỉ stdlib)
 internal/service/                # NGHIỆP VỤ + interface contract (interfaces.go): 3 port + 3 service
-internal/repository/             # adapter I/O (in-memory stub) cho 3 port, KHÔNG import service
+internal/repository/             # adapter I/O: postgres_*_repository.go + in-memory fallback, KHÔNG import service
 internal/dependency/             # validate + mapping (model <-> proto, convert enum) + map lỗi -> gRPC
 internal/handler/                # transport gRPC mỏng cho 3 service
 ```
@@ -54,6 +54,7 @@ make run-task
 | `HTTP_ADDR` | `:8082` (cmd/http listen) |
 | `GRPC_DIAL_ADDR` | rỗng -> suy ra `127.0.0.1:9082` (cmd/http dial target) |
 | `LOG_LEVEL` | `info` |
+| `DATABASE_URL` | rỗng -> in-memory stub; set thì dùng PostgreSQL |
 
 ## Thử luồng lifecycle
 

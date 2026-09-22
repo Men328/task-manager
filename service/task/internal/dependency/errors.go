@@ -45,6 +45,8 @@ func codeForKind(kind model.ErrorKind) string {
 		return errorcode.TaskHasSubtasks
 	case model.ErrorKindStatusInUse:
 		return errorcode.TaskStatusInUse
+	case model.ErrorKindStatusSlugAlreadyExists:
+		return errorcode.TaskStatusSlugAlreadyExists
 	default:
 		return errorcode.CommonInternal
 	}

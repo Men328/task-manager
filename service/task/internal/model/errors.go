@@ -18,14 +18,15 @@ var (
 type ErrorKind string
 
 const (
-	ErrorKindNoStatusAvailable     ErrorKind = "no_status_available"
-	ErrorKindStatusNotInProfile    ErrorKind = "status_not_in_profile"
-	ErrorKindStatusProfileMismatch ErrorKind = "status_profile_mismatch"
-	ErrorKindParentNotInProfile    ErrorKind = "parent_not_in_profile"
-	ErrorKindTaskStatusSame        ErrorKind = "task_status_same"
-	ErrorKindTransitionNotAllowed  ErrorKind = "transition_not_allowed"
-	ErrorKindTaskHasSubtasks       ErrorKind = "task_has_subtasks"
-	ErrorKindStatusInUse           ErrorKind = "status_in_use"
+	ErrorKindNoStatusAvailable       ErrorKind = "no_status_available"
+	ErrorKindStatusNotInProfile      ErrorKind = "status_not_in_profile"
+	ErrorKindStatusProfileMismatch   ErrorKind = "status_profile_mismatch"
+	ErrorKindParentNotInProfile      ErrorKind = "parent_not_in_profile"
+	ErrorKindTaskStatusSame          ErrorKind = "task_status_same"
+	ErrorKindTransitionNotAllowed    ErrorKind = "transition_not_allowed"
+	ErrorKindTaskHasSubtasks         ErrorKind = "task_has_subtasks"
+	ErrorKindStatusInUse             ErrorKind = "status_in_use"
+	ErrorKindStatusSlugAlreadyExists ErrorKind = "status_slug_already_exists"
 )
 
 type Error struct {

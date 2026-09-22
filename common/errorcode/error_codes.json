@@ -417,6 +417,15 @@
         "en": "Status slug is required."
       }
     },
+    "TASK_STATUS_SLUG_ALREADY_EXISTS": {
+      "owner": "task",
+      "grpcCode": "AlreadyExists",
+      "httpStatus": 409,
+      "message": {
+        "vi": "Slug trạng thái đã tồn tại trong hồ sơ này.",
+        "en": "Status slug already exists for this profile."
+      }
+    },
     "TASK_STATUS_ID_REQUIRED": {
       "owner": "task",
       "grpcCode": "InvalidArgument",

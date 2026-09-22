@@ -14,6 +14,8 @@ type Config struct {
 	GRPCDialAddr string
 	HTTPAddr     string
 	LogLevel     string
+
+	DatabaseURL string
 }
 
 func Load() Config {
@@ -23,6 +25,7 @@ func Load() Config {
 		GRPCDialAddr: getenv("GRPC_DIAL_ADDR", ""),
 		HTTPAddr:     getenv("HTTP_ADDR", ":8082"),
 		LogLevel:     getenv("LOG_LEVEL", "info"),
+		DatabaseURL:  os.Getenv("DATABASE_URL"),
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 
 	"taskmanager/service/task/internal/config"
 	"taskmanager/service/task/internal/handler"
-	"taskmanager/service/task/internal/repository"
 	"taskmanager/service/task/internal/service"
 )
 
@@ -16,11 +15,12 @@ func main() {
 	app := fx.New(
 		fx.Provide(
 			config.Load,
+			newPostgresPool,
 			newListener,
 			newGRPCServer,
-			fx.Annotate(repository.NewInMemoryTaskRepository, fx.As(new(service.TaskRepository))),
-			fx.Annotate(repository.NewInMemoryStatusRepository, fx.As(new(service.StatusRepository))),
-			fx.Annotate(repository.NewInMemoryTransitionRepository, fx.As(new(service.TransitionRepository))),
+			newTaskRepository,
+			newStatusRepository,
+			newTransitionRepository,
 			service.NewTaskService,
 			service.NewTaskStatusService,
 			service.NewStatusTransitionService,

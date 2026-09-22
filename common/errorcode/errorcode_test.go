@@ -38,6 +38,7 @@ func declaredCodes() []string {
 		TaskCycleDetected,
 		TaskStatusNameRequired,
 		TaskStatusSlugRequired,
+		TaskStatusSlugAlreadyExists,
 		TaskStatusIDRequired,
 		TaskStatusNotFound,
 		TaskStatusInUse,

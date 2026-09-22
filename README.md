@@ -195,6 +195,7 @@ trong source của dependency (Go 1.26 hay gặp với protobuf).
 
 ## Trạng thái hiện tại
 
-Base scaffold: repository của 3 service Go là **in-memory stub**, chưa nối DB (migration + schema
-đã sẵn). Business logic nằm ở `internal/service` (DI qua interface), transport gRPC ở
-`internal/handler`, validate/mapping ở `internal/dependency`.
+Cả 3 service Go đều có **repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory
+stub** khi không set `DATABASE_URL`. Business logic nằm ở `internal/service` (DI qua interface),
+transport gRPC ở `internal/handler`, validate/mapping ở `internal/dependency`; `cmd/grpc/infra.go`
+chọn Postgres/in-memory và quản lý `pgxpool` theo fx lifecycle.
