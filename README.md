@@ -117,6 +117,7 @@ HTTP status / URL / text kỹ thuật lên notification.
 
 ```bash
 make up        # postgres + migrate + identity + task + workspace + frontend
+make up-core   # như trên nhưng KHÔNG kèm cloudflared (tắt tunnel)
 make up-tunnel # kèm cloudflared (Cloudflare Tunnel; cần token trong .env)
 make ps
 make down
