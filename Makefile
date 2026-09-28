@@ -15,7 +15,7 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
 .DEFAULT_GOAL := help
 
 .PHONY: help tools gen error-codes check-error-codes tidy work build test fmt vet smoke seed-demo migrate-up migrate-down \
-        up up-tunnel down logs tunnel-logs ps build-images web-install web-dev web-build \
+        up up-core up-tunnel tunnel-up tunnel-stop down logs tunnel-logs ps build-images web-install web-dev web-build \
         run-identity run-identity-grpc run-identity-http run-task run-task-grpc run-task-http \
         run-workspace run-workspace-grpc run-workspace-http \
         quality-all quality-fmt quality-vet quality-arch
@@ -87,11 +87,23 @@ migrate-down: ## Rollback 1 migration
 up: ## docker compose up --build (postgres + migrate + *-grpc + gateway + frontend)
 	$(COMPOSE) up --build -d
 
+up-core: ## Chạy stack KHÔNG kèm cloudflared (tắt tunnel, bỏ qua COMPOSE_PROFILES)
+	COMPOSE_PROFILES= $(COMPOSE) up --build -d
+
 up-tunnel: ## Như `up` nhưng kèm cloudflared (cần CLOUDFLARE_TUNNEL_TOKEN trong .env)
 	$(COMPOSE_ALL) up --build -d
 
+tunnel-up: ## Chỉ bật cloudflared (stack đang chạy sẵn)
+	$(COMPOSE_ALL) up -d cloudflared
+
+tunnel-stop: ## Dừng cloudflared, giữ các service khác chạy
+	$(COMPOSE_ALL) stop cloudflared
+
 down: ## docker compose down (kèm cloudflared nếu đang chạy)
 	$(COMPOSE_ALL) down
+
+down-all: ## docker compose down (kèm cloudflared nếu đang chạy)
+	$(COMPOSE_ALL) down -v
 
 logs: ## Xem log compose
 	$(COMPOSE) logs -f

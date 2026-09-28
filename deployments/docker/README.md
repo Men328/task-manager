@@ -114,6 +114,24 @@ Redirect vẫn trỏ vào frontend (`/api/identity/...`) nên callback đi qua c
 > (không crash-loop). Bật bằng `make up-tunnel`, `--profile tunnel`, hoặc
 > `COMPOSE_PROFILES=tunnel` trong `.env`.
 
+### Tắt tunnel
+
+```bash
+make up-core        # chạy stack KHÔNG kèm cloudflared
+make tunnel-stop    # chỉ dừng cloudflared, các service khác vẫn chạy
+make tunnel-up      # bật lại cloudflared
+```
+
+Hoặc one-off không cần Makefile (biến môi trường shell thắng `.env`):
+
+```bash
+COMPOSE_PROFILES= docker compose up -d --build
+```
+
+Tắt vĩnh viễn: bỏ/xoá dòng `COMPOSE_PROFILES=tunnel` trong `deployments/docker/.env`.
+Lưu ý `make up-core` chỉ **không khởi động** cloudflared — nếu nó đang chạy sẵn thì dùng
+`make tunnel-stop`.
+
 ## Thứ tự khởi động
 
 ```
