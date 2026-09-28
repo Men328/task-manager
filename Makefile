@@ -8,12 +8,14 @@ GOBIN ?= $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(GOBIN):$(PATH)
 
 COMPOSE := docker compose -f deployments/docker/docker-compose.yml
+# Kèm profile `tunnel` (cloudflared) cho ps/logs/down để không bỏ sót container.
+COMPOSE_ALL := $(COMPOSE) --profile tunnel
 DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
 
 .DEFAULT_GOAL := help
 
 .PHONY: help tools gen error-codes check-error-codes tidy work build test fmt vet smoke seed-demo migrate-up migrate-down \
-        up down logs ps build-images web-install web-dev web-build \
+        up up-tunnel down logs tunnel-logs ps build-images web-install web-dev web-build \
         run-identity run-identity-grpc run-identity-http run-task run-task-grpc run-task-http \
         run-workspace run-workspace-grpc run-workspace-http \
         quality-all quality-fmt quality-vet quality-arch
@@ -85,14 +87,20 @@ migrate-down: ## Rollback 1 migration
 up: ## docker compose up --build (postgres + migrate + *-grpc + gateway + frontend)
 	$(COMPOSE) up --build -d
 
-down: ## docker compose down
-	$(COMPOSE) down
+up-tunnel: ## Như `up` nhưng kèm cloudflared (cần CLOUDFLARE_TUNNEL_TOKEN trong .env)
+	$(COMPOSE_ALL) up --build -d
+
+down: ## docker compose down (kèm cloudflared nếu đang chạy)
+	$(COMPOSE_ALL) down
 
 logs: ## Xem log compose
 	$(COMPOSE) logs -f
 
-ps: ## Trạng thái compose
-	$(COMPOSE) ps
+tunnel-logs: ## Xem log cloudflared
+	$(COMPOSE_ALL) logs -f cloudflared
+
+ps: ## Trạng thái compose (kèm cloudflared nếu đang chạy)
+	$(COMPOSE_ALL) ps
 
 build-images: ## Chỉ build image
 	$(COMPOSE) build

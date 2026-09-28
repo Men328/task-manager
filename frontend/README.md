@@ -175,7 +175,9 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 
 - Dev: Vite proxy `/api/identity/*` → `:8081`, `/api/task/*` → `:8082`, `/api/workspace/*` → `:8083`
   (bỏ prefix).
-- Prod (Docker): nginx proxy y hệt, xem `nginx.conf`.
+- Prod (Docker): nginx proxy y hệt, xem `nginx.conf`. FE **luôn gọi same-origin** (`/api/...`
+  trên chính port frontend) nên khi chạy sau Cloudflare Tunnel chỉ có một origin/port; xem
+  `deployments/docker/README.md`. Vì vậy `VITE_*_API_URL` phải giữ dạng đường dẫn tương đối.
 - Response của gateway là **camelCase** (protojson mặc định); **query param** phải snake_case
   (`?profile_id=...`); body nhận cả `snake_case` (đang dùng) và camelCase.
 

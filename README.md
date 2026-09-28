@@ -116,18 +116,30 @@ HTTP status / URL / text kỹ thuật lên notification.
 ## Quickstart (Docker)
 
 ```bash
-make up     # postgres + migrate + identity + task + workspace + frontend
+make up        # postgres + migrate + identity + task + workspace + frontend
+make up-tunnel # kèm cloudflared (Cloudflare Tunnel; cần token trong .env)
 make ps
 make down
 ```
 
-| Service | URL |
+> Đặt `COMPOSE_PROFILES=tunnel` trong `deployments/docker/.env` thì `make up` (và cả
+> `docker compose up -d` trong `deployments/docker/`) mặc định chạy luôn cloudflared.
+
+FE gọi API **same-origin** tại `/api/...` ngay trên port `frontend`; nginx trong container
+frontend forward nội bộ tới các service Go. Chỉ `frontend` được publish ra host (bind
+`127.0.0.1`), nên khi đưa ra Internet chỉ có **một origin/port** khớp với public hostname
+của Cloudflare.
+
+| Service | Truy cập |
 |---|---|
-| frontend | http://localhost:3000 |
-| identity | http://localhost:8081 (`/healthz`) |
-| task | http://localhost:8082 (`/healthz`) |
-| workspace | http://localhost:8083 (`/healthz`) |
-| postgres | localhost:5432 |
+| frontend (entrypoint) | http://localhost:3000 |
+| identity | nội bộ `identity:8081` (`/healthz`) |
+| task | nội bộ `task:8082` (`/healthz`) |
+| workspace | nội bộ `workspace:8083` (`/healthz`) |
+| postgres | nội bộ `postgres:5432` |
+| cloudflared | profile `tunnel` — `make tunnel-logs` |
+
+Chi tiết Cloudflare Tunnel + biến env: `deployments/docker/README.md`.
 
 ## Migration
 
