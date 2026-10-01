@@ -25,8 +25,6 @@ func ToGRPCError(err error) error {
 		return errorcode.Error(errorcode.MailAnalyzeFailed)
 	case errors.Is(err, model.ErrTaskCreate):
 		return errorcode.Error(errorcode.MailTaskCreateFailed)
-	case errors.Is(err, model.ErrNoWorkspace):
-		return errorcode.Error(errorcode.MailNoWorkspace)
 	case errors.Is(err, model.ErrQueueFull):
 		return errorcode.Error(errorcode.CommonUnavailable)
 	case errors.Is(err, model.ErrUnauthorized):

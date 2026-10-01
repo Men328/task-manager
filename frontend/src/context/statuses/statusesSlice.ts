@@ -1,10 +1,9 @@
 import { createAsyncThunk, createSelector, createSlice } from '@reduxjs/toolkit';
 
 import { getErrorMessage } from '../../api/client';
-import { listStatuses, listTasks, listTransitions } from '../../api/task';
+import { listStatuses, listTasks, listTransitions, seedDefaultStatuses } from '../../api/task';
 import i18n from '../../i18n';
 import type { StatusTransition, Task, TaskStatus } from '../../types';
-import { seedDefaultStatuses } from '../seed';
 import type { RootState } from '../store';
 
 interface StatusesPageData {
@@ -15,19 +14,18 @@ interface StatusesPageData {
 
 interface FetchStatusesPageArgs {
   profileId: string;
-  workspaceId: string | null;
 }
 
 export const fetchStatusesPage = createAsyncThunk<
   StatusesPageData,
   FetchStatusesPageArgs,
   { rejectValue: string }
->('statusesPage/fetch', async ({ profileId, workspaceId }, { rejectWithValue }) => {
+>('statusesPage/fetch', async ({ profileId }, { rejectWithValue }) => {
   try {
     const [statuses, transitions, tasks] = await Promise.all([
       listStatuses(profileId),
       listTransitions(profileId),
-      workspaceId ? listTasks({ profileId, workspaceId, includeSubtasks: true }) : Promise.resolve([]),
+      listTasks({ profileId, includeSubtasks: true }),
     ]);
     return { statuses, transitions, tasks };
   } catch (cause) {
@@ -39,10 +37,10 @@ export const seedStatusesPage = createAsyncThunk<
   void,
   FetchStatusesPageArgs,
   { rejectValue: string }
->('statusesPage/seedStatuses', async ({ profileId, workspaceId }, { dispatch, rejectWithValue }) => {
+>('statusesPage/seedStatuses', async ({ profileId }, { dispatch, rejectWithValue }) => {
   try {
     await seedDefaultStatuses(profileId);
-    await dispatch(fetchStatusesPage({ profileId, workspaceId })).unwrap();
+    await dispatch(fetchStatusesPage({ profileId })).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }

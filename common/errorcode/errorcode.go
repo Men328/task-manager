@@ -44,7 +44,6 @@ const (
 	IdentityAuthNotConfigured          = "IDENTITY_AUTH_NOT_CONFIGURED"
 
 	TaskProfileIDRequired        = "TASK_PROFILE_ID_REQUIRED"
-	TaskWorkspaceIDRequired      = "TASK_WORKSPACE_ID_REQUIRED"
 	TaskTitleRequired            = "TASK_TITLE_REQUIRED"
 	TaskIDRequired               = "TASK_ID_REQUIRED"
 	TaskIDAndStatusIDRequired    = "TASK_ID_AND_STATUS_ID_REQUIRED"
@@ -80,14 +79,6 @@ const (
 	MailUnauthorized         = "MAIL_UNAUTHORIZED"
 	MailAnalyzeFailed        = "MAIL_ANALYZE_FAILED"
 	MailTaskCreateFailed     = "MAIL_TASK_CREATE_FAILED"
-	MailNoWorkspace          = "MAIL_NO_WORKSPACE"
-
-	WorkspaceOwnerProfileIDRequired = "WORKSPACE_OWNER_PROFILE_ID_REQUIRED"
-	WorkspaceNameRequired           = "WORKSPACE_NAME_REQUIRED"
-	WorkspaceSlugRequired           = "WORKSPACE_SLUG_REQUIRED"
-	WorkspaceIDRequired             = "WORKSPACE_ID_REQUIRED"
-	WorkspaceNotFound               = "WORKSPACE_NOT_FOUND"
-	WorkspaceSlugAlreadyExists      = "WORKSPACE_SLUG_ALREADY_EXISTS"
 )
 
 type LocalizedMessage struct {

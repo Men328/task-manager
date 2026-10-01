@@ -29,7 +29,6 @@ func (c *taskClient) Create(ctx context.Context, in model.TaskInput) (model.Task
 
 	request := &taskv1.CreateTaskRequest{
 		ProfileId:   in.ProfileID,
-		WorkspaceId: in.WorkspaceID,
 		Title:       in.Title,
 		Description: in.Description,
 		Priority:    taskv1.TaskPriority(in.Priority),
@@ -45,8 +44,7 @@ func (c *taskClient) Create(ctx context.Context, in model.TaskInput) (model.Task
 
 	task := response.GetTask()
 	return model.TaskRef{
-		ID:          task.GetId(),
-		Title:       task.GetTitle(),
-		WorkspaceID: task.GetWorkspaceId(),
+		ID:    task.GetId(),
+		Title: task.GetTitle(),
 	}, nil
 }

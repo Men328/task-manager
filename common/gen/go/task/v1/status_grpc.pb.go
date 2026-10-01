@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TaskStatusService_CreateTaskStatus_FullMethodName = "/task.v1.TaskStatusService/CreateTaskStatus"
-	TaskStatusService_GetTaskStatus_FullMethodName    = "/task.v1.TaskStatusService/GetTaskStatus"
-	TaskStatusService_ListTaskStatuses_FullMethodName = "/task.v1.TaskStatusService/ListTaskStatuses"
-	TaskStatusService_UpdateTaskStatus_FullMethodName = "/task.v1.TaskStatusService/UpdateTaskStatus"
-	TaskStatusService_DeleteTaskStatus_FullMethodName = "/task.v1.TaskStatusService/DeleteTaskStatus"
+	TaskStatusService_CreateTaskStatus_FullMethodName    = "/task.v1.TaskStatusService/CreateTaskStatus"
+	TaskStatusService_GetTaskStatus_FullMethodName       = "/task.v1.TaskStatusService/GetTaskStatus"
+	TaskStatusService_ListTaskStatuses_FullMethodName    = "/task.v1.TaskStatusService/ListTaskStatuses"
+	TaskStatusService_UpdateTaskStatus_FullMethodName    = "/task.v1.TaskStatusService/UpdateTaskStatus"
+	TaskStatusService_DeleteTaskStatus_FullMethodName    = "/task.v1.TaskStatusService/DeleteTaskStatus"
+	TaskStatusService_SeedDefaultStatuses_FullMethodName = "/task.v1.TaskStatusService/SeedDefaultStatuses"
 )
 
 // TaskStatusServiceClient is the client API for TaskStatusService service.
@@ -35,6 +36,7 @@ type TaskStatusServiceClient interface {
 	ListTaskStatuses(ctx context.Context, in *ListTaskStatusesRequest, opts ...grpc.CallOption) (*ListTaskStatusesResponse, error)
 	UpdateTaskStatus(ctx context.Context, in *UpdateTaskStatusRequest, opts ...grpc.CallOption) (*UpdateTaskStatusResponse, error)
 	DeleteTaskStatus(ctx context.Context, in *DeleteTaskStatusRequest, opts ...grpc.CallOption) (*DeleteTaskStatusResponse, error)
+	SeedDefaultStatuses(ctx context.Context, in *SeedDefaultStatusesRequest, opts ...grpc.CallOption) (*SeedDefaultStatusesResponse, error)
 }
 
 type taskStatusServiceClient struct {
@@ -95,6 +97,16 @@ func (c *taskStatusServiceClient) DeleteTaskStatus(ctx context.Context, in *Dele
 	return out, nil
 }
 
+func (c *taskStatusServiceClient) SeedDefaultStatuses(ctx context.Context, in *SeedDefaultStatusesRequest, opts ...grpc.CallOption) (*SeedDefaultStatusesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SeedDefaultStatusesResponse)
+	err := c.cc.Invoke(ctx, TaskStatusService_SeedDefaultStatuses_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TaskStatusServiceServer is the server API for TaskStatusService service.
 // All implementations must embed UnimplementedTaskStatusServiceServer
 // for forward compatibility.
@@ -104,6 +116,7 @@ type TaskStatusServiceServer interface {
 	ListTaskStatuses(context.Context, *ListTaskStatusesRequest) (*ListTaskStatusesResponse, error)
 	UpdateTaskStatus(context.Context, *UpdateTaskStatusRequest) (*UpdateTaskStatusResponse, error)
 	DeleteTaskStatus(context.Context, *DeleteTaskStatusRequest) (*DeleteTaskStatusResponse, error)
+	SeedDefaultStatuses(context.Context, *SeedDefaultStatusesRequest) (*SeedDefaultStatusesResponse, error)
 	mustEmbedUnimplementedTaskStatusServiceServer()
 }
 
@@ -128,6 +141,9 @@ func (UnimplementedTaskStatusServiceServer) UpdateTaskStatus(context.Context, *U
 }
 func (UnimplementedTaskStatusServiceServer) DeleteTaskStatus(context.Context, *DeleteTaskStatusRequest) (*DeleteTaskStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteTaskStatus not implemented")
+}
+func (UnimplementedTaskStatusServiceServer) SeedDefaultStatuses(context.Context, *SeedDefaultStatusesRequest) (*SeedDefaultStatusesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SeedDefaultStatuses not implemented")
 }
 func (UnimplementedTaskStatusServiceServer) mustEmbedUnimplementedTaskStatusServiceServer() {}
 func (UnimplementedTaskStatusServiceServer) testEmbeddedByValue()                           {}
@@ -240,6 +256,24 @@ func _TaskStatusService_DeleteTaskStatus_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TaskStatusService_SeedDefaultStatuses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SeedDefaultStatusesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TaskStatusServiceServer).SeedDefaultStatuses(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TaskStatusService_SeedDefaultStatuses_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TaskStatusServiceServer).SeedDefaultStatuses(ctx, req.(*SeedDefaultStatusesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TaskStatusService_ServiceDesc is the grpc.ServiceDesc for TaskStatusService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +300,10 @@ var TaskStatusService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteTaskStatus",
 			Handler:    _TaskStatusService_DeleteTaskStatus_Handler,
+		},
+		{
+			MethodName: "SeedDefaultStatuses",
+			Handler:    _TaskStatusService_SeedDefaultStatuses_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

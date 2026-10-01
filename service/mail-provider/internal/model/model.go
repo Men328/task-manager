@@ -78,7 +78,6 @@ type TaskDraft struct {
 
 type TaskInput struct {
 	ProfileID   string
-	WorkspaceID string
 	Title       string
 	Description string
 	Priority    Priority
@@ -87,7 +86,6 @@ type TaskInput struct {
 }
 
 type TaskRef struct {
-	ID          string
-	Title       string
-	WorkspaceID string
+	ID    string
+	Title string
 }

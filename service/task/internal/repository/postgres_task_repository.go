@@ -12,7 +12,7 @@ import (
 	"taskmanager/service/task/internal/model"
 )
 
-const taskColumns = `id::text, profile_id::text, workspace_id::text, COALESCE(parent_task_id::text, ''), status_id::text, title, COALESCE(description, ''), priority::text, position, start_at, due_at, completed_at, is_archived, created_at, updated_at`
+const taskColumns = `id::text, profile_id::text, COALESCE(parent_task_id::text, ''), status_id::text, title, COALESCE(description, ''), priority::text, position, start_at, due_at, completed_at, is_archived, created_at, updated_at`
 
 const statusLogColumns = `id, task_id::text, profile_id::text, COALESCE(from_status_id::text, ''), to_status_id::text, COALESCE(note, ''), changed_at`
 
@@ -51,7 +51,6 @@ func scanTask(row pgx.Row) (model.Task, error) {
 	if err := row.Scan(
 		&t.ID,
 		&t.ProfileID,
-		&t.WorkspaceID,
 		&t.ParentTaskID,
 		&t.StatusID,
 		&t.Title,
@@ -90,16 +89,16 @@ func scanStatusLog(row pgx.Row) (model.StatusLog, error) {
 func (r *PostgresTaskRepository) Create(ctx context.Context, t model.Task) (model.Task, error) {
 	const query = `
 		INSERT INTO task.tasks
-			(id, profile_id, workspace_id, parent_task_id, status_id, title, description,
+			(id, profile_id, parent_task_id, status_id, title, description,
 			 priority, position, start_at, due_at, completed_at, is_archived)
 		VALUES
-			(COALESCE(NULLIF($1, '')::uuid, gen_random_uuid()), $2::uuid, $3::uuid,
-			 NULLIF($4, '')::uuid, $5::uuid, $6, NULLIF($7, ''), $8::task.task_priority,
-			 $9, $10, $11, $12, $13)
+			(COALESCE(NULLIF($1, '')::uuid, gen_random_uuid()), $2::uuid,
+			 NULLIF($3, '')::uuid, $4::uuid, $5, NULLIF($6, ''), $7::task.task_priority,
+			 $8, $9, $10, $11, $12)
 		RETURNING ` + taskColumns
 
 	return scanTask(r.pool.QueryRow(ctx, query,
-		t.ID, t.ProfileID, t.WorkspaceID, t.ParentTaskID, t.StatusID, t.Title, t.Description,
+		t.ID, t.ProfileID, t.ParentTaskID, t.StatusID, t.Title, t.Description,
 		priorityToDB(t.Priority), t.Position, t.StartAt, t.DueAt, t.CompletedAt, t.IsArchived))
 }
 
@@ -114,16 +113,14 @@ func (r *PostgresTaskRepository) List(ctx context.Context, f model.TaskFilter) (
 		FROM task.tasks
 		WHERE deleted_at IS NULL
 		  AND ($1::uuid IS NULL OR profile_id = $1::uuid)
-		  AND ($2::uuid IS NULL OR workspace_id = $2::uuid)
-		  AND ($3::uuid IS NULL OR status_id = $3::uuid)
-		  AND (CASE WHEN $4 THEN parent_task_id IS NULL
-		            ELSE ($5::uuid IS NULL OR parent_task_id = $5::uuid) END)
-		  AND ($6 OR NOT is_archived)
+		  AND ($2::uuid IS NULL OR status_id = $2::uuid)
+		  AND (CASE WHEN $3 THEN parent_task_id IS NULL
+		            ELSE ($4::uuid IS NULL OR parent_task_id = $4::uuid) END)
+		  AND ($5 OR NOT is_archived)
 		ORDER BY position, created_at`
 
 	rows, err := r.pool.Query(ctx, query,
 		optionalUUID(f.ProfileID),
-		optionalUUID(f.WorkspaceID),
 		optionalUUID(f.StatusID),
 		f.RootOnly,
 		optionalUUID(f.ParentTaskID),

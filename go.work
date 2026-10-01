@@ -5,6 +5,5 @@ use (
 	./service/identity
 	./service/mail-provider
 	./service/task
-	./service/workspace
 	./tools/quality
 )

@@ -5,4 +5,3 @@ export { useBoard } from './board/useBoard';
 export { useSession } from './session/useSession';
 export { useSidebarCounts } from './useSidebar';
 export { useStatuses } from './statuses/useStatuses';
-export { useWorkspace } from './workspace/useWorkspace';

@@ -8,7 +8,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
+	taskv1 "taskmanager/common/gen/go/task/v1"
 	"taskmanager/service/identity/internal/config"
 	"taskmanager/service/identity/internal/repository"
 	"taskmanager/service/identity/internal/service"
@@ -54,4 +57,25 @@ func newAuthProviderRepository(pool *pgxpool.Pool) service.AuthProviderRepositor
 		return repository.NewInMemoryAuthProviderRepository()
 	}
 	return repository.NewPostgresAuthProviderRepository(pool)
+}
+
+func newTaskConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(cfg.TaskDialTarget(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("dial gRPC task (%s): %w", cfg.TaskDialTarget(), err)
+	}
+	lc.Append(fx.Hook{
+		OnStop: func(context.Context) error {
+			return conn.Close()
+		},
+	})
+	return conn, nil
+}
+
+func newTaskStatusServiceClient(conn *grpc.ClientConn) taskv1.TaskStatusServiceClient {
+	return taskv1.NewTaskStatusServiceClient(conn)
+}
+
+func newDefaultLifecycleSeeder(client taskv1.TaskStatusServiceClient, cfg config.Config) service.DefaultLifecycleSeeder {
+	return repository.NewTaskLifecycleSeeder(client, cfg.TaskTimeout)
 }

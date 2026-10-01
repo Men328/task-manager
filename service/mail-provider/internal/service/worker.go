@@ -11,14 +11,13 @@ import (
 )
 
 type notificationWorker struct {
-	subs       SubscriptionRepository
-	gmail      GmailClient
-	tokens     *TokenManager
-	analyzer   MailAnalyzer
-	tasks      TaskCreator
-	workspaces WorkspaceResolver
-	queue      *Queue
-	opts       Options
+	subs     SubscriptionRepository
+	gmail    GmailClient
+	tokens   *TokenManager
+	analyzer MailAnalyzer
+	tasks    TaskCreator
+	queue    *Queue
+	opts     Options
 }
 
 func NewWorker(
@@ -27,19 +26,17 @@ func NewWorker(
 	tokens *TokenManager,
 	analyzer MailAnalyzer,
 	tasks TaskCreator,
-	workspaces WorkspaceResolver,
 	queue *Queue,
 	opts Options,
 ) Worker {
 	return &notificationWorker{
-		subs:       subs,
-		gmail:      gmail,
-		tokens:     tokens,
-		analyzer:   analyzer,
-		tasks:      tasks,
-		workspaces: workspaces,
-		queue:      queue,
-		opts:       opts.withDefaults(),
+		subs:     subs,
+		gmail:    gmail,
+		tokens:   tokens,
+		analyzer: analyzer,
+		tasks:    tasks,
+		queue:    queue,
+		opts:     opts.withDefaults(),
 	}
 }
 
@@ -124,15 +121,8 @@ func (w *notificationWorker) processMessage(ctx context.Context, sub model.Subsc
 		draft.Priority = w.opts.DefaultPriority
 	}
 
-	workspaceID, err := w.workspaces.DefaultWorkspaceID(ctx, sub.ProfileID)
-	if err != nil {
-		slog.Error("không xác định được workspace", "profile_id", sub.ProfileID, "error", err)
-		return
-	}
-
 	created, err := w.tasks.Create(ctx, model.TaskInput{
 		ProfileID:   sub.ProfileID,
-		WorkspaceID: workspaceID,
 		Title:       draft.Title,
 		Description: draft.Description,
 		Priority:    draft.Priority,
@@ -149,7 +139,6 @@ func (w *notificationWorker) processMessage(ctx context.Context, sub model.Subsc
 		"email", sub.Email,
 		"message_id", messageID,
 		"task_id", created.ID,
-		"workspace_id", created.WorkspaceID,
 	)
 }
 

@@ -15,6 +15,20 @@ import App from './App';
 import { store } from './context';
 import { DEFAULT_COLOR_SCHEME, colorSchemeManager, theme } from './theme';
 
+const OBSOLETE_STORAGE_KEYS = ['tm-workspace-id'];
+
+function clearObsoleteStorage(): void {
+  try {
+    for (const key of OBSOLETE_STORAGE_KEYS) {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // localStorage can be unavailable (private mode); nothing to clean up then.
+  }
+}
+
+clearObsoleteStorage();
+
 const container = document.getElementById('root');
 
 if (!container) {

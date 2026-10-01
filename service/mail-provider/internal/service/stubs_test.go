@@ -186,14 +186,5 @@ func (t *stubTasks) Create(_ context.Context, in model.TaskInput) (model.TaskRef
 	if t.err != nil {
 		return model.TaskRef{}, t.err
 	}
-	return model.TaskRef{ID: "task-1", Title: in.Title, WorkspaceID: in.WorkspaceID}, nil
-}
-
-type stubWorkspaces struct {
-	id  string
-	err error
-}
-
-func (w *stubWorkspaces) DefaultWorkspaceID(_ context.Context, _ string) (string, error) {
-	return w.id, w.err
+	return model.TaskRef{ID: "task-1", Title: in.Title}, nil
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"strconv"
 	"strings"
@@ -140,10 +141,26 @@ func (s *stubAuthProviders) ListByProfileID(_ context.Context, profileID string)
 	return out, nil
 }
 
+type stubSeeder struct {
+	profiles []string
+	err      error
+}
+
+func (s *stubSeeder) SeedDefaultStatuses(_ context.Context, profileID string) error {
+	s.profiles = append(s.profiles, profileID)
+	return s.err
+}
+
 func newTestAuthService() (AuthService, *stubProfiles, *stubAuthProviders) {
+	svc, profiles, providers, _ := newTestAuthServiceWithSeeder()
+	return svc, profiles, providers
+}
+
+func newTestAuthServiceWithSeeder() (AuthService, *stubProfiles, *stubAuthProviders, *stubSeeder) {
 	profiles := newStubProfiles()
 	providers := newStubAuthProviders()
-	return NewAuthService(profiles, providers), profiles, providers
+	seeder := &stubSeeder{}
+	return NewAuthService(profiles, providers, seeder), profiles, providers, seeder
 }
 
 func googleLogin(sub string, email string) model.ProviderLogin {
@@ -283,5 +300,34 @@ func TestListProvidersRequiresExistingProfile(t *testing.T) {
 	}
 	if len(links) != 1 || links[0].Provider != model.ProviderGoogle {
 		t.Fatalf("phải trả 1 liên kết google, nhận %+v", links)
+	}
+}
+
+func TestLoginWithProviderSeedsDefaultLifecycleForNewProfile(t *testing.T) {
+	svc, _, _, seeder := newTestAuthServiceWithSeeder()
+	ctx := context.Background()
+
+	profile, created, err := svc.LoginWithProvider(ctx, googleLogin("sub-1", "user@example.com"))
+	if err != nil || !created {
+		t.Fatalf("login lần đầu: created=%v err=%v", created, err)
+	}
+	if len(seeder.profiles) != 1 || seeder.profiles[0] != profile.ID {
+		t.Fatalf("phải seed lifecycle cho profile mới, nhận %v", seeder.profiles)
+	}
+
+	if _, _, err := svc.LoginWithProvider(ctx, googleLogin("sub-1", "user@example.com")); err != nil {
+		t.Fatalf("login lần hai: %v", err)
+	}
+	if len(seeder.profiles) != 1 {
+		t.Fatalf("login lại không được seed thêm, nhận %v", seeder.profiles)
+	}
+}
+
+func TestLoginWithProviderIgnoresSeedFailure(t *testing.T) {
+	svc, _, _, seeder := newTestAuthServiceWithSeeder()
+	seeder.err = errors.New("task service offline")
+
+	if _, created, err := svc.LoginWithProvider(context.Background(), googleLogin("sub-1", "user@example.com")); err != nil || !created {
+		t.Fatalf("seed lỗi không được làm hỏng login: created=%v err=%v", created, err)
 	}
 }

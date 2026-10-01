@@ -54,6 +54,7 @@ type TaskStatusService interface {
 	List(ctx context.Context, profileID string, includeArchived bool) ([]model.Status, error)
 	Update(ctx context.Context, id string, upd model.StatusUpdate) (model.Status, error)
 	Delete(ctx context.Context, id string) error
+	SeedDefaultStatuses(ctx context.Context, profileID string) ([]model.Status, []model.Transition, error)
 }
 
 type StatusTransitionService interface {

@@ -5,7 +5,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import scrollClasses from '../../styles/scroll.module.css';
 import { tokens } from '../../theme';
-import { WorkspaceSwitcher } from '../workspace/WorkspaceSwitcher';
 import { NAV_SECTIONS, type NavItem } from './navigation';
 import classes from './Sidebar.module.css';
 
@@ -64,7 +63,7 @@ function NavItemRow({
   );
 }
 
-function WorkspaceHeader() {
+function BrandHeader() {
   const { t } = useTranslation();
 
   return (
@@ -77,7 +76,7 @@ function WorkspaceHeader() {
       >
         <IconSparkles size={17} />
       </ThemeIcon>
-      <Text fz={14} fw={700} c={tokens.text} className={classes.workspaceTitle}>
+      <Text fz={14} fw={700} c={tokens.text} className={classes.brandTitle}>
         {t('sidebar.brand')}
       </Text>
     </Group>
@@ -97,10 +96,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <Stack gap={0} h="100%" className={classes.root}>
       <Box px="md" pt="md">
-        <WorkspaceHeader />
-        <Box mt={14}>
-          <WorkspaceSwitcher />
-        </Box>
+        <BrandHeader />
       </Box>
 
       <Box className={`${scrollClasses.scroll} ${classes.scrollArea}`} px="md" pb="md">

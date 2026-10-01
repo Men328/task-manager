@@ -24,6 +24,8 @@ type Config struct {
 	GoogleRedirectURL  string
 
 	MailGRPCDialAddr string
+	TaskGRPCDialAddr string
+	TaskTimeout      time.Duration
 
 	FrontendBaseURL string
 
@@ -47,6 +49,8 @@ func Load() Config {
 		GoogleRedirectURL:  getenv("GOOGLE_REDIRECT_URL", "http://localhost:8081/v1/auth/google/callback"),
 
 		MailGRPCDialAddr: os.Getenv("MAIL_GRPC_DIAL_ADDR"),
+		TaskGRPCDialAddr: os.Getenv("TASK_GRPC_DIAL_ADDR"),
+		TaskTimeout:      getduration("TASK_TIMEOUT", 10*time.Second),
 
 		FrontendBaseURL: strings.TrimRight(getenv("FRONTEND_BASE_URL", "http://localhost:5173"), "/"),
 
@@ -92,6 +96,13 @@ func (c Config) MailDialTarget() string {
 		return c.MailGRPCDialAddr
 	}
 	return "127.0.0.1:9084"
+}
+
+func (c Config) TaskDialTarget() string {
+	if c.TaskGRPCDialAddr != "" {
+		return c.TaskGRPCDialAddr
+	}
+	return "127.0.0.1:9082"
 }
 
 func getenv(key, fallback string) string {

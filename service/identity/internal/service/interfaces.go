@@ -22,6 +22,10 @@ type AuthProviderRepository interface {
 	ListByProfileID(ctx context.Context, profileID string) ([]model.AuthProvider, error)
 }
 
+type DefaultLifecycleSeeder interface {
+	SeedDefaultStatuses(ctx context.Context, profileID string) error
+}
+
 type ProfileService interface {
 	Create(ctx context.Context, p model.Profile) (model.Profile, error)
 	Get(ctx context.Context, id string) (model.Profile, error)

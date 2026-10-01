@@ -20,7 +20,6 @@ export function useStatuses() {
   const loading = useAppSelector(selectPageLoading);
   const error = useAppSelector(selectPageError);
   const profileId = useAppSelector((state) => state.session.profileId);
-  const workspaceId = useAppSelector((state) => state.workspace.selectedId);
 
   return {
     statuses,
@@ -30,17 +29,16 @@ export function useStatuses() {
     loading,
     error,
     profileId,
-    workspaceId,
     refresh: () => {
       if (profileId) {
-        void dispatch(fetchStatusesPage({ profileId, workspaceId }));
+        void dispatch(fetchStatusesPage({ profileId }));
       }
     },
     seedDefaultStatuses: async () => {
       if (!profileId) {
         throw new Error(i18n.t('errors.noProfile'));
       }
-      await dispatch(seedStatusesPage({ profileId, workspaceId })).unwrap();
+      await dispatch(seedStatusesPage({ profileId })).unwrap();
     },
   };
 }

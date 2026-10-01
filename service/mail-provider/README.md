@@ -66,7 +66,6 @@ Gmail có mail mới
   → worker:
       access token (refresh nếu hết hạn) → users.history.list → users.messages.get
       → DeepSeek /chat/completions  → JSON {is_actionable,title,description,priority,due_at}
-      → workspace service: lấy workspace ĐẦU TIÊN của user
       → task service: CreateTask
       → tiến checkpoint
 ```
@@ -100,7 +99,7 @@ DeepSeek trả `is_actionable=false` thì bỏ qua, không tạo task.
 | `MAIL_DEFAULT_PRIORITY` | `medium` | priority khi DeepSeek không xác định |
 | `MAIL_QUEUE_SIZE` | `256` | sức chứa queue notice trong RAM |
 | `MAIL_WORKER_COUNT` | `2` | số worker xử lý song song |
-| `MAIL_TASK_TIMEOUT` | `15s` | timeout gọi task/workspace service |
+| `MAIL_TASK_TIMEOUT` | `15s` | timeout gọi task service |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | rỗng | dùng để refresh access token |
 | `GOOGLE_TOKEN_URL` | `https://oauth2.googleapis.com/token` | token endpoint |
 | `GMAIL_BASE_URL` | `https://gmail.googleapis.com` | Gmail API base |
@@ -111,7 +110,6 @@ DeepSeek trả `is_actionable=false` thì bỏ qua, không tạo task.
 | `DEEPSEEK_MODEL` | `deepseek-chat` | model |
 | `DEEPSEEK_TIMEOUT` | `60s` | timeout gọi DeepSeek |
 | `TASK_GRPC_DIAL_ADDR` | rỗng → `127.0.0.1:9082` | task service |
-| `WORKSPACE_GRPC_DIAL_ADDR` | rỗng → `127.0.0.1:9083` | workspace service |
 
 ## Cấu trúc
 
@@ -122,13 +120,13 @@ cmd/http/                        # fx app: grpc-gateway (:8084) + webhook Pub/Su
 internal/config/config.go        # đọc env
 internal/model/                  # CORE: domain model + lỗi domain (chỉ stdlib)
 internal/service/                # nghiệp vụ: subscribe, token cache, queue, worker push + worker pull
-internal/repository/             # adapter I/O: Postgres/in-memory store, Gmail, Pub/Sub pull, OAuth token, DeepSeek, task, workspace
+internal/repository/             # adapter I/O: Postgres/in-memory store, Gmail, Pub/Sub pull, OAuth token, DeepSeek, task
 internal/dependency/             # validate + mapping model <-> proto + map lỗi -> gRPC
 internal/handler/                # transport gRPC mỏng
 ```
 
 `service/interfaces.go` khai báo các port (`SubscriptionRepository`, `GmailClient`,
-`TokenRefresher`, `MailAnalyzer`, `TaskCreator`, `WorkspaceResolver`, `MailService`, `Worker`);
+`TokenRefresher`, `MailAnalyzer`, `TaskCreator`, `MailService`, `Worker`);
 `service` chỉ import `model`, adapter ở `repository` thoả mãn port nhờ structural typing, `cmd`
 là nơi wiring concrete.
 
@@ -138,11 +136,10 @@ là nơi wiring concrete.
 make run-mail-provider
 ```
 
-Cần task + workspace service đang chạy để tạo task:
+Cần task service đang chạy để tạo task:
 
 ```bash
 make run-task
-make run-workspace
 ```
 
 Chạy local **không cần tunnel** nếu dùng pull mode:

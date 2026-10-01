@@ -25,6 +25,13 @@ func (r *InMemoryStatusRepository) Create(_ context.Context, s model.Status) (mo
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	for _, existing := range r.items {
+		if existing.ProfileID == s.ProfileID && existing.Slug == s.Slug {
+			return model.Status{}, model.NewError(model.ErrorKindStatusSlugAlreadyExists,
+				"slug %s đã tồn tại trong profile", s.Slug)
+		}
+	}
+
 	now := time.Now().UTC()
 	if s.ID == "" {
 		s.ID = uuid.NewString()

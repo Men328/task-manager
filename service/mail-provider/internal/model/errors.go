@@ -10,7 +10,6 @@ var (
 	ErrTokenRefresh   = errors.New("token refresh failed")
 	ErrAnalyzeFailed  = errors.New("email analysis failed")
 	ErrTaskCreate     = errors.New("task creation failed")
-	ErrNoWorkspace    = errors.New("profile has no workspace")
 	ErrQueueFull      = errors.New("notification queue is full")
 	ErrUnauthorized   = errors.New("notification is not authenticated")
 	ErrInvalidPayload = errors.New("notification payload is invalid")

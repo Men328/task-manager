@@ -9,12 +9,12 @@ import {
   listStatuses,
   listTasks,
   listTransitions,
+  seedDefaultStatuses,
 } from '../../api/task';
 import { hasText } from '../../lib/format';
 import i18n from '../../i18n';
 import { PRIORITY_ORDER, isDoneCategory } from '../../lib/tokens';
 import type { CreateTaskInput, StatusTransition, Task, TaskPriority, TaskStatus } from '../../types';
-import { seedDefaultStatuses } from '../seed';
 import type { RootState } from '../store';
 
 export type NewTaskInput = Omit<CreateTaskInput, 'profileId'>;
@@ -29,17 +29,16 @@ const optimisticMove = createAction<{ taskId: string; statusId: string }>('board
 
 interface FetchBoardArgs {
   profileId: string;
-  workspaceId: string;
 }
 
 export const fetchBoard = createAsyncThunk<BoardData, FetchBoardArgs, { rejectValue: string }>(
   'board/fetchBoard',
-  async ({ profileId, workspaceId }, { rejectWithValue }) => {
+  async ({ profileId }, { rejectWithValue }) => {
     try {
       const [statuses, transitions, tasks] = await Promise.all([
         listStatuses(profileId),
         listTransitions(profileId),
-        listTasks({ profileId, workspaceId, includeSubtasks: true }),
+        listTasks({ profileId, includeSubtasks: true }),
       ]);
       return { statuses, transitions, tasks };
     } catch (cause) {
@@ -55,7 +54,7 @@ export const createTaskAndRefresh = createAsyncThunk<
 >('board/createTask', async ({ profileId, input }, { dispatch, rejectWithValue }) => {
   try {
     await createTask({ ...input, profileId });
-    await dispatch(fetchBoard({ profileId, workspaceId: input.workspaceId })).unwrap();
+    await dispatch(fetchBoard({ profileId })).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
@@ -63,7 +62,7 @@ export const createTaskAndRefresh = createAsyncThunk<
 
 export const moveTask = createAsyncThunk<
   void,
-  { profileId: string; workspaceId: string; taskId: string; statusId: string; note?: string },
+  { profileId: string; taskId: string; statusId: string; note?: string },
   { state: RootState; rejectValue: string }
 >('board/moveTask', async (args, { dispatch, getState, rejectWithValue }) => {
   const previous = getState().board.tasks.find((task) => task.id === args.taskId);
@@ -75,9 +74,7 @@ export const moveTask = createAsyncThunk<
 
   try {
     await changeTaskStatus(args.taskId, args.statusId, args.note);
-    await dispatch(
-      fetchBoard({ profileId: args.profileId, workspaceId: args.workspaceId }),
-    ).unwrap();
+    await dispatch(fetchBoard({ profileId: args.profileId })).unwrap();
   } catch (cause) {
     dispatch(optimisticMove({ taskId: args.taskId, statusId: previous.statusId }));
     return rejectWithValue(getErrorMessage(cause));
@@ -86,12 +83,12 @@ export const moveTask = createAsyncThunk<
 
 export const removeTask = createAsyncThunk<
   void,
-  { profileId: string; workspaceId: string; taskId: string },
+  { profileId: string; taskId: string },
   { rejectValue: string }
->('board/removeTask', async ({ profileId, workspaceId, taskId }, { dispatch, rejectWithValue }) => {
+>('board/removeTask', async ({ profileId, taskId }, { dispatch, rejectWithValue }) => {
   try {
     await deleteTask(taskId);
-    await dispatch(fetchBoard({ profileId, workspaceId })).unwrap();
+    await dispatch(fetchBoard({ profileId })).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
@@ -99,12 +96,12 @@ export const removeTask = createAsyncThunk<
 
 export const seedBoardStatuses = createAsyncThunk<
   void,
-  { profileId: string; workspaceId: string },
+  { profileId: string },
   { rejectValue: string }
->('board/seedStatuses', async ({ profileId, workspaceId }, { dispatch, rejectWithValue }) => {
+>('board/seedStatuses', async ({ profileId }, { dispatch, rejectWithValue }) => {
   try {
     await seedDefaultStatuses(profileId);
-    await dispatch(fetchBoard({ profileId, workspaceId })).unwrap();
+    await dispatch(fetchBoard({ profileId })).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }

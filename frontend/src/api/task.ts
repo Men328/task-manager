@@ -38,7 +38,6 @@ function toStatusBody(input: CreateStatusInput): Record<string, unknown> {
 function toTaskBody(input: CreateTaskInput): Record<string, unknown> {
   return {
     profile_id: input.profileId,
-    workspace_id: input.workspaceId,
     title: input.title,
     status_id: input.statusId,
     description: input.description,
@@ -72,6 +71,17 @@ export function deleteStatus(id: string): Promise<void> {
   return request<void>(taskApi, `${STATUSES_PATH}/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
+/**
+ * POST /v1/statuses/seed — tạo bộ status + rule lifecycle mặc định cho profile.
+ * Backend idempotent: profile đã có status thì chỉ bổ sung phần còn thiếu.
+ */
+export function seedDefaultStatuses(profileId: string): Promise<void> {
+  return request<unknown>(taskApi, `${STATUSES_PATH}/seed`, {
+    method: 'POST',
+    body: JSON.stringify({ profile_id: profileId }),
+  }).then(() => undefined);
+}
+
 /** GET /v1/transitions?profile_id=... */
 export async function listTransitions(profileId: string): Promise<StatusTransition[]> {
   const payload = await request<unknown>(
@@ -101,7 +111,6 @@ export async function listTasks(params: ListTasksParams): Promise<Task[]> {
     taskApi,
     `${TASKS_PATH}${buildQuery({
       profile_id: params.profileId,
-      workspace_id: params.workspaceId,
       status_id: params.statusId,
       parent_task_id: params.parentTaskId,
       root_only: params.rootOnly,

@@ -13,16 +13,13 @@
       "description": "MailService điều khiển vòng đời watch Gmail và tiếp nhận notice từ Pub/Sub.\nCố ý KHÔNG khai báo google.api.http: các RPC này chỉ dùng nội bộ (gateway của\nidentity gọi Subscribe sau khi đăng nhập, webhook Pub/Sub gọi HandleNotification)."
     },
     {
+      "name": "StatusTransitionService"
+    },
+    {
       "name": "TaskStatusService"
     },
     {
       "name": "TaskService"
-    },
-    {
-      "name": "StatusTransitionService"
-    },
-    {
-      "name": "WorkspaceService"
     }
   ],
   "consumes": [
@@ -259,6 +256,38 @@
         ]
       }
     },
+    "/v1/statuses/seed": {
+      "post": {
+        "operationId": "TaskStatusService_SeedDefaultStatuses",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SeedDefaultStatusesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SeedDefaultStatusesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TaskStatusService"
+        ]
+      }
+    },
     "/v1/statuses/{id}": {
       "get": {
         "operationId": "TaskStatusService_GetTaskStatus",
@@ -408,12 +437,6 @@
             "in": "query",
             "required": false,
             "type": "boolean"
-          },
-          {
-            "name": "workspaceId",
-            "in": "query",
-            "required": false,
-            "type": "string"
           }
         ],
         "tags": [
@@ -782,138 +805,6 @@
           "StatusTransitionService"
         ]
       }
-    },
-    "/v1/workspaces": {
-      "get": {
-        "operationId": "WorkspaceService_ListWorkspaces",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1ListWorkspacesResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "ownerProfileId",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "includeArchived",
-            "in": "query",
-            "required": false,
-            "type": "boolean"
-          }
-        ],
-        "tags": [
-          "WorkspaceService"
-        ]
-      },
-      "post": {
-        "operationId": "WorkspaceService_CreateWorkspace",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1CreateWorkspaceResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1CreateWorkspaceRequest"
-            }
-          }
-        ],
-        "tags": [
-          "WorkspaceService"
-        ]
-      }
-    },
-    "/v1/workspaces/{id}": {
-      "get": {
-        "operationId": "WorkspaceService_GetWorkspace",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1GetWorkspaceResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "WorkspaceService"
-        ]
-      },
-      "patch": {
-        "operationId": "WorkspaceService_UpdateWorkspace",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1UpdateWorkspaceResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/WorkspaceServiceUpdateWorkspaceBody"
-            }
-          }
-        ],
-        "tags": [
-          "WorkspaceService"
-        ]
-      }
     }
   },
   "definitions": {
@@ -1015,33 +906,6 @@
           "type": "boolean"
         },
         "isTerminal": {
-          "type": "boolean"
-        },
-        "position": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "isArchived": {
-          "type": "boolean"
-        }
-      }
-    },
-    "WorkspaceServiceUpdateWorkspaceBody": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "color": {
-          "type": "string"
-        },
-        "icon": {
-          "type": "string"
-        },
-        "isDefault": {
           "type": "boolean"
         },
         "position": {
@@ -1177,9 +1041,6 @@
         "dueAt": {
           "type": "string",
           "format": "date-time"
-        },
-        "workspaceId": {
-          "type": "string"
         }
       }
     },
@@ -1232,44 +1093,6 @@
         }
       }
     },
-    "v1CreateWorkspaceRequest": {
-      "type": "object",
-      "properties": {
-        "ownerProfileId": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "slug": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "color": {
-          "type": "string"
-        },
-        "icon": {
-          "type": "string"
-        },
-        "isDefault": {
-          "type": "boolean"
-        },
-        "position": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
-    "v1CreateWorkspaceResponse": {
-      "type": "object",
-      "properties": {
-        "workspace": {
-          "$ref": "#/definitions/v1Workspace"
-        }
-      }
-    },
     "v1DeleteProfileResponse": {
       "type": "object"
     },
@@ -1311,14 +1134,6 @@
       "properties": {
         "status": {
           "$ref": "#/definitions/v1TaskStatus"
-        }
-      }
-    },
-    "v1GetWorkspaceResponse": {
-      "type": "object",
-      "properties": {
-        "workspace": {
-          "$ref": "#/definitions/v1Workspace"
         }
       }
     },
@@ -1373,18 +1188,6 @@
         }
       }
     },
-    "v1ListWorkspacesResponse": {
-      "type": "object",
-      "properties": {
-        "workspaces": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v1Workspace"
-          }
-        }
-      }
-    },
     "v1Profile": {
       "type": "object",
       "properties": {
@@ -1423,6 +1226,33 @@
         }
       },
       "title": "Profile là hồ sơ của một identity.\nMapping DB: identity.PROFILES"
+    },
+    "v1SeedDefaultStatusesRequest": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        }
+      }
+    },
+    "v1SeedDefaultStatusesResponse": {
+      "type": "object",
+      "properties": {
+        "statuses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1TaskStatus"
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1StatusTransition"
+          }
+        }
+      }
     },
     "v1StatusTransition": {
       "type": "object",
@@ -1518,9 +1348,6 @@
             "$ref": "#/definitions/v1Task"
           },
           "title": "chỉ được fill khi request yêu cầu include_subtasks"
-        },
-        "workspaceId": {
-          "type": "string"
         }
       },
       "title": "Task cá nhân, hỗ trợ task cha - con qua parent_task_id.\nMapping DB: task.TASKS"
@@ -1629,14 +1456,6 @@
         }
       }
     },
-    "v1UpdateWorkspaceResponse": {
-      "type": "object",
-      "properties": {
-        "workspace": {
-          "$ref": "#/definitions/v1Workspace"
-        }
-      }
-    },
     "v1ValidateStatusTransitionRequest": {
       "type": "object",
       "properties": {
@@ -1661,58 +1480,6 @@
           "type": "string"
         }
       }
-    },
-    "v1Workspace": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "ownerProfileId": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "slug": {
-          "type": "string",
-          "title": "key ổn định cho API/logic, unique theo owner"
-        },
-        "description": {
-          "type": "string"
-        },
-        "color": {
-          "type": "string",
-          "title": "#RRGGBB hoặc #RRGGBBAA"
-        },
-        "icon": {
-          "type": "string",
-          "title": "tên icon hoặc emoji (tuỳ chọn)"
-        },
-        "isDefault": {
-          "type": "boolean"
-        },
-        "position": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "isArchived": {
-          "type": "boolean"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "deletedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "title": "Workspace là namespace gốc chứa mọi tài nguyên (task, ... sau này).\nMapping DB: workspace.WORKSPACES"
     }
   }
 }

@@ -15,18 +15,8 @@ func ValidateCreateTask(req *taskv1.CreateTaskRequest) error {
 	if req.GetProfileId() == "" {
 		return errorcode.Error(errorcode.TaskProfileIDRequired)
 	}
-	if req.GetWorkspaceId() == "" {
-		return errorcode.Error(errorcode.TaskWorkspaceIDRequired)
-	}
 	if strings.TrimSpace(req.GetTitle()) == "" {
 		return errorcode.Error(errorcode.TaskTitleRequired)
-	}
-	return nil
-}
-
-func ValidateListTasks(req *taskv1.ListTasksRequest) error {
-	if req.GetWorkspaceId() == "" {
-		return errorcode.Error(errorcode.TaskWorkspaceIDRequired)
 	}
 	return nil
 }
@@ -48,7 +38,6 @@ func ValidateChangeTaskStatus(req *taskv1.ChangeTaskStatusRequest) error {
 func TaskFromCreateRequest(req *taskv1.CreateTaskRequest) model.Task {
 	return model.Task{
 		ProfileID:    req.GetProfileId(),
-		WorkspaceID:  req.GetWorkspaceId(),
 		ParentTaskID: req.GetParentTaskId(),
 		StatusID:     req.GetStatusId(),
 		Title:        req.GetTitle(),
@@ -63,7 +52,6 @@ func TaskFromCreateRequest(req *taskv1.CreateTaskRequest) model.Task {
 func TaskFilterFromRequest(req *taskv1.ListTasksRequest) model.TaskFilter {
 	return model.TaskFilter{
 		ProfileID:       req.GetProfileId(),
-		WorkspaceID:     req.GetWorkspaceId(),
 		ParentTaskID:    req.GetParentTaskId(),
 		RootOnly:        req.GetRootOnly(),
 		StatusID:        req.GetStatusId(),
@@ -88,7 +76,6 @@ func TaskToProto(t model.Task) *taskv1.Task {
 	return &taskv1.Task{
 		Id:           t.ID,
 		ProfileId:    t.ProfileID,
-		WorkspaceId:  t.WorkspaceID,
 		ParentTaskId: t.ParentTaskID,
 		StatusId:     t.StatusID,
 		Title:        t.Title,

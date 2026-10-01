@@ -47,10 +47,9 @@ type Config struct {
 	DeepSeekModel   string
 	DeepSeekTimeout time.Duration
 
-	TaskGRPCDialAddr      string
-	WorkspaceGRPCDialAddr string
-	DefaultPriority       string
-	TaskTimeout           time.Duration
+	TaskGRPCDialAddr string
+	DefaultPriority  string
+	TaskTimeout      time.Duration
 
 	QueueSize   int
 	WorkerCount int
@@ -94,10 +93,9 @@ func Load() Config {
 		DeepSeekModel:   getenv("DEEPSEEK_MODEL", "deepseek-chat"),
 		DeepSeekTimeout: getduration("DEEPSEEK_TIMEOUT", 60*time.Second),
 
-		TaskGRPCDialAddr:      getenv("TASK_GRPC_DIAL_ADDR", ""),
-		WorkspaceGRPCDialAddr: getenv("WORKSPACE_GRPC_DIAL_ADDR", ""),
-		DefaultPriority:       getenv("MAIL_DEFAULT_PRIORITY", "medium"),
-		TaskTimeout:           getduration("MAIL_TASK_TIMEOUT", 15*time.Second),
+		TaskGRPCDialAddr: getenv("TASK_GRPC_DIAL_ADDR", ""),
+		DefaultPriority:  getenv("MAIL_DEFAULT_PRIORITY", "medium"),
+		TaskTimeout:      getduration("MAIL_TASK_TIMEOUT", 15*time.Second),
 
 		QueueSize:   getint("MAIL_QUEUE_SIZE", 256),
 		WorkerCount: getint("MAIL_WORKER_COUNT", 2),
@@ -145,10 +143,6 @@ func (c Config) GRPCDialTarget() string {
 
 func (c Config) TaskDialTarget() string {
 	return dialTarget(c.TaskGRPCDialAddr, ":9082")
-}
-
-func (c Config) WorkspaceDialTarget() string {
-	return dialTarget(c.WorkspaceGRPCDialAddr, ":9083")
 }
 
 func dialTarget(configured string, fallbackPort string) string {

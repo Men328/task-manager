@@ -20,7 +20,7 @@ make gen
 
 Luồng: `buf dep update` (tải `google/api/annotations.proto`) → `buf lint` → `buf generate` →
 `go mod tidy` cho **từng module** (`common`, `service/identity`, `service/mail-provider`,
-`service/task`, `service/workspace`).
+`service/task`).
 
 Output:
 
@@ -31,7 +31,6 @@ common/gen/go/identity/v1/profile_grpc.pb.go
 common/gen/go/mail/v1/mail.pb.go
 common/gen/go/mail/v1/mail_grpc.pb.go
 common/gen/go/task/v1/{task,status,transition}*.go
-common/gen/go/workspace/v1/workspace*.go
 common/gen/openapi/task_manager.swagger.json
 ```
 
@@ -42,11 +41,10 @@ common/gen/openapi/task_manager.swagger.json
 Mỗi service gồm 2 process: `cmd/grpc` (gRPC server) + `cmd/http` (grpc-gateway).
 
 ```bash
-bash scripts/dev.sh        # chạy cả 4 service (8 process), Ctrl+C để dừng
+bash scripts/dev.sh        # chạy cả 3 service (6 process), Ctrl+C để dừng
 # hoặc chạy 1 service (cả grpc + gateway)
 make run-identity
 make run-task
-make run-workspace
 make run-mail-provider   # cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY để chạy đủ luồng
 
 # hoặc chạy riêng từng process
@@ -59,7 +57,6 @@ Kiểm tra:
 ```bash
 curl -s localhost:8081/healthz   # {"status":"ok","service":"identity"}
 curl -s localhost:8082/healthz   # {"status":"ok","service":"task"}
-curl -s localhost:8083/healthz   # {"status":"ok","service":"workspace"}
 curl -s localhost:8084/healthz   # {"status":"ok","service":"mail-provider"}
 ```
 
@@ -73,13 +70,13 @@ make web-dev
 ```
 
 Vite proxy `/api/identity/*` → `localhost:8081`, `/api/task/*` → `localhost:8082`,
-`/api/workspace/*` → `localhost:8083`, `/api/mail/*` → `localhost:8084`
+`/api/mail/*` → `localhost:8084`
 (xem `frontend/vite.config.ts`).
 
 ## 5. Chạy bằng Docker
 
 ```bash
-make up        # build + start: postgres, migrate, identity(-grpc), task(-grpc), workspace(-grpc), mail-provider(-grpc), frontend
+make up        # build + start: postgres, migrate, identity(-grpc), task(-grpc), mail-provider(-grpc), frontend
 make ps
 make logs
 make down
@@ -92,7 +89,7 @@ docker compose -f deployments/docker/docker-compose.yml up --build -d
 ```
 
 Thứ tự khởi động: `postgres (healthy)` → `migrate (exit 0)` → `*-grpc` → gateway
-`identity`/`task`/`workspace`/`mail-provider` (healthy) → `frontend`. Mỗi service Go chạy 2 container:
+`identity`/`task`/`mail-provider` (healthy) → `frontend`. Mỗi service Go chạy 2 container:
 `<svc>-grpc` và `<svc>` (gateway).
 
 Dockerfile nằm trong từng service (`service/*/Dockerfile`, `frontend/Dockerfile`); build context là
@@ -120,9 +117,9 @@ Chi tiết + bảng ánh xạ với `design/db_schema.dbml`: `deployments/migrat
 make smoke
 ```
 
-Build 8 binary (gRPC + gateway của mỗi service), start ở port mặc định, gọi thật toàn bộ luồng
+Build 6 binary (gRPC + gateway của mỗi service), start ở port mặc định, gọi thật toàn bộ luồng
 (profile → status → transition rule → task cha/con → đổi status → ràng buộc xoá) rồi tắt.
-Yêu cầu port `8081/8082/8083/8084/9081/9082/9083/9084` đang trống.
+Yêu cầu port `8081/8082/8084/9081/9082/9084` đang trống.
 
 Khi service đã chạy sẵn thì chỉ chạy phần test:
 
@@ -211,21 +208,22 @@ trong module cache (không phải code của mình). `scripts/vet.sh` lọc các
 
 Mỗi service đọc env với default như sau:
 
-| Biến | identity | task | workspace |
-|---|---|---|---|
-| `SERVICE_NAME` | `identity` | `task` | `workspace` |
-| `GRPC_ADDR` | `:9081` | `:9082` | `:9083` |
-| `HTTP_ADDR` | `:8081` | `:8082` | `:8083` |
-| `GRPC_DIAL_ADDR` | (rỗng) | (rỗng) | (rỗng) |
-| `LOG_LEVEL` | `info` | `info` | `info` |
-| `DATABASE_URL` | (rỗng → in-memory) | (chưa dùng) | (chưa dùng) |
-| `GOOGLE_CLIENT_ID` | (rỗng) | — | — |
-| `GOOGLE_CLIENT_SECRET` | (rỗng) | — | — |
-| `GOOGLE_REDIRECT_URL` | `http://localhost:8081/v1/auth/google/callback` | — | — |
-| `FRONTEND_BASE_URL` | `http://localhost:5173` | — | — |
-| `SESSION_SECRET` | (rỗng) | — | — |
-| `SESSION_TTL` | `720h` | — | — |
-| `COOKIE_SECURE` | `false` | — | — |
+| Biến | identity | task |
+|---|---|---|
+| `SERVICE_NAME` | `identity` | `task` |
+| `GRPC_ADDR` | `:9081` | `:9082` |
+| `HTTP_ADDR` | `:8081` | `:8082` |
+| `GRPC_DIAL_ADDR` | (rỗng) | (rỗng) |
+| `LOG_LEVEL` | `info` | `info` |
+| `DATABASE_URL` | (rỗng → in-memory) | (rỗng → in-memory) |
+| `GOOGLE_CLIENT_ID` | (rỗng) | — |
+| `GOOGLE_CLIENT_SECRET` | (rỗng) | — |
+| `GOOGLE_REDIRECT_URL` | `http://localhost:8081/v1/auth/google/callback` | — |
+| `FRONTEND_BASE_URL` | `http://localhost:5173` | — |
+| `SESSION_SECRET` | (rỗng) | — |
+| `SESSION_TTL` | `720h` | — |
+| `COOKIE_SECURE` | `false` | — |
+| `TASK_GRPC_DIAL_ADDR` | `127.0.0.1:9082` (seed lifecycle khi tạo profile) | — |
 
 `GRPC_ADDR` là địa chỉ `cmd/grpc` listen; `GRPC_DIAL_ADDR` là target `cmd/http` dial tới
 (rỗng → tự suy ra `127.0.0.1:<port>`; đặt trong Docker, ví dụ `identity-grpc:9081`).
@@ -238,7 +236,7 @@ repository Postgres (mail-provider lưu subscription vào `mail_provider.session
 `identity` còn đọc `MAIL_GRPC_DIAL_ADDR` (mặc định `127.0.0.1:9084`) để gọi mail-provider khi user
 tích quyền đọc mail. `mail-provider` có bộ biến riêng khá dài — `MAIL_*` (topic Pub/Sub, label, gia
 hạn watch, queue/worker), `DEEPSEEK_*` (phân tích email), `GMAIL_*`, `GOOGLE_CLIENT_ID/SECRET` (refresh
-token) và `TASK_GRPC_DIAL_ADDR`/`WORKSPACE_GRPC_DIAL_ADDR`. Bảng đầy đủ: `service/mail-provider/README.md`.
+token) và `TASK_GRPC_DIAL_ADDR`. Bảng đầy đủ: `service/mail-provider/README.md`.
 
 ## Đăng nhập Google (local)
 

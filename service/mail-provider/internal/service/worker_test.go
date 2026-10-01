@@ -38,7 +38,6 @@ func newTestWorker(
 		NewTokenManager(subs, &stubRefresher{}),
 		analyzer,
 		tasks,
-		&stubWorkspaces{id: "ws-1"},
 		queue,
 		opts,
 	)
@@ -78,9 +77,6 @@ func TestWorkerCreatesTaskFromNotification(t *testing.T) {
 	case input := <-created:
 		if input.ProfileID != "p1" {
 			t.Fatalf("task phải thuộc đúng profile, nhận %q", input.ProfileID)
-		}
-		if input.WorkspaceID != "ws-1" {
-			t.Fatalf("task phải dùng workspace mặc định, nhận %q", input.WorkspaceID)
 		}
 		if input.Title != "Nộp báo cáo" || input.Priority != model.PriorityHigh {
 			t.Fatalf("task map sai draft: %+v", input)

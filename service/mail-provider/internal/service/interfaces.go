@@ -33,10 +33,6 @@ type MailAnalyzer interface {
 	Analyze(ctx context.Context, message model.EmailMessage) (model.TaskDraft, error)
 }
 
-type WorkspaceResolver interface {
-	DefaultWorkspaceID(ctx context.Context, profileID string) (string, error)
-}
-
 type NotificationSource interface {
 	Receive(ctx context.Context) ([]model.PulledNotice, error)
 	Acknowledge(ctx context.Context, ackIDs []string) error

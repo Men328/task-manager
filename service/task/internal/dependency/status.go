@@ -30,6 +30,13 @@ func ValidateTaskStatusID(id string) error {
 	return nil
 }
 
+func ValidateSeedDefaultStatuses(req *taskv1.SeedDefaultStatusesRequest) error {
+	if req.GetProfileId() == "" {
+		return errorcode.Error(errorcode.TaskProfileIDRequired)
+	}
+	return nil
+}
+
 func StatusFromCreateRequest(req *taskv1.CreateTaskStatusRequest) model.Status {
 	return model.Status{
 		ProfileID:   req.GetProfileId(),

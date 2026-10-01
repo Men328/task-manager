@@ -10,7 +10,6 @@
  */
 const IDENTITY = process.env.IDENTITY_URL ?? 'http://localhost:8081';
 const TASK = process.env.TASK_URL ?? 'http://localhost:8082';
-const WORKSPACE = process.env.WORKSPACE_URL ?? 'http://localhost:8083';
 
 async function req(method, url, body) {
   const res = await fetch(url, {
@@ -58,7 +57,6 @@ function checkCode(label, r, expectedStatus, expectedCode, extra) {
 // ---------------------------------------------------------------- health
 check('GET /healthz (identity)', await req('GET', `${IDENTITY}/healthz`), 200);
 check('GET /healthz (task)', await req('GET', `${TASK}/healthz`), 200);
-check('GET /healthz (workspace)', await req('GET', `${WORKSPACE}/healthz`), 200);
 
 // ---------------------------------------------------------------- identity
 const profile = check(
@@ -78,63 +76,26 @@ checkCode('GET profile không tồn tại -> 404 + IDENTITY_PROFILE_NOT_FOUND',
 checkCode('POST profile thiếu email -> 400 + IDENTITY_EMAIL_REQUIRED',
   await req('POST', `${IDENTITY}/v1/profiles`, { display_name: 'x' }), 400, 'IDENTITY_EMAIL_REQUIRED');
 
-// ---------------------------------------------------------------- workspace
-const workspace = check(
-  'POST /v1/workspaces (default)',
-  await req('POST', `${WORKSPACE}/v1/workspaces`, {
-    owner_profile_id: profileId, name: 'Cá nhân', slug: 'personal', is_default: true,
-  }),
-  200,
-  (r) => r.data.workspace?.slug === 'personal' && r.data.workspace?.isDefault === true,
-);
-const workspaceId = workspace.workspace.id;
-
-check('GET /v1/workspaces?owner_profile_id=...',
-  await req('GET', `${WORKSPACE}/v1/workspaces?owner_profile_id=${profileId}`), 200,
-  (r) => r.data.workspaces?.length === 1 && r.data.workspaces[0].id === workspaceId);
-checkCode('POST /v1/workspaces trùng slug -> 409 + WORKSPACE_SLUG_ALREADY_EXISTS',
-  await req('POST', `${WORKSPACE}/v1/workspaces`, {
-    owner_profile_id: profileId, name: 'Khác', slug: 'personal',
-  }),
-  409, 'WORKSPACE_SLUG_ALREADY_EXISTS');
-check('PATCH /v1/workspaces/{id}',
-  await req('PATCH', `${WORKSPACE}/v1/workspaces/${workspaceId}`, { name: 'Cá nhân (đổi tên)' }), 200,
-  (r) => r.data.workspace?.name === 'Cá nhân (đổi tên)' && r.data.workspace?.slug === 'personal');
-
 // ---------------------------------------------------------------- status
-const todo = check(
-  'POST /v1/statuses (Todo, default)',
-  await req('POST', `${TASK}/v1/statuses`, {
-    profile_id: profileId, name: 'Todo', slug: 'todo', is_default: true,
-    category: 'TASK_STATUS_CATEGORY_TODO', color: '#868E96',
-  }),
-  200,
-  (r) => r.data.status?.isDefault === true,
-);
-const doing = check(
-  'POST /v1/statuses (Doing)',
-  await req('POST', `${TASK}/v1/statuses`, {
-    profile_id: profileId, name: 'Doing', slug: 'doing',
-    category: 'TASK_STATUS_CATEGORY_IN_PROGRESS', color: '#228BE6',
-  }),
-  200,
-);
-const done = check(
-  'POST /v1/statuses (Done, terminal)',
-  await req('POST', `${TASK}/v1/statuses`, {
-    profile_id: profileId, name: 'Done', slug: 'done', is_terminal: true,
-    category: 'TASK_STATUS_CATEGORY_DONE', color: '#40C057',
-  }),
-  200,
-  (r) => r.data.status?.isTerminal === true,
-);
-const todoId = todo.status.id;
-const doingId = doing.status.id;
-const doneId = done.status.id;
-
-check('GET /v1/statuses?profile_id=...',
+const seeded = check(
+  'GET /v1/statuses?profile_id=... (auto-seed 4 status đúng default/terminal)',
   await req('GET', `${TASK}/v1/statuses?profile_id=${profileId}`), 200,
-  (r) => r.data.statuses?.length === 3);
+  (r) => {
+    const list = r.data.statuses ?? [];
+    const bySlug = new Map(list.map((s) => [s.slug, s]));
+    return list.length === 4 &&
+      bySlug.get('todo')?.isDefault === true &&
+      bySlug.get('completed')?.isTerminal === true;
+  },
+);
+const statusBySlug = new Map((seeded.statuses ?? []).map((s) => [s.slug, s]));
+const todoId = statusBySlug.get('todo')?.id;
+const doingId = statusBySlug.get('on-progress')?.id;
+const doneId = statusBySlug.get('completed')?.id;
+
+check('GET /v1/transitions?profile_id=... (auto-seed)',
+  await req('GET', `${TASK}/v1/transitions?profile_id=${profileId}`), 200,
+  (r) => r.data.transitions?.length === 5);
 checkCode('POST /v1/statuses trùng slug -> 409 + TASK_STATUS_SLUG_ALREADY_EXISTS',
   await req('POST', `${TASK}/v1/statuses`, {
     profile_id: profileId, name: 'Todo 2', slug: 'todo',
@@ -142,11 +103,9 @@ checkCode('POST /v1/statuses trùng slug -> 409 + TASK_STATUS_SLUG_ALREADY_EXIST
   409, 'TASK_STATUS_SLUG_ALREADY_EXISTS');
 
 // ---------------------------------------------------- lifecycle (allowlist)
-check('POST /v1/transitions Todo->Doing',
-  await req('POST', `${TASK}/v1/transitions`, { profile_id: profileId, from_status_id: todoId, to_status_id: doingId }), 200);
-check('POST /v1/transitions Doing->Done',
+check('POST /v1/transitions Doing->Done (rule ngoài bộ mặc định)',
   await req('POST', `${TASK}/v1/transitions`, { profile_id: profileId, from_status_id: doingId, to_status_id: doneId }), 200);
-checkCode('POST /v1/transitions trùng rule -> 409 + TASK_TRANSITION_ALREADY_EXISTS',
+checkCode('POST /v1/transitions trùng rule mặc định -> 409 + TASK_TRANSITION_ALREADY_EXISTS',
   await req('POST', `${TASK}/v1/transitions`, { profile_id: profileId, from_status_id: todoId, to_status_id: doingId }),
   409, 'TASK_TRANSITION_ALREADY_EXISTS');
 checkCode('POST /v1/transitions from == to -> 400 + TASK_TRANSITION_SAME_STATUS',
@@ -160,45 +119,29 @@ check('POST /v1/transitions/validate Todo->Done => allowed=false (không khai b�
   (r) => r.data.allowed === false);
 
 // ---------------------------------------------------------------- task
-checkCode('POST /v1/tasks thiếu workspace_id -> 400 + TASK_WORKSPACE_ID_REQUIRED',
-  await req('POST', `${TASK}/v1/tasks`, { profile_id: profileId, title: 'Thiếu workspace' }),
-  400, 'TASK_WORKSPACE_ID_REQUIRED');
-checkCode('POST /v1/tasks workspace không tồn tại -> 404 + COMMON_NOT_FOUND',
-  await req('POST', `${TASK}/v1/tasks`, {
-    profile_id: profileId, workspace_id: '22222222-2222-2222-2222-222222222222', title: 'Workspace lạ',
-  }),
-  404, 'COMMON_NOT_FOUND');
-
 const task = check(
   'POST /v1/tasks (không truyền status_id -> dùng status default)',
   await req('POST', `${TASK}/v1/tasks`, {
-    profile_id: profileId, workspace_id: workspaceId, title: 'Viết báo cáo', priority: 'TASK_PRIORITY_HIGH',
+    profile_id: profileId, title: 'Viết báo cáo', priority: 'TASK_PRIORITY_HIGH',
   }),
   200,
-  (r) => r.data.task?.statusId === todoId && r.data.task?.parentTaskId === '' &&
-    r.data.task?.workspaceId === workspaceId,
+  (r) => r.data.task?.statusId === todoId && r.data.task?.parentTaskId === '',
 );
 const taskId = task.task.id;
 
 const sub = check(
   'POST /v1/tasks (task con)',
   await req('POST', `${TASK}/v1/tasks`, {
-    profile_id: profileId, workspace_id: workspaceId, title: 'Thu thập số liệu', parent_task_id: taskId,
+    profile_id: profileId, title: 'Thu thập số liệu', parent_task_id: taskId,
   }),
   200,
   (r) => r.data.task?.parentTaskId === taskId,
 );
 const subId = sub.task.id;
 
-checkCode('GET /v1/tasks thiếu workspace_id -> 400 + TASK_WORKSPACE_ID_REQUIRED',
-  await req('GET', `${TASK}/v1/tasks?profile_id=${profileId}&root_only=true`),
-  400, 'TASK_WORKSPACE_ID_REQUIRED');
-check('GET /v1/tasks?workspace_id=...&root_only=true&include_subtasks=true',
-  await req('GET', `${TASK}/v1/tasks?profile_id=${profileId}&workspace_id=${workspaceId}&root_only=true&include_subtasks=true`), 200,
+check('GET /v1/tasks?root_only=true&include_subtasks=true',
+  await req('GET', `${TASK}/v1/tasks?profile_id=${profileId}&root_only=true&include_subtasks=true`), 200,
   (r) => r.data.tasks?.length === 1 && r.data.tasks[0].subtasks?.length === 1);
-check('GET /v1/tasks workspace khác -> rỗng',
-  await req('GET', `${TASK}/v1/tasks?profile_id=${profileId}&workspace_id=22222222-2222-2222-2222-222222222222`), 200,
-  (r) => (r.data.tasks?.length ?? 0) === 0);
 check('GET /v1/tasks/{id}?include_subtasks=true',
   await req('GET', `${TASK}/v1/tasks/${taskId}?include_subtasks=true`), 200,
   (r) => r.data.task?.subtasks?.length === 1);

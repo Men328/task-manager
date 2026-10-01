@@ -23,7 +23,6 @@ func declaredCodes() []string {
 		IdentityProfileIDRequired,
 		IdentityProfileNotFound,
 		TaskProfileIDRequired,
-		TaskWorkspaceIDRequired,
 		TaskTitleRequired,
 		TaskIDRequired,
 		TaskIDAndStatusIDRequired,

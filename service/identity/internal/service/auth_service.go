@@ -11,10 +11,11 @@ import (
 type authService struct {
 	profiles      ProfileRepository
 	authProviders AuthProviderRepository
+	seeder        DefaultLifecycleSeeder
 }
 
-func NewAuthService(profiles ProfileRepository, authProviders AuthProviderRepository) AuthService {
-	return &authService{profiles: profiles, authProviders: authProviders}
+func NewAuthService(profiles ProfileRepository, authProviders AuthProviderRepository, seeder DefaultLifecycleSeeder) AuthService {
+	return &authService{profiles: profiles, authProviders: authProviders, seeder: seeder}
 }
 
 func (s *authService) LoginWithProvider(ctx context.Context, in model.ProviderLogin) (model.Profile, bool, error) {
@@ -66,6 +67,8 @@ func (s *authService) LoginWithProvider(ctx context.Context, in model.ProviderLo
 	}); err != nil {
 		return model.Profile{}, false, err
 	}
+
+	seedDefaultLifecycle(ctx, s.seeder, created.ID)
 
 	profile, err := s.profiles.TouchLastLogin(ctx, created.ID)
 	if err != nil {

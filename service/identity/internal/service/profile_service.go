@@ -11,15 +11,21 @@ const defaultListLimit = 50
 
 type profileService struct {
 	profiles ProfileRepository
+	seeder   DefaultLifecycleSeeder
 }
 
-func NewProfileService(profiles ProfileRepository) ProfileService {
-	return &profileService{profiles: profiles}
+func NewProfileService(profiles ProfileRepository, seeder DefaultLifecycleSeeder) ProfileService {
+	return &profileService{profiles: profiles, seeder: seeder}
 }
 
 func (s *profileService) Create(ctx context.Context, p model.Profile) (model.Profile, error) {
 	p.Email = strings.ToLower(strings.TrimSpace(p.Email))
-	return s.profiles.Create(ctx, p)
+	created, err := s.profiles.Create(ctx, p)
+	if err != nil {
+		return model.Profile{}, err
+	}
+	seedDefaultLifecycle(ctx, s.seeder, created.ID)
+	return created, nil
 }
 
 func (s *profileService) Get(ctx context.Context, id string) (model.Profile, error) {

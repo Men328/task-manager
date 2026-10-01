@@ -76,3 +76,24 @@ func (h *TaskStatusHandler) DeleteTaskStatus(ctx context.Context, req *taskv1.De
 	}
 	return &taskv1.DeleteTaskStatusResponse{}, nil
 }
+
+func (h *TaskStatusHandler) SeedDefaultStatuses(ctx context.Context, req *taskv1.SeedDefaultStatusesRequest) (*taskv1.SeedDefaultStatusesResponse, error) {
+	if err := dependency.ValidateSeedDefaultStatuses(req); err != nil {
+		return nil, err
+	}
+
+	statuses, transitions, err := h.statuses.SeedDefaultStatuses(ctx, req.GetProfileId())
+	if err != nil {
+		return nil, dependency.ToGRPCError(err)
+	}
+
+	statusOut := make([]*taskv1.TaskStatus, 0, len(statuses))
+	for _, s := range statuses {
+		statusOut = append(statusOut, dependency.StatusToProto(s))
+	}
+	transitionOut := make([]*taskv1.StatusTransition, 0, len(transitions))
+	for _, t := range transitions {
+		transitionOut = append(transitionOut, dependency.TransitionToProto(t))
+	}
+	return &taskv1.SeedDefaultStatusesResponse{Statuses: statusOut, Transitions: transitionOut}, nil
+}

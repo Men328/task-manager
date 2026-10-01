@@ -6,10 +6,12 @@ Migration PostgreSQL, chạy bằng [golang-migrate](https://github.com/golang-m
 deployments/migrations/
 ├── 000001_init_identity.up.sql   / .down.sql   # schema identity: PROFILES, AUTH_PROVIDERS
 ├── 000002_init_task.up.sql       / .down.sql   # schema task: TASK_STATUSES, STATUS_TRANSITIONS, TASKS, TASK_STATUS_LOGS
-├── 000003_init_workspace.up.sql  / .down.sql   # schema workspace: WORKSPACES (namespace gốc)
-├── 000004_task_workspace_id.up.sql / .down.sql # TASKS.workspace_id + backfill workspace mặc định
 └── 000005_init_mail_provider.up.sql / .down.sql # schema mail_provider: SESSIONS, NOTI_INDEXES
 ```
+
+> Migration `000003`/`000004` (workspace) đã bị xoá cùng tính năng workspace. Repo không còn
+> `workspace` schema; version `000005` giữ nguyên số cũ nên dãy version có lỗ hổng — golang-migrate
+> chấp nhận điều này và chỉ chạy các file đang có theo thứ tự.
 
 > Từ migration này, `mail-provider` lưu subscription (refresh token + checkpoint `historyId`) vào
 > 2 bảng trên khi `DATABASE_URL` được set; không set thì quay về store in-memory.
@@ -35,7 +37,6 @@ deployments/migrations/
 | `task.TASK_STATUSES` | `task.task_statuses` |
 | `task.STATUS_TRANSITIONS` | `task.status_transitions` |
 | `task.TASK_STATUS_LOGS` | `task.task_status_logs` |
-| `workspace.WORKSPACES` | `workspace.workspaces` |
 | `mail_provider.SESSIONS` | `mail_provider.sessions` |
 | `mail_provider.NOTI_INDEXES` | `mail_provider.noti_indexes` |
 

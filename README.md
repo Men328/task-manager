@@ -6,7 +6,7 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 
 ```
 .
-├── go.work                     # workspace gom các Go module
+├── go.work                     # go.work gom các Go module
 ├── common/                     # Go module `taskmanager/common`
 │   ├── proto/                  # INTERFACE: toàn bộ file .proto
 │   ├── gen/                    # CODE GEN (go + openapi swagger)
@@ -20,7 +20,6 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 │   │   ├── cmd/grpc, cmd/http  # entrypoint gRPC server / grpc-gateway (fx app)
 │   │   └── internal/{config,dependency,handler,model,repository,service}
 │   ├── task/                   # task, status, lifecycle (gRPC :9082 / HTTP :8082)
-│   ├── workspace/              # workspace - namespace gốc (gRPC :9083 / HTTP :8083)
 │   └── mail-provider/          # Gmail notice -> DeepSeek -> task (gRPC :9084 / HTTP :8084)
 ├── frontend/                   # React + TSX + Mantine + Vite (+ Dockerfile, nginx.conf)
 ├── deployments/                # hạ tầng: docker/ (compose) + migrations/ (SQL)
@@ -36,15 +35,14 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 | `taskmanager/common` | `common/` |
 | `taskmanager/service/identity` | `service/identity/` |
 | `taskmanager/service/task` | `service/task/` |
-| `taskmanager/service/workspace` | `service/workspace/` |
 | `taskmanager/service/mail-provider` | `service/mail-provider/` |
 
-- Root `go.work` gom 5 module lại để phát triển local.
+- Root `go.work` gom 4 module lại để phát triển local.
 - Service dùng code chung qua module `common`:
   `require taskmanager/common v0.0.0-...` + `replace taskmanager/common => ../../common`.
   Nhờ `replace`, service build được **cả khi không có `go.work`** (đúng cách Dockerfile đang build).
 - Root không phải là module, nên `go build ./...` ở root **không dùng được** — `make build`
-  sẽ loop từng module. Muốn build tay: `go build all` (workspace) hoặc `cd service/task && go build ./...`.
+  sẽ loop từng module. Muốn build tay: `cd service/task && go build ./...`.
 
 > **Về `go.sum`**: `go.sum` chỉ chứa checksum của dependency tải từ registry. Vì `common` là
 > module nội bộ thay bằng đường dẫn filesystem (`replace`), nó **không có dòng nào trong `go.sum`**
@@ -65,26 +63,26 @@ make smoke      # verify end-to-end (build + start + gọi API thật)
 
 make run-identity   # terminal 1  -> :8081 / :9081
 make run-task       # terminal 2  -> :8082 / :9082
-make run-workspace  # terminal 3  -> :8083 / :9083
-make run-mail-provider  # terminal 4 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY)
-make web-install && make web-dev    # terminal 5 -> :5173
+make run-mail-provider  # terminal 3 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY)
+make web-install && make web-dev    # terminal 4 -> :5173
 make seed-demo      # (tuỳ chọn) seed dữ liệu demo giống design/ui.png
 ```
 
 ## Frontend (UI theo `design/ui.png`)
 
-Kanban dashboard tối giản cho **người dùng cá nhân**: sidebar (brand + không gian việc + menu), topbar
+Kanban dashboard tối giản cho **người dùng cá nhân**: sidebar (brand + menu), topbar
 (search/ngôn ngữ/thông báo/avatar), board header (tabs Kanban/Table/List/Timeline, search, filter,
 New Task) và board 4 cột. Không có nhân sự/project/sprint.
 
 - Cột lấy từ **status của profile** (`position` + `color`), card lấy từ **task gốc**.
-- Sidebar có **workspace switcher**: chọn workspace, tạo qua modal form (nút lớn khi chưa có gì),
-  sửa bằng icon bút chì; workspace đang chọn lưu ở localStorage (`tm-workspace-id`), gửi kèm khi tạo
-  task và là tham số **bắt buộc** của `GET /v1/tasks` (board chỉ fetch khi đã có workspace).
+- Task thuộc **profile**: `GET /v1/tasks?profile_id=...` trả task của profile đó; board fetch
+  ngay khi đã có profile.
 - Progress trên card suy ra từ task con (`done/total` theo `category = DONE`).
 - **Kéo thả card** sang cột khác gọi `POST /v1/tasks/{id}/status`; rule allowlist ở backend chặn thì UI
   hiện notification đỏ — đúng nghiệp vụ lifecycle.
-- Lần đầu chạy (chưa có status) có nút **Tạo bộ status mặc định** (4 status + rule) để board có cột ngay.
+- Lần đầu chạy (chưa có status): **bộ status + lifecycle mặc định** (4 status + 5 rule) do task
+  service tự tạo khi identity tạo profile mới; nếu vì lý do nào đó chưa có, board/trang Statuses có
+  nút **Tạo bộ status mặc định** gọi lại `POST /v1/statuses/seed` (idempotent).
 
 Chi tiết: `frontend/README.md`.
 
@@ -141,7 +139,7 @@ HTTP status / URL / text kỹ thuật lên notification.
 ## Quickstart (Docker)
 
 ```bash
-make up        # postgres + migrate + identity + task + workspace + frontend
+make up        # postgres + migrate + identity + task + mail-provider + frontend
 make up-core   # như trên nhưng KHÔNG kèm cloudflared (tắt tunnel)
 make up-tunnel # kèm cloudflared (Cloudflare Tunnel; cần token trong .env)
 make ps
@@ -161,7 +159,6 @@ của Cloudflare.
 | frontend (entrypoint) | http://localhost:3000 |
 | identity | nội bộ `identity:8081` (`/healthz`) |
 | task | nội bộ `task:8082` (`/healthz`) |
-| workspace | nội bộ `workspace:8083` (`/healthz`) |
 | mail-provider | nội bộ `mail-provider:8084` (`/healthz`) + webhook `/api/mail/v1/notifications` |
 | postgres | nội bộ `postgres:5432` |
 | cloudflared | profile `tunnel` — `make tunnel-logs` |
@@ -213,9 +210,9 @@ tầng phải flat, `service/interfaces.go` bắt buộc, không comment trong c
   bắt signal/graceful shutdown. Adapter repository được inject vào port qua `fx.As`.
 - **Proto tập trung** ở `common/proto/<service>/v1/*.proto`, code gen đổ về `common/gen`.
 - HTTP path chuẩn hoá `/v1/<resource>`, khai báo bằng `option (google.api.http)` trong proto.
-  `GET /v1/tasks` **bắt buộc** query `workspace_id` (thiếu -> 400 `TASK_WORKSPACE_ID_REQUIRED`).
+  `GET /v1/tasks` lọc theo `profile_id` (query bắt buộc trên thực tế để board có dữ liệu).
 - JSON trả về dùng **lowerCamelCase** (mặc định protojson) — khớp type của frontend.
-  Riêng **query param** phải dùng tên field proto: `GET /v1/tasks?profile_id=...&workspace_id=...`.
+  Riêng **query param** phải dùng tên field proto: `GET /v1/tasks?profile_id=...&root_only=true`.
 - Tên bảng DB theo `<service>.<TABLES>` — xem `design/db_schema.dbml`.
 - **Chất lượng code**: `make quality-all` = `gofmt` + `go vet` + rules kiến trúc trong `quality.json`
   (checker ở `tools/quality`).
@@ -234,11 +231,11 @@ trong source của dependency (Go 1.26 hay gặp với protobuf).
 
 ## Trạng thái hiện tại
 
-Cả 4 service Go đều có **repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory
+Cả 3 service Go đều có **repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory
 stub** khi không set `DATABASE_URL`. Business logic nằm ở `internal/service` (DI qua interface),
 transport gRPC ở `internal/handler`, validate/mapping ở `internal/dependency`; `cmd/grpc/infra.go`
 chọn Postgres/in-memory và quản lý `pgxpool` theo fx lifecycle.
 
 `mail-provider` dùng Postgres cho **subscription** (`mail_provider.sessions` +
 `mail_provider.noti_indexes`: refresh/access token, checkpoint `historyId`, hạn watch) và gọi ra
-ngoài (Gmail, DeepSeek) cũng như sang `task`/`workspace` qua gRPC.
+ngoài (Gmail, DeepSeek) cũng như sang `task` qua gRPC.

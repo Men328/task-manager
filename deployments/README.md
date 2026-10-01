@@ -5,12 +5,13 @@ Hạ tầng của hệ thống.
 ```
 deployments/
 ├── docker/
-│   ├── docker-compose.yml      # stack: postgres + migrate + identity + task + workspace + frontend + cloudflared
+│   ├── docker-compose.yml      # stack: postgres + migrate + identity + task + mail-provider + frontend + cloudflared
 │   ├── .env.example            # mẫu env (OAuth, session, Cloudflare Tunnel) -> copy sang .env
 │   └── README.md
 └── migrations/
     ├── 000001_init_identity.up.sql / .down.sql
     ├── 000002_init_task.up.sql     / .down.sql
+    ├── 000005_init_mail_provider.up.sql / .down.sql
     └── README.md
 ```
 

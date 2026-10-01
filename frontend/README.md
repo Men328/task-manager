@@ -37,18 +37,15 @@ src/
 │   ├── useLanguage.ts          # hook đọc/đổi ngôn ngữ
 │   └── locales/{vi,en}.json    # resource dịch
 ├── context/                    # Redux Toolkit: store + slice tách theo page
-│   ├── store.ts                # configureStore (session, workspace, board, statusesPage)
+│   ├── store.ts                # configureStore (session, board, statusesPage)
 │   ├── hooks.ts                # useAppDispatch / useAppSelector có type
 │   ├── index.ts                # re-export store + hooks + use* của từng page
-│   ├── seed.ts                 # seed bộ status mặc định (dùng chung 2 slice)
 │   ├── session/                # slice dùng chung: profiles, profileId, query
-│   ├── workspace/              # slice dùng chung: danh sách + workspace đang chọn
 │   ├── board/                  # slice BoardPage: statuses/transitions/tasks, filter, CRUD
 │   └── statuses/               # slice StatusesPage: statuses/transitions/tasks, seed
 ├── api/
 │   ├── client.ts               # fetch wrapper, ApiError, getErrorCode/getErrorMessage, asList/unwrap envelope
 │   ├── identity.ts             # /v1/profiles
-│   ├── workspace.ts            # /v1/workspaces
 │   └── task.ts                 # /v1/statuses, /v1/transitions, /v1/tasks
 ├── config/
 │   └── error_codes.json        # MIRROR bộ mã lỗi chuẩn (sinh bằng `make error-codes`, không sửa tay)
@@ -56,12 +53,10 @@ src/
 │   ├── errorCatalog.ts         # đọc bộ mã lỗi + map mã -> message theo ngôn ngữ
 │   ├── tokens.ts               # nhãn priority, màu status fallback, sort order
 │   ├── session.ts              # token ở localStorage (key tm-session-token)
-│   ├── workspace.ts            # workspace đang chọn ở localStorage (key tm-workspace-id) + slug
 │   └── format.ts               # format ngày, initials, progress suy ra từ subtask
 ├── components/                 # mỗi component có <Name>.module.css đi kèm
 │   ├── layout/                 # AppLayout (shell), TopBar, Sidebar, navigation.ts (3 vùng menubar),
 │   │                           # ThemeSwitcher, LanguageSwitcher
-│   ├── workspace/              # WorkspaceSwitcher (select/create/edit) + WorkspaceFormModal
 │   ├── board/                  # BoardHeader, KanbanBoard, KanbanColumn, TaskCard,
 │   │                           # TaskTable, PriorityBadge, TaskProgress
 │   ├── task/TaskFormModal.tsx  # modal tạo task
@@ -73,30 +68,11 @@ src/
 
 ## State (Redux Toolkit)
 
-- Store gom 4 slice: `session` (dùng chung), `workspace` (dùng chung), `board` (BoardPage),
-  `statusesPage` (StatusesPage).
-- Component dùng hook theo page: `useSession()`, `useWorkspace()`, `useBoard()`, `useStatuses()`,
+- Store gom 3 slice: `session` (dùng chung), `board` (BoardPage), `statusesPage` (StatusesPage).
+- Component dùng hook theo page: `useSession()`, `useBoard()`, `useStatuses()`,
   `useSidebarCounts()`. Muốn truy cập thô thì dùng `useAppSelector` / `useAppDispatch`.
 - Async qua `createAsyncThunk` (fetch + mutate rồi refetch); derived data memo hoá bằng
-  `createSelector` (cardsByStatus, visibleTaskCount, statusById, taskById, selectedWorkspace).
-
-## Workspace switcher (sidebar)
-
-Khối chọn không gian làm việc ở đầu sidebar là workspace switcher (`components/workspace/`):
-
-- **Chọn workspace** bằng `Select` — danh sách lấy từ `GET /v1/workspaces?owner_profile_id=...`.
-  Khi chưa có workspace nào, thay cho `Select` là **nút tạo lớn** (kiểu dashed) để bấm vào mở form.
-- **Tạo workspace qua modal**: nút `+` (hoặc nút lớn khi chưa có gì) mở `WorkspaceFormModal` để nhập
-  tên/mô tả; submit gọi `POST /v1/workspaces` với slug tự sinh (`lib/workspace.ts`), rồi chọn luôn.
-- **Sửa workspace**: icon bút chì mở cùng `WorkspaceFormModal` ở chế độ sửa → `PATCH /v1/workspaces/{id}`.
-- **Nhớ workspace đang chọn**: id lưu ở localStorage key `tm-workspace-id`
-  (`lib/workspace.ts`), khởi tạo lại khi reload; sau khi fetch, nếu id không còn tồn tại thì
-  fallback về workspace `is_default` → đầu tiên → `null`.
-- **Tạo task kèm workspace**: `TaskFormModal` đọc `readWorkspaceId()` và gửi `workspace_id` trong
-  body `POST /v1/tasks` (bắt buộc). Board chỉ fetch khi đã chọn workspace.
-- **List task bắt buộc `workspace_id`**: `GET /v1/tasks` trả 400 `TASK_WORKSPACE_ID_REQUIRED` nếu
-  thiếu; board/trang Statuses đều truyền workspace đang chọn và tự refetch khi đổi workspace.
-  Chưa chọn workspace thì board hiện panel "Chưa có không gian làm việc" thay vì gọi API.
+  `createSelector` (cardsByStatus, visibleTaskCount, statusById, taskById).
 
 ## Styles
 
@@ -173,7 +149,7 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 
 ## Nối API
 
-- Dev: Vite proxy `/api/identity/*` → `:8081`, `/api/task/*` → `:8082`, `/api/workspace/*` → `:8083`
+- Dev: Vite proxy `/api/identity/*` → `:8081`, `/api/task/*` → `:8082`
   (bỏ prefix).
 - Prod (Docker): nginx proxy y hệt, xem `nginx.conf`. FE **luôn gọi same-origin** (`/api/...`
   trên chính port frontend) nên khi chạy sau Cloudflare Tunnel chỉ có một origin/port; xem
@@ -199,17 +175,14 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 
 | UI | API |
 |---|---|
-| Workspace switcher (chọn) | `GET /v1/workspaces?owner_profile_id=...` |
-| Workspace switcher (tạo 1 thao tác) | `POST /v1/workspaces` |
-| Workspace switcher (sửa) | `PATCH /v1/workspaces/{id}` |
 | Cột kanban | `GET /v1/statuses` (sort theo `position`, màu theo `status.color`) |
-| Card | `GET /v1/tasks?workspace_id=...&include_subtasks=true` (chỉ task gốc; workspace bắt buộc) |
+| Card | `GET /v1/tasks?profile_id=...&include_subtasks=true` (chỉ task gốc) |
 | Progress trên card | suy ra từ task con: `done/total` theo `category = DONE` |
 | Kéo thả card sang cột khác | `POST /v1/tasks/{id}/status` — **rule allowlist chặn ở backend**, UI hiện notification đỏ nếu bị cấm |
-| Tạo task | `POST /v1/tasks` (kèm `workspace_id` từ localStorage) |
+| Tạo task | `POST /v1/tasks` |
 | Xoá task (tab Table) | `DELETE /v1/tasks/{id}` |
 | Lifecycle | `GET /v1/transitions` |
-| Nút "Tạo bộ status mặc định" | `POST /v1/statuses` + `POST /v1/transitions` |
+| Nút "Tạo bộ status mặc định" | `POST /v1/statuses/seed` (idempotent; backend tự gọi khi tạo profile mới) |
 
 ## Chưa có trong base (đã có sẵn chỗ trên UI)
 

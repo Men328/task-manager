@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 # Mỗi thư mục trong service/ (và common/) là 1 Go module riêng, quản lý bằng go.work.
 # Vì root không phải module nên `go build ./...` không dùng được -> loop từng module.
-MODULES := common service/identity service/mail-provider service/task service/workspace tools/quality
+MODULES := common service/identity service/mail-provider service/task tools/quality
 
 GOBIN ?= $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(GOBIN):$(PATH)
@@ -18,7 +18,6 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
         up up-core up-tunnel tunnel-up tunnel-stop down logs tunnel-logs ps build-images web-install web-dev web-build \
         run-identity run-identity-grpc run-identity-http run-task run-task-grpc run-task-http \
         run-mail-provider run-mail-provider-grpc run-mail-provider-http \
-        run-workspace run-workspace-grpc run-workspace-http \
         quality-all quality-fmt quality-vet quality-arch
 
 help: ## Hiển thị danh sách lệnh
@@ -137,15 +136,6 @@ run-task-grpc: ## Chỉ chạy gRPC server task (:9082)
 
 run-task-http: ## Chỉ chạy HTTP gateway task (:8082)
 	cd service/task && go run ./cmd/http
-
-run-workspace: ## Chạy workspace local: gRPC :9083 + gateway :8083
-	bash scripts/run-service.sh workspace
-
-run-workspace-grpc: ## Chỉ chạy gRPC server workspace (:9083)
-	cd service/workspace && go run ./cmd/grpc
-
-run-workspace-http: ## Chỉ chạy HTTP gateway workspace (:8083)
-	cd service/workspace && go run ./cmd/http
 
 run-mail-provider: ## Chạy mail-provider local: gRPC :9084 + gateway :8084
 	bash scripts/run-service.sh mail-provider

@@ -4,6 +4,7 @@ package task.v1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
+import "task/v1/transition.proto";
 
 option go_package = "taskmanager/common/gen/go/task/v1;taskv1";
 
@@ -90,6 +91,15 @@ message DeleteTaskStatusRequest {
 
 message DeleteTaskStatusResponse {}
 
+message SeedDefaultStatusesRequest {
+  string profile_id = 1;
+}
+
+message SeedDefaultStatusesResponse {
+  repeated TaskStatus statuses = 1;
+  repeated StatusTransition transitions = 2;
+}
+
 service TaskStatusService {
   rpc CreateTaskStatus(CreateTaskStatusRequest) returns (CreateTaskStatusResponse) {
     option (google.api.http) = {
@@ -115,5 +125,12 @@ service TaskStatusService {
 
   rpc DeleteTaskStatus(DeleteTaskStatusRequest) returns (DeleteTaskStatusResponse) {
     option (google.api.http) = {delete: "/v1/statuses/{id}"};
+  }
+
+  rpc SeedDefaultStatuses(SeedDefaultStatusesRequest) returns (SeedDefaultStatusesResponse) {
+    option (google.api.http) = {
+      post: "/v1/statuses/seed"
+      body: "*"
+    };
   }
 }

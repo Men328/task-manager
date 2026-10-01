@@ -282,15 +282,6 @@
         "en": "Profile id is required."
       }
     },
-    "TASK_WORKSPACE_ID_REQUIRED": {
-      "owner": "task",
-      "grpcCode": "InvalidArgument",
-      "httpStatus": 400,
-      "message": {
-        "vi": "Thiếu mã không gian làm việc.",
-        "en": "Workspace id is required."
-      }
-    },
     "TASK_TITLE_REQUIRED": {
       "owner": "task",
       "grpcCode": "InvalidArgument",
@@ -595,69 +586,6 @@
       "message": {
         "vi": "Không tạo được công việc từ email.",
         "en": "Could not create a task from the email."
-      }
-    },
-    "MAIL_NO_WORKSPACE": {
-      "owner": "mail",
-      "grpcCode": "FailedPrecondition",
-      "httpStatus": 400,
-      "message": {
-        "vi": "Hồ sơ chưa có không gian làm việc nào.",
-        "en": "This profile has no workspace yet."
-      }
-    },
-    "WORKSPACE_OWNER_PROFILE_ID_REQUIRED": {
-      "owner": "workspace",
-      "grpcCode": "InvalidArgument",
-      "httpStatus": 400,
-      "message": {
-        "vi": "owner_profile_id là bắt buộc.",
-        "en": "owner_profile_id is required."
-      }
-    },
-    "WORKSPACE_NAME_REQUIRED": {
-      "owner": "workspace",
-      "grpcCode": "InvalidArgument",
-      "httpStatus": 400,
-      "message": {
-        "vi": "Tên workspace là bắt buộc.",
-        "en": "Workspace name is required."
-      }
-    },
-    "WORKSPACE_SLUG_REQUIRED": {
-      "owner": "workspace",
-      "grpcCode": "InvalidArgument",
-      "httpStatus": 400,
-      "message": {
-        "vi": "Slug workspace là bắt buộc.",
-        "en": "Workspace slug is required."
-      }
-    },
-    "WORKSPACE_ID_REQUIRED": {
-      "owner": "workspace",
-      "grpcCode": "InvalidArgument",
-      "httpStatus": 400,
-      "message": {
-        "vi": "id là bắt buộc.",
-        "en": "id is required."
-      }
-    },
-    "WORKSPACE_NOT_FOUND": {
-      "owner": "workspace",
-      "grpcCode": "NotFound",
-      "httpStatus": 404,
-      "message": {
-        "vi": "Không tìm thấy workspace.",
-        "en": "Workspace not found."
-      }
-    },
-    "WORKSPACE_SLUG_ALREADY_EXISTS": {
-      "owner": "workspace",
-      "grpcCode": "AlreadyExists",
-      "httpStatus": 409,
-      "message": {
-        "vi": "Slug workspace đã tồn tại.",
-        "en": "Workspace slug already exists."
       }
     }
   }

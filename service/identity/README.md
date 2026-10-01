@@ -16,7 +16,7 @@ cmd/http/                        # fx app: grpc-gateway (:8081) + lifecycle, dia
 internal/config/config.go        # đọc env
 internal/model/                  # CORE: domain model + lỗi domain (chỉ stdlib, không import tầng nào)
 internal/service/                # NGHIỆP VỤ + interface contract (interfaces.go), DI qua constructor
-internal/repository/             # adapter I/O (in-memory stub), KHÔNG import service
+internal/repository/             # adapter I/O: Postgres/in-memory + gRPC client (task lifecycle seeder), KHÔNG import service
 internal/dependency/             # validate + mapping (model <-> proto, convert) + map lỗi -> gRPC
 internal/handler/                # transport gRPC mỏng: validate -> service -> map response
 ```
@@ -41,6 +41,16 @@ Biến môi trường (có default):
 | `HTTP_ADDR` | `:8081` (cmd/http listen) |
 | `GRPC_DIAL_ADDR` | rỗng -> suy ra `127.0.0.1:9081` (cmd/http dial target) |
 | `LOG_LEVEL` | `info` |
+| `DATABASE_URL` | rỗng -> in-memory stub; set thì dùng PostgreSQL |
+| `TASK_GRPC_DIAL_ADDR` | rỗng -> `127.0.0.1:9082` (cmd/grpc gọi task service để seed lifecycle) |
+| `TASK_TIMEOUT` | `10s` (timeout gọi task service khi seed) |
+
+## Nghiệp vụ
+
+Khi tạo **profile mới** (qua `CreateProfile` hoặc `LoginWithProvider`), identity gọi
+`task.TaskStatusService/SeedDefaultStatuses` để tạo sẵn bộ **4 status + 5 rule lifecycle** mặc định
+cho profile đó. Cuộc gọi là best-effort: task service lỗi thì profile vẫn được tạo (chỉ log cảnh báo),
+và có thể tạo lại bằng `POST /v1/statuses/seed` của task service (idempotent).
 
 ## Thử API
 

@@ -14,7 +14,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	taskv1 "taskmanager/common/gen/go/task/v1"
-	workspacev1 "taskmanager/common/gen/go/workspace/v1"
 	"taskmanager/service/mail-provider/internal/config"
 	"taskmanager/service/mail-provider/internal/model"
 	"taskmanager/service/mail-provider/internal/repository"
@@ -76,16 +75,8 @@ func newTaskCreator(client taskv1.TaskServiceClient, cfg config.Config) service.
 	return repository.NewTaskClient(client, cfg.TaskTimeout)
 }
 
-func newWorkspaceResolver(client workspacev1.WorkspaceServiceClient, cfg config.Config) service.WorkspaceResolver {
-	return repository.NewWorkspaceResolver(client, cfg.TaskTimeout)
-}
-
 func newTaskConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
 	return dialGRPC(lc, cfg.TaskDialTarget(), "task")
-}
-
-func newWorkspaceConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
-	return dialGRPC(lc, cfg.WorkspaceDialTarget(), "workspace")
 }
 
 func dialGRPC(lc fx.Lifecycle, target string, name string) (*grpc.ClientConn, error) {
@@ -103,10 +94,6 @@ func dialGRPC(lc fx.Lifecycle, target string, name string) (*grpc.ClientConn, er
 
 func newTaskServiceClient(conn *grpc.ClientConn) taskv1.TaskServiceClient {
 	return taskv1.NewTaskServiceClient(conn)
-}
-
-func newWorkspaceServiceClient(conn *grpc.ClientConn) workspacev1.WorkspaceServiceClient {
-	return workspacev1.NewWorkspaceServiceClient(conn)
 }
 
 func newNotificationSource(cfg config.Config) service.NotificationSource {
