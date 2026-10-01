@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -10,14 +11,17 @@ import (
 	"time"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"golang.org/x/oauth2"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"taskmanager/common/errorcode"
 	identityv1 "taskmanager/common/gen/go/identity/v1"
+	mailv1 "taskmanager/common/gen/go/mail/v1"
 	"taskmanager/service/identity/internal/config"
 )
 
@@ -25,14 +29,22 @@ const oauthStateTTL = 10 * time.Minute
 
 type authRoutes struct {
 	profiles    identityv1.ProfileServiceClient
+	mail        mailv1.MailServiceClient
 	google      *googleOAuth
 	signer      *sessionSigner
 	frontendURL string
 }
 
-func newAuthRoutes(cfg config.Config, profiles identityv1.ProfileServiceClient, google *googleOAuth, signer *sessionSigner) *authRoutes {
+func newAuthRoutes(
+	cfg config.Config,
+	profiles identityv1.ProfileServiceClient,
+	mail mailv1.MailServiceClient,
+	google *googleOAuth,
+	signer *sessionSigner,
+) *authRoutes {
 	return &authRoutes{
 		profiles:    profiles,
+		mail:        mail,
 		google:      google,
 		signer:      signer,
 		frontendURL: cfg.FrontendBaseURL,
@@ -41,6 +53,10 @@ func newAuthRoutes(cfg config.Config, profiles identityv1.ProfileServiceClient, 
 
 func newProfileServiceClient(conn *grpc.ClientConn) identityv1.ProfileServiceClient {
 	return identityv1.NewProfileServiceClient(conn)
+}
+
+func newMailServiceClient(conn *grpc.ClientConn) mailv1.MailServiceClient {
+	return mailv1.NewMailServiceClient(conn)
 }
 
 func (a *authRoutes) register(mux *runtime.ServeMux) error {
@@ -67,6 +83,8 @@ func (a *authRoutes) handleGoogleLogin(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
+	gmail := wantsGmail(r.URL.Query().Get("gmail"))
+
 	nonce, err := randomToken(24)
 	if err != nil {
 		a.redirectError(w, r, errorcode.CommonInternal)
@@ -81,6 +99,7 @@ func (a *authRoutes) handleGoogleLogin(w http.ResponseWriter, r *http.Request, _
 	state, err := a.signer.signState(oauthState{
 		Nonce:     nonce,
 		Verifier:  verifier,
+		Gmail:     gmail,
 		ExpiresAt: time.Now().Add(oauthStateTTL).Unix(),
 	})
 	if err != nil {
@@ -89,7 +108,7 @@ func (a *authRoutes) handleGoogleLogin(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
-	http.Redirect(w, r, a.google.authCodeURL(state, verifier), http.StatusFound)
+	http.Redirect(w, r, a.google.authCodeURL(state, verifier, gmail), http.StatusFound)
 }
 
 func (a *authRoutes) handleGoogleCallback(w http.ResponseWriter, r *http.Request, _ map[string]string) {
@@ -118,17 +137,17 @@ func (a *authRoutes) handleGoogleCallback(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
-	accessToken, err := a.google.exchange(ctx, code, state.Verifier)
+	token, err := a.google.exchange(ctx, code, state.Verifier)
 	if err != nil {
 		slog.Error("đổi google authorization code", "error", err)
 		a.redirectError(w, r, errorcode.IdentityAuthExchangeFailed)
 		return
 	}
 
-	identity, err := a.google.userInfo(ctx, accessToken)
+	identity, err := a.google.userInfo(ctx, token.AccessToken)
 	if err != nil {
 		slog.Error("lấy google userinfo", "error", err)
 		a.redirectError(w, r, errorcode.IdentityAuthExchangeFailed)
@@ -155,19 +174,59 @@ func (a *authRoutes) handleGoogleCallback(w http.ResponseWriter, r *http.Request
 	}
 
 	profile := response.GetProfile()
-	token, expiresAt, err := a.signer.issue(profile.GetId(), profile.GetEmail(), time.Now())
+	sessionToken, expiresAt, err := a.signer.issue(profile.GetId(), profile.GetEmail(), time.Now())
 	if err != nil {
 		slog.Error("phát session token", "error", err)
 		a.redirectError(w, r, errorcode.IdentityAuthNotConfigured)
 		return
 	}
 
+	values := url.Values{}
+	values.Set("token", sessionToken)
+
+	if state.Gmail {
+		if subscribeErr := a.subscribeMailbox(ctx, profile.GetId(), profile.GetEmail(), token); subscribeErr != nil {
+			slog.Error("đăng ký nhận thông báo gmail thất bại",
+				"profile_id", profile.GetId(),
+				"email", profile.GetEmail(),
+				"error", subscribeErr,
+			)
+			values.Set("mail", "error")
+		} else {
+			values.Set("mail", "ok")
+		}
+	}
+
 	slog.Info("đăng nhập google thành công",
 		"profile_id", profile.GetId(),
 		"created", response.GetCreated(),
 		"expires_at", expiresAt,
+		"gmail", state.Gmail,
 	)
-	http.Redirect(w, r, a.callbackURL("token", token), http.StatusFound)
+	http.Redirect(w, r, a.callbackURL(values), http.StatusFound)
+}
+
+func (a *authRoutes) subscribeMailbox(ctx context.Context, profileID string, email string, token *oauth2.Token) error {
+	if a.mail == nil {
+		return fmt.Errorf("mail service client chưa được cấu hình")
+	}
+	if strings.TrimSpace(token.RefreshToken) == "" {
+		slog.Warn("google không trả refresh token; watch sẽ hết hạn sau khoảng 1 giờ", "email", email)
+	}
+
+	expiresAt := token.Expiry
+	if expiresAt.IsZero() {
+		expiresAt = time.Now().Add(time.Hour)
+	}
+
+	_, err := a.mail.Subscribe(ctx, &mailv1.SubscribeRequest{
+		ProfileId:            profileID,
+		Email:                email,
+		AccessToken:          token.AccessToken,
+		RefreshToken:         token.RefreshToken,
+		AccessTokenExpiresAt: timestamppb.New(expiresAt),
+	})
+	return err
 }
 
 func (a *authRoutes) handleMe(w http.ResponseWriter, r *http.Request, _ map[string]string) {
@@ -205,14 +264,23 @@ func (a *authRoutes) handleMe(w http.ResponseWriter, r *http.Request, _ map[stri
 	}{Profile: encoded})
 }
 
-func (a *authRoutes) callbackURL(key string, value string) string {
-	values := url.Values{}
-	values.Set(key, value)
+func (a *authRoutes) callbackURL(values url.Values) string {
 	return a.frontendURL + "/auth/callback#" + values.Encode()
 }
 
 func (a *authRoutes) redirectError(w http.ResponseWriter, r *http.Request, code string) {
-	http.Redirect(w, r, a.callbackURL("error", code), http.StatusFound)
+	values := url.Values{}
+	values.Set("error", code)
+	http.Redirect(w, r, a.callbackURL(values), http.StatusFound)
+}
+
+func wantsGmail(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func bearerToken(header string) string {

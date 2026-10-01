@@ -1,6 +1,6 @@
-import { Alert, Box, Button, Stack, Text, ThemeIcon } from '@mantine/core';
+import { Alert, Box, Button, Checkbox, Stack, Text, ThemeIcon } from '@mantine/core';
 import { IconAlertTriangle, IconChecklist } from '@tabler/icons-react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -38,6 +38,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { authenticated, signOut } = useSession();
+  const [connectGmail, setConnectGmail] = useState(false);
 
   const errorCode = searchParams.get('error');
   const errorMessage = useMemo(
@@ -81,6 +82,14 @@ export function LoginPage() {
             </Alert>
           ) : null}
 
+          <Checkbox
+            checked={connectGmail}
+            onChange={(event) => setConnectGmail(event.currentTarget.checked)}
+            label={t('login.gmailLabel')}
+            description={t('login.gmailHint')}
+            w="100%"
+          />
+
           <Button
             size="md"
             radius="md"
@@ -90,7 +99,7 @@ export function LoginPage() {
             leftSection={<GoogleMark />}
             onClick={() => {
               signOut();
-              window.location.assign(googleLoginUrl());
+              window.location.assign(googleLoginUrl(connectGmail));
             }}
           >
             {t('login.withGoogle')}

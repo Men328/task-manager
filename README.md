@@ -20,7 +20,8 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 │   │   ├── cmd/grpc, cmd/http  # entrypoint gRPC server / grpc-gateway (fx app)
 │   │   └── internal/{config,dependency,handler,model,repository,service}
 │   ├── task/                   # task, status, lifecycle (gRPC :9082 / HTTP :8082)
-│   └── workspace/              # workspace - namespace gốc (gRPC :9083 / HTTP :8083)
+│   ├── workspace/              # workspace - namespace gốc (gRPC :9083 / HTTP :8083)
+│   └── mail-provider/          # Gmail notice -> DeepSeek -> task (gRPC :9084 / HTTP :8084)
 ├── frontend/                   # React + TSX + Mantine + Vite (+ Dockerfile, nginx.conf)
 ├── deployments/                # hạ tầng: docker/ (compose) + migrations/ (SQL)
 ├── scripts/                    # gen grpc, cài tool, dev, smoke test
@@ -36,8 +37,9 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 | `taskmanager/service/identity` | `service/identity/` |
 | `taskmanager/service/task` | `service/task/` |
 | `taskmanager/service/workspace` | `service/workspace/` |
+| `taskmanager/service/mail-provider` | `service/mail-provider/` |
 
-- Root `go.work` gom 4 module lại để phát triển local.
+- Root `go.work` gom 5 module lại để phát triển local.
 - Service dùng code chung qua module `common`:
   `require taskmanager/common v0.0.0-...` + `replace taskmanager/common => ../../common`.
   Nhờ `replace`, service build được **cả khi không có `go.work`** (đúng cách Dockerfile đang build).
@@ -64,7 +66,8 @@ make smoke      # verify end-to-end (build + start + gọi API thật)
 make run-identity   # terminal 1  -> :8081 / :9081
 make run-task       # terminal 2  -> :8082 / :9082
 make run-workspace  # terminal 3  -> :8083 / :9083
-make web-install && make web-dev    # terminal 4 -> :5173
+make run-mail-provider  # terminal 4 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY)
+make web-install && make web-dev    # terminal 5 -> :5173
 make seed-demo      # (tuỳ chọn) seed dữ liệu demo giống design/ui.png
 ```
 
@@ -84,6 +87,28 @@ New Task) và board 4 cột. Không có nhân sự/project/sprint.
 - Lần đầu chạy (chưa có status) có nút **Tạo bộ status mặc định** (4 status + rule) để board có cột ngay.
 
 Chi tiết: `frontend/README.md`.
+
+## Tự động tạo task từ Gmail
+
+Tính năng tuỳ chọn: user tích **"Cho phép đọc Gmail"** ngay ở màn đăng nhập, sau đó mỗi email
+mới có thể được chuyển thành task.
+
+- Luồng: `identity` xin thêm scope `gmail.readonly` (+ `access_type=offline`) → gọi
+  `mail-provider.Subscribe` → `users.watch(topic)`; khi Gmail có thay đổi, **Pub/Sub** báo về
+  `mail-provider` (push qua webhook `POST /api/mail/v1/notifications`, hoặc **pull** nếu set
+  `MAIL_PULL_SUBSCRIPTION`) → gọi Gmail API lấy email gốc → gọi **DeepSeek** để bóc thành JSON →
+  gọi `task service` tạo task cho đúng profile.
+- Chạy local không cần tunnel nếu dùng pull mode (`MAIL_PULL_SUBSCRIPTION` + credential GCP);
+  push mode bắt buộc endpoint HTTPS công khai nên cần `make up-tunnel`.
+- Access token + refresh token của user được lưu ở **Postgres** (`mail_provider.sessions`, xem
+  `service/mail-provider/README.md`); set `DATABASE_URL` cho `mail-provider-grpc` để bật. Không set
+  thì service quay về cache trong RAM và restart là mất, user phải đăng nhập lại.
+- Cấu hình: `MAIL_PUBSUB_TOPIC`, `MAIL_PUBSUB_AUDIENCE`, `MAIL_PUBSUB_SERVICE_ACCOUNT`,
+  `DEEPSEEK_API_KEY`… trong `deployments/docker/.env` (xem `.env.example`).
+- Topic Pub/Sub phải nằm **cùng GCP project với OAuth client**, nếu không `users.watch` báo
+  `Invalid topicName`.
+
+Chi tiết đầy đủ: `service/mail-provider/README.md`.
 
 ## Bộ mã lỗi chuẩn
 
@@ -137,6 +162,7 @@ của Cloudflare.
 | identity | nội bộ `identity:8081` (`/healthz`) |
 | task | nội bộ `task:8082` (`/healthz`) |
 | workspace | nội bộ `workspace:8083` (`/healthz`) |
+| mail-provider | nội bộ `mail-provider:8084` (`/healthz`) + webhook `/api/mail/v1/notifications` |
 | postgres | nội bộ `postgres:5432` |
 | cloudflared | profile `tunnel` — `make tunnel-logs` |
 
@@ -208,7 +234,11 @@ trong source của dependency (Go 1.26 hay gặp với protobuf).
 
 ## Trạng thái hiện tại
 
-Cả 3 service Go đều có **repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory
+Cả 4 service Go đều có **repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory
 stub** khi không set `DATABASE_URL`. Business logic nằm ở `internal/service` (DI qua interface),
 transport gRPC ở `internal/handler`, validate/mapping ở `internal/dependency`; `cmd/grpc/infra.go`
 chọn Postgres/in-memory và quản lý `pgxpool` theo fx lifecycle.
+
+`mail-provider` dùng Postgres cho **subscription** (`mail_provider.sessions` +
+`mail_provider.noti_indexes`: refresh/access token, checkpoint `historyId`, hạn watch) và gọi ra
+ngoài (Gmail, DeepSeek) cũng như sang `task`/`workspace` qua gRPC.

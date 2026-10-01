@@ -9,6 +9,10 @@
       "name": "ProfileService"
     },
     {
+      "name": "MailService",
+      "description": "MailService điều khiển vòng đời watch Gmail và tiếp nhận notice từ Pub/Sub.\nCố ý KHÔNG khai báo google.api.http: các RPC này chỉ dùng nội bộ (gateway của\nidentity gọi Subscribe sau khi đăng nhập, webhook Pub/Sub gọi HandleNotification)."
+    },
+    {
       "name": "TaskStatusService"
     },
     {

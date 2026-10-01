@@ -2,11 +2,12 @@
 
 | File | Việc |
 |---|---|
-| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + identity(-grpc) + task(-grpc) + workspace(-grpc) + frontend + cloudflared (profile `tunnel`) |
+| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + identity(-grpc) + task(-grpc) + workspace(-grpc) + mail-provider(-grpc) + frontend + cloudflared (profile `tunnel`) |
 
 Dockerfile nằm **trong từng service** (`service/identity/Dockerfile`, `service/task/Dockerfile`,
-`service/workspace/Dockerfile`, `frontend/Dockerfile`) để mỗi service tự đóng gói. Compose trỏ tới
-chúng với build context là **root repo**, vì mỗi service cần copy thêm module `common/`.
+`service/workspace/Dockerfile`, `service/mail-provider/Dockerfile`, `frontend/Dockerfile`) để mỗi
+service tự đóng gói. Compose trỏ tới chúng với build context là **root repo**, vì mỗi service cần
+copy thêm module `common/`.
 
 Mỗi service Go build ra **2 binary** trong cùng image: `grpc` (gRPC server) và `http`
 (grpc-gateway). Compose tách thành 2 container: `<svc>-grpc` (nội bộ) và `<svc>` (HTTP, chỉ
@@ -44,16 +45,19 @@ trong network Docker nội bộ và được các container gọi nhau bằng t�
 | task-grpc | tm-task-grpc | nội bộ `task-grpc:9082` | không publish ra host |
 | workspace (gateway) | tm-workspace | nội bộ `workspace:8083` | không publish ra host |
 | workspace-grpc | tm-workspace-grpc | nội bộ `workspace-grpc:9083` | không publish ra host |
+| mail-provider (gateway) | tm-mail-provider | nội bộ `mail-provider:8084` | webhook `/api/mail/v1/notifications` |
+| mail-provider-grpc | tm-mail-provider-grpc | nội bộ `mail-provider-grpc:9084` | subscription (token + checkpoint) ở Postgres |
 | postgres | tm-postgres | nội bộ `postgres:5432` | không publish ra host |
 | cloudflared | tm-cloudflared | — (outbound) | profile `tunnel`, đẩy `frontend:3000` ra Internet |
 
-Tên service HTTP giữ nguyên (`identity`, `task`, `workspace`) nên nginx của frontend không phải đổi proxy.
+Tên service HTTP giữ nguyên (`identity`, `task`, `workspace`, `mail-provider`) nên nginx của frontend
+không phải đổi proxy.
 
 ## Cloudflare Tunnel
 
 FE gọi API **same-origin** tại `/api/...` trên chính port frontend; nginx của frontend mới
 forward nội bộ tới các service Go. Vì vậy chỉ cần đưa **một origin** ra Internet và nó khớp
-thẳng với public hostname của Cloudflare — không lộ port `8081/8082/8083`.
+thẳng với public hostname của Cloudflare — không lộ port `8081/8082/8083/8084`.
 
 1. Tạo tunnel tại [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) →
    **Networks → Tunnels → Create a tunnel** (chọn *Cloudflared*).
@@ -153,9 +157,9 @@ make migrate-down      # rollback 1 bước
 
 ## Ghi chú
 
-- `identity-grpc` nối Postgres qua `DATABASE_URL` (đã bật sẵn trong compose). Bỏ trống biến này
-  thì service tự quay về repository in-memory stub và log cảnh báo. `task-grpc` và `workspace-grpc`
-  vẫn in-memory.
+- `identity-grpc` và `mail-provider-grpc` nối Postgres qua `DATABASE_URL` (đã bật sẵn trong compose).
+  Bỏ trống biến này thì service tự quay về repository in-memory stub và log cảnh báo. `task-grpc` và
+  `workspace-grpc` vẫn in-memory.
 - Image `migrate/migrate:latest` nên pin version khi dùng thật.
 
 ## Đăng nhập Google

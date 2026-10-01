@@ -204,6 +204,10 @@
     "title": "Sign in",
     "subtitle": "Use your Google account to open your board.",
     "withGoogle": "Sign in with Google",
+    "gmailLabel": "Allow Gmail read access to create tasks automatically",
+    "gmailHint": "Emails are only read to create tasks; nothing is sent or deleted.",
+    "gmailFailedTitle": "Signed in, but Gmail could not be enabled",
+    "gmailFailedMessage": "Sign in again with the mail permission checked to use this feature.",
     "failedTitle": "Sign-in failed",
     "failedFallback": "We could not complete the sign-in. Please try again."
   },

@@ -498,6 +498,114 @@
         "en": "This transition rule already exists."
       }
     },
+    "MAIL_PROFILE_ID_REQUIRED": {
+      "owner": "mail",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã hồ sơ.",
+        "en": "Profile id is required."
+      }
+    },
+    "MAIL_EMAIL_REQUIRED": {
+      "owner": "mail",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu địa chỉ email.",
+        "en": "Email is required."
+      }
+    },
+    "MAIL_ACCESS_TOKEN_REQUIRED": {
+      "owner": "mail",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu access token của Google.",
+        "en": "The Google access token is required."
+      }
+    },
+    "MAIL_SUBSCRIPTION_NOT_FOUND": {
+      "owner": "mail",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Hộp thư này chưa đăng ký nhận thông báo.",
+        "en": "This mailbox has no active subscription."
+      }
+    },
+    "MAIL_NOT_CONFIGURED": {
+      "owner": "mail",
+      "grpcCode": "Internal",
+      "httpStatus": 500,
+      "message": {
+        "vi": "Dịch vụ mail chưa được cấu hình. Vui lòng thử lại sau.",
+        "en": "The mail service is not configured. Please try again later."
+      }
+    },
+    "MAIL_GMAIL_FAILED": {
+      "owner": "mail",
+      "grpcCode": "Unavailable",
+      "httpStatus": 503,
+      "message": {
+        "vi": "Không gọi được Gmail. Vui lòng thử lại sau.",
+        "en": "Could not reach Gmail. Please try again later."
+      }
+    },
+    "MAIL_TOKEN_REFRESH_FAILED": {
+      "owner": "mail",
+      "grpcCode": "Unauthenticated",
+      "httpStatus": 401,
+      "message": {
+        "vi": "Quyền truy cập Gmail đã hết hiệu lực. Vui lòng đăng nhập lại.",
+        "en": "Gmail access has expired. Please sign in again."
+      }
+    },
+    "MAIL_NOTIFICATION_INVALID": {
+      "owner": "mail",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thông báo từ Gmail không hợp lệ.",
+        "en": "The Gmail notification is invalid."
+      }
+    },
+    "MAIL_UNAUTHORIZED": {
+      "owner": "mail",
+      "grpcCode": "Unauthenticated",
+      "httpStatus": 401,
+      "message": {
+        "vi": "Không xác thực được thông báo từ Pub/Sub.",
+        "en": "Could not authenticate the Pub/Sub notification."
+      }
+    },
+    "MAIL_ANALYZE_FAILED": {
+      "owner": "mail",
+      "grpcCode": "Internal",
+      "httpStatus": 500,
+      "message": {
+        "vi": "Không phân tích được nội dung email.",
+        "en": "Could not analyze the email content."
+      }
+    },
+    "MAIL_TASK_CREATE_FAILED": {
+      "owner": "mail",
+      "grpcCode": "Internal",
+      "httpStatus": 500,
+      "message": {
+        "vi": "Không tạo được công việc từ email.",
+        "en": "Could not create a task from the email."
+      }
+    },
+    "MAIL_NO_WORKSPACE": {
+      "owner": "mail",
+      "grpcCode": "FailedPrecondition",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Hồ sơ chưa có không gian làm việc nào.",
+        "en": "This profile has no workspace yet."
+      }
+    },
     "WORKSPACE_OWNER_PROFILE_ID_REQUIRED": {
       "owner": "workspace",
       "grpcCode": "InvalidArgument",

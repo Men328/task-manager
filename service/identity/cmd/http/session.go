@@ -88,6 +88,7 @@ func (s *sessionSigner) verify(raw string) (sessionClaims, error) {
 type oauthState struct {
 	Nonce     string `json:"n"`
 	Verifier  string `json:"v"`
+	Gmail     bool   `json:"g"`
 	ExpiresAt int64  `json:"e"`
 }
 

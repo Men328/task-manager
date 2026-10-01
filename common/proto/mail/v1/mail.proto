@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package mail.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/mail/v1;mailv1";
+
+// Subscription là trạng thái watch Gmail của một hộp thư người dùng.
+message Subscription {
+  string profile_id = 1;
+  string email = 2;
+  string history_id = 3;
+  google.protobuf.Timestamp watch_expires_at = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message SubscribeRequest {
+  string profile_id = 1;
+  string email = 2;
+  string access_token = 3;
+  string refresh_token = 4;
+  google.protobuf.Timestamp access_token_expires_at = 5;
+}
+
+message SubscribeResponse {
+  Subscription subscription = 1;
+}
+
+message UnsubscribeRequest {
+  string profile_id = 1;
+}
+
+message UnsubscribeResponse {}
+
+message GetSubscriptionRequest {
+  string profile_id = 1;
+}
+
+message GetSubscriptionResponse {
+  Subscription subscription = 1;
+}
+
+message HandleNotificationRequest {
+  string email = 1;
+  string history_id = 2;
+  string message_id = 3;
+}
+
+message HandleNotificationResponse {
+  bool accepted = 1;
+}
+
+// MailService điều khiển vòng đời watch Gmail và tiếp nhận notice từ Pub/Sub.
+// Cố ý KHÔNG khai báo google.api.http: các RPC này chỉ dùng nội bộ (gateway của
+// identity gọi Subscribe sau khi đăng nhập, webhook Pub/Sub gọi HandleNotification).
+service MailService {
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
+
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
+
+  rpc GetSubscription(GetSubscriptionRequest) returns (GetSubscriptionResponse);
+
+  rpc HandleNotification(HandleNotificationRequest) returns (HandleNotificationResponse);
+}

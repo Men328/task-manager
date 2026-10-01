@@ -3,6 +3,7 @@ go 1.25.0
 use (
 	./common
 	./service/identity
+	./service/mail-provider
 	./service/task
 	./service/workspace
 	./tools/quality

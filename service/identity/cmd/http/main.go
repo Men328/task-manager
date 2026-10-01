@@ -28,12 +28,14 @@ func main() {
 	app := fx.New(
 		fx.Provide(
 			config.Load,
-			newGRPCConn,
-			newProfileServiceClient,
+			fx.Annotate(newGRPCConn, fx.ResultTags(`name:"identity"`)),
+			fx.Annotate(newMailConn, fx.ResultTags(`name:"mail"`)),
+			fx.Annotate(newProfileServiceClient, fx.ParamTags(`name:"identity"`)),
+			fx.Annotate(newMailServiceClient, fx.ParamTags(`name:"mail"`)),
 			newSessionSigner,
 			newGoogleOAuth,
 			newAuthRoutes,
-			newServeMux,
+			fx.Annotate(newServeMux, fx.ParamTags("", `name:"identity"`, "")),
 			newHTTPListener,
 			newHTTPServer,
 		),

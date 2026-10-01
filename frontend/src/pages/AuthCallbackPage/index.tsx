@@ -1,4 +1,5 @@
 import { Box, Loader, Stack, Text } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +18,7 @@ export function AuthCallbackPage() {
     const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     const token = fragment.get('token');
     const error = fragment.get('error');
+    const mail = fragment.get('mail');
 
     window.history.replaceState(null, '', window.location.pathname);
 
@@ -32,9 +34,18 @@ export function AuthCallbackPage() {
     dispatch(setToken(token));
     void dispatch(restoreSession())
       .unwrap()
-      .then(() => navigate('/', { replace: true }))
+      .then(() => {
+        if (mail === 'error') {
+          notifications.show({
+            title: t('login.gmailFailedTitle'),
+            message: t('login.gmailFailedMessage'),
+            color: 'yellow',
+          });
+        }
+        navigate('/', { replace: true });
+      })
       .catch(() => navigate('/login?error=IDENTITY_AUTH_TOKEN_INVALID', { replace: true }));
-  }, [dispatch, navigate]);
+  }, [dispatch, navigate, t]);
 
   return (
     <Box className={classes.root}>

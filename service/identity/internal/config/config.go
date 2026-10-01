@@ -23,6 +23,8 @@ type Config struct {
 	GoogleClientSecret string
 	GoogleRedirectURL  string
 
+	MailGRPCDialAddr string
+
 	FrontendBaseURL string
 
 	SessionSecret string
@@ -43,6 +45,8 @@ func Load() Config {
 		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 		GoogleRedirectURL:  getenv("GOOGLE_REDIRECT_URL", "http://localhost:8081/v1/auth/google/callback"),
+
+		MailGRPCDialAddr: os.Getenv("MAIL_GRPC_DIAL_ADDR"),
 
 		FrontendBaseURL: strings.TrimRight(getenv("FRONTEND_BASE_URL", "http://localhost:5173"), "/"),
 
@@ -81,6 +85,13 @@ func (c Config) GRPCDialTarget() string {
 		return "127.0.0.1" + c.GRPCAddr
 	}
 	return c.GRPCAddr
+}
+
+func (c Config) MailDialTarget() string {
+	if c.MailGRPCDialAddr != "" {
+		return c.MailGRPCDialAddr
+	}
+	return "127.0.0.1:9084"
 }
 
 func getenv(key, fallback string) string {

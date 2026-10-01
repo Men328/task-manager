@@ -7,8 +7,12 @@ deployments/migrations/
 ├── 000001_init_identity.up.sql   / .down.sql   # schema identity: PROFILES, AUTH_PROVIDERS
 ├── 000002_init_task.up.sql       / .down.sql   # schema task: TASK_STATUSES, STATUS_TRANSITIONS, TASKS, TASK_STATUS_LOGS
 ├── 000003_init_workspace.up.sql  / .down.sql   # schema workspace: WORKSPACES (namespace gốc)
-└── 000004_task_workspace_id.up.sql / .down.sql # TASKS.workspace_id + backfill workspace mặc định
+├── 000004_task_workspace_id.up.sql / .down.sql # TASKS.workspace_id + backfill workspace mặc định
+└── 000005_init_mail_provider.up.sql / .down.sql # schema mail_provider: SESSIONS, NOTI_INDEXES
 ```
+
+> Từ migration này, `mail-provider` lưu subscription (refresh token + checkpoint `historyId`) vào
+> 2 bảng trên khi `DATABASE_URL` được set; không set thì quay về store in-memory.
 
 ## Quy ước
 
@@ -32,6 +36,8 @@ deployments/migrations/
 | `task.STATUS_TRANSITIONS` | `task.status_transitions` |
 | `task.TASK_STATUS_LOGS` | `task.task_status_logs` |
 | `workspace.WORKSPACES` | `workspace.workspaces` |
+| `mail_provider.SESSIONS` | `mail_provider.sessions` |
+| `mail_provider.NOTI_INDEXES` | `mail_provider.noti_indexes` |
 
 Cột, index và constraint cũng vậy (`uq_profiles_email`, `uq_auth_providers_provider_uid`, ...).
 
@@ -65,5 +71,10 @@ Nguồn thiết kế: `design/db_schema.dbml` (dbdiagram.io). Các ràng buộc 
 | Chặn vòng lặp cây task | trigger `trg_tasks_prevent_cycle` |
 | `updated_at` tự cập nhật | trigger `fn_set_updated_at` cho từng bảng |
 | Email không phân biệt hoa/thường | unique index trên `lower(email)` cho profile chưa xoá mềm |
+| `mail_provider`: hộp thư đã ngắt kết nối không chặn hộp thư mới | partial unique index `uq_mail_provider_sessions_email ... (lower(email)) WHERE revoked_at IS NULL` |
+| `mail_provider`: `history_id` là uint64 opaque, không dùng `bigint` | `varchar(32)` + `CHECK ck_mail_provider_noti_indexes_history_id_digits (history_id IS NULL OR history_id ~ '^[0-9]+$')` |
+| `mail_provider`: 1 profile 1 kết nối / 1 checkpoint | `UNIQUE (profile_id, provider)` và `UNIQUE (profile_id)` |
+| `mail_provider`: không lưu email/provider rỗng | `CHECK btrim(...) <> ''` cho `email`, `provider` |
+| `mail_provider`: `refresh_token` có thể chưa có (Google không trả) | cột nullable, `NULL` thay cho chuỗi rỗng |
 
 Yêu cầu: PostgreSQL >= 13 (`gen_random_uuid()` có sẵn trong core).

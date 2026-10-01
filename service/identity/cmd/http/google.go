@@ -20,6 +20,8 @@ var googleEndpoint = oauth2.Endpoint{
 	TokenURL: "https://oauth2.googleapis.com/token",
 }
 
+const gmailReadonlyScope = "https://www.googleapis.com/auth/gmail.readonly"
+
 type googleIdentity struct {
 	Subject       string
 	Email         string
@@ -49,19 +51,37 @@ func newGoogleOAuth(cfg config.Config) *googleOAuth {
 	}
 }
 
-func (g *googleOAuth) authCodeURL(state string, verifier string) string {
-	return g.oauth.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier), oauth2.SetAuthURLParam("prompt", "select_account"))
+func (g *googleOAuth) authCodeURL(state string, verifier string, gmail bool) string {
+	oauthConfig := *g.oauth
+	oauthConfig.Scopes = append([]string{}, g.oauth.Scopes...)
+
+	options := []oauth2.AuthCodeOption{
+		oauth2.S256ChallengeOption(verifier),
+		oauth2.SetAuthURLParam("prompt", "select_account"),
+	}
+
+	if gmail {
+		oauthConfig.Scopes = append(oauthConfig.Scopes, gmailReadonlyScope)
+		options = []oauth2.AuthCodeOption{
+			oauth2.S256ChallengeOption(verifier),
+			oauth2.AccessTypeOffline,
+			oauth2.SetAuthURLParam("prompt", "consent"),
+			oauth2.SetAuthURLParam("include_granted_scopes", "true"),
+		}
+	}
+
+	return oauthConfig.AuthCodeURL(state, options...)
 }
 
-func (g *googleOAuth) exchange(ctx context.Context, code string, verifier string) (string, error) {
+func (g *googleOAuth) exchange(ctx context.Context, code string, verifier string) (*oauth2.Token, error) {
 	token, err := g.oauth.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 	if err != nil {
-		return "", fmt.Errorf("đổi authorization code: %w", err)
+		return nil, fmt.Errorf("đổi authorization code: %w", err)
 	}
 	if token.AccessToken == "" {
-		return "", fmt.Errorf("google không trả access token")
+		return nil, fmt.Errorf("google không trả access token")
 	}
-	return token.AccessToken, nil
+	return token, nil
 }
 
 func (g *googleOAuth) userInfo(ctx context.Context, accessToken string) (googleIdentity, error) {
