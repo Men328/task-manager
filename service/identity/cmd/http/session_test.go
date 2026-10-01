@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/url"
 	"testing"
 	"time"
 
@@ -152,12 +153,16 @@ func TestBearerToken(t *testing.T) {
 func TestCallbackURLKeepsTokenInFragment(t *testing.T) {
 	routes := &authRoutes{frontendURL: "http://localhost:5173"}
 
-	tokenURL := routes.callbackURL("token", "abc.def")
+	tokenValues := url.Values{}
+	tokenValues.Set("token", "abc.def")
+	tokenURL := routes.callbackURL(tokenValues)
 	if tokenURL != "http://localhost:5173/auth/callback#token=abc.def" {
 		t.Fatalf("URL token sai: %s", tokenURL)
 	}
 
-	errorURL := routes.callbackURL("error", "IDENTITY_AUTH_STATE_INVALID")
+	errorValues := url.Values{}
+	errorValues.Set("error", "IDENTITY_AUTH_STATE_INVALID")
+	errorURL := routes.callbackURL(errorValues)
 	if errorURL != "http://localhost:5173/auth/callback#error=IDENTITY_AUTH_STATE_INVALID" {
 		t.Fatalf("URL error sai: %s", errorURL)
 	}

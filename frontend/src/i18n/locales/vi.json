@@ -204,6 +204,10 @@
     "title": "Đăng nhập",
     "subtitle": "Dùng tài khoản Google của bạn để vào bảng công việc.",
     "withGoogle": "Đăng nhập với Google",
+    "gmailLabel": "Cho phép đọc Gmail để tự động tạo công việc",
+    "gmailHint": "Email chỉ được đọc để tạo task, hệ thống không gửi và không xoá thư.",
+    "gmailFailedTitle": "Đã đăng nhập nhưng chưa bật được Gmail",
+    "gmailFailedMessage": "Thử đăng nhập lại và tích quyền đọc mail để dùng tính năng này.",
     "failedTitle": "Đăng nhập không thành công",
     "failedFallback": "Không hoàn tất được đăng nhập. Vui lòng thử lại."
   },

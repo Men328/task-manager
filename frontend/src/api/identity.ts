@@ -17,8 +17,8 @@ export function createProfile(input: CreateProfileInput): Promise<Profile> {
   }).then(unwrapProfile);
 }
 
-export function googleLoginUrl(): string {
-  return `${identityApi}${GOOGLE_LOGIN_PATH}`;
+export function googleLoginUrl(connectGmail = false): string {
+  return `${identityApi}${GOOGLE_LOGIN_PATH}${connectGmail ? '?gmail=1' : ''}`;
 }
 
 export function getCurrentProfile(token: string): Promise<Profile> {

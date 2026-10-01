@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -16,11 +17,40 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	identityv1 "taskmanager/common/gen/go/identity/v1"
+	mailv1 "taskmanager/common/gen/go/mail/v1"
 	"taskmanager/service/identity/internal/config"
 	"taskmanager/service/identity/internal/handler"
 	"taskmanager/service/identity/internal/repository"
 	"taskmanager/service/identity/internal/service"
 )
+
+type fakeMail struct {
+	subscribes []*mailv1.SubscribeRequest
+	err        error
+}
+
+func (f *fakeMail) Subscribe(_ context.Context, in *mailv1.SubscribeRequest, _ ...grpc.CallOption) (*mailv1.SubscribeResponse, error) {
+	f.subscribes = append(f.subscribes, in)
+	if f.err != nil {
+		return nil, f.err
+	}
+	return &mailv1.SubscribeResponse{Subscription: &mailv1.Subscription{
+		ProfileId: in.GetProfileId(),
+		Email:     in.GetEmail(),
+	}}, nil
+}
+
+func (f *fakeMail) Unsubscribe(_ context.Context, _ *mailv1.UnsubscribeRequest, _ ...grpc.CallOption) (*mailv1.UnsubscribeResponse, error) {
+	return &mailv1.UnsubscribeResponse{}, nil
+}
+
+func (f *fakeMail) GetSubscription(_ context.Context, _ *mailv1.GetSubscriptionRequest, _ ...grpc.CallOption) (*mailv1.GetSubscriptionResponse, error) {
+	return &mailv1.GetSubscriptionResponse{}, nil
+}
+
+func (f *fakeMail) HandleNotification(_ context.Context, _ *mailv1.HandleNotificationRequest, _ ...grpc.CallOption) (*mailv1.HandleNotificationResponse, error) {
+	return &mailv1.HandleNotificationResponse{}, nil
+}
 
 type fakeGoogle struct {
 	server    *httptest.Server
@@ -48,9 +78,10 @@ func newFakeGoogle(t *testing.T, sub string, email string) *fakeGoogle {
 		fake.tokenHits++
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"access_token": "fake-access-token",
-			"token_type":   "Bearer",
-			"expires_in":   3600,
+			"access_token":  "fake-access-token",
+			"refresh_token": "fake-refresh-token",
+			"token_type":    "Bearer",
+			"expires_in":    3600,
 		})
 	})
 
@@ -112,7 +143,7 @@ func newTestAuthEnv(t *testing.T, fake *fakeGoogle) (*authRoutes, *repository.In
 	}
 	googleUserInfoURL = fake.server.URL + "/userinfo"
 
-	routes := newAuthRoutes(cfg, identityv1.NewProfileServiceClient(conn), google, newSessionSigner(cfg))
+	routes := newAuthRoutes(cfg, identityv1.NewProfileServiceClient(conn), &fakeMail{}, google, newSessionSigner(cfg))
 	return routes, profiles
 }
 
@@ -334,5 +365,107 @@ func TestMeRejectsMissingAndInvalidToken(t *testing.T) {
 	}
 	if !strings.Contains(recorder.Body.String(), "IDENTITY_AUTH_TOKEN_INVALID") {
 		t.Fatalf("phải trả mã lỗi chuẩn, nhận %s", recorder.Body.String())
+	}
+}
+
+func gmailLoginURL(t *testing.T, routes *authRoutes) *url.URL {
+	t.Helper()
+
+	recorder := httptest.NewRecorder()
+	routes.handleGoogleLogin(recorder, httptest.NewRequest(http.MethodGet, "/v1/auth/google/login?gmail=1", nil), nil)
+
+	if recorder.Code != http.StatusFound {
+		t.Fatalf("login phải trả 302, nhận %d (%s)", recorder.Code, recorder.Body.String())
+	}
+	location, err := url.Parse(recorder.Header().Get("Location"))
+	if err != nil {
+		t.Fatalf("parse location: %v", err)
+	}
+	return location
+}
+
+func TestGoogleLoginWithGmailRequestsOfflineMailScope(t *testing.T) {
+	fake := newFakeGoogle(t, "google-sub-mail", "mail@example.com")
+	routes, _ := newTestAuthEnv(t, fake)
+
+	location := gmailLoginURL(t, routes)
+	if scope := location.Query().Get("scope"); !strings.Contains(scope, "gmail.readonly") {
+		t.Fatalf("scope phải chứa gmail.readonly, nhận %q", scope)
+	}
+	if location.Query().Get("access_type") != "offline" {
+		t.Fatalf("phải xin access_type=offline, nhận %q", location.Query().Get("access_type"))
+	}
+	if location.Query().Get("prompt") != "consent" {
+		t.Fatalf("phải dùng prompt=consent để có refresh token, nhận %q", location.Query().Get("prompt"))
+	}
+}
+
+func TestGoogleLoginWithoutGmailKeepsBasicScopes(t *testing.T) {
+	fake := newFakeGoogle(t, "google-sub-basic", "basic@example.com")
+	routes, _ := newTestAuthEnv(t, fake)
+
+	location := loginURL(t, routes)
+	if scope := location.Query().Get("scope"); strings.Contains(scope, "gmail.readonly") {
+		t.Fatalf("không tích gmail thì không được xin scope gmail, nhận %q", scope)
+	}
+	if location.Query().Get("access_type") != "" {
+		t.Fatalf("không tích gmail thì không cần offline access, nhận %q", location.Query().Get("access_type"))
+	}
+}
+
+func TestGoogleCallbackSubscribesMailboxWhenGmailRequested(t *testing.T) {
+	fake := newFakeGoogle(t, "google-sub-mail", "Mail.User@Example.com")
+	routes, _ := newTestAuthEnv(t, fake)
+
+	location := gmailLoginURL(t, routes)
+	recorder := callback(t, routes, location.Query().Get("state"))
+
+	fragment, err := url.ParseQuery(strings.TrimPrefix(recorder.Header().Get("Location"), "http://fe.test/auth/callback#"))
+	if err != nil {
+		t.Fatalf("parse fragment: %v", err)
+	}
+	if fragment.Get("mail") != "ok" {
+		t.Fatalf("redirect phải báo mail=ok, nhận %q", fragment.Get("mail"))
+	}
+
+	mail := routes.mail.(*fakeMail)
+	if len(mail.subscribes) != 1 {
+		t.Fatalf("phải gọi Subscribe đúng 1 lần, nhận %d", len(mail.subscribes))
+	}
+	request := mail.subscribes[0]
+	if request.GetEmail() != "mail.user@example.com" {
+		t.Fatalf("email phải được chuẩn hoá chữ thường, nhận %q", request.GetEmail())
+	}
+	if request.GetRefreshToken() != "fake-refresh-token" {
+		t.Fatalf("phải chuyển refresh token cho mail-provider, nhận %q", request.GetRefreshToken())
+	}
+	if request.GetAccessToken() != "fake-access-token" {
+		t.Fatalf("phải chuyển access token cho mail-provider, nhận %q", request.GetAccessToken())
+	}
+	if request.GetProfileId() == "" {
+		t.Fatal("phải chuyển profile_id cho mail-provider")
+	}
+	if request.GetAccessTokenExpiresAt() == nil {
+		t.Fatal("phải chuyển thời điểm hết hạn access token")
+	}
+}
+
+func TestGoogleCallbackKeepsLoginWhenMailSubscriptionFails(t *testing.T) {
+	fake := newFakeGoogle(t, "google-sub-mail", "mail@example.com")
+	routes, _ := newTestAuthEnv(t, fake)
+	routes.mail.(*fakeMail).err = errors.New("mail provider offline")
+
+	location := gmailLoginURL(t, routes)
+	recorder := callback(t, routes, location.Query().Get("state"))
+
+	fragment, err := url.ParseQuery(strings.TrimPrefix(recorder.Header().Get("Location"), "http://fe.test/auth/callback#"))
+	if err != nil {
+		t.Fatalf("parse fragment: %v", err)
+	}
+	if fragment.Get("token") == "" {
+		t.Fatal("đăng ký mail lỗi vẫn phải đăng nhập được")
+	}
+	if fragment.Get("mail") != "error" {
+		t.Fatalf("redirect phải báo mail=error, nhận %q", fragment.Get("mail"))
 	}
 }

@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 // /api/identity/*  -> http://localhost:8081/*  (identity service)
 // /api/task/*      -> http://localhost:8082/*  (task service)
 // /api/workspace/* -> http://localhost:8083/*  (workspace service)
+// /api/mail/*      -> http://localhost:8084/*  (mail-provider webhook)
 // `rewrite` is the current Vite (§5/§6) API for rewriting the proxied path.
 export default defineConfig({
   plugins: [react()],
@@ -26,6 +27,11 @@ export default defineConfig({
         target: 'http://localhost:8083',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/workspace/, ''),
+      },
+      '/api/mail': {
+        target: 'http://localhost:8084',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/mail/, ''),
       },
     },
   },

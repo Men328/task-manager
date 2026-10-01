@@ -27,12 +27,20 @@ func setupLogger(cfg config.Config) {
 }
 
 func newGRPCConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
+	return dialGRPCConn(lc, cfg.GRPCDialTarget())
+}
+
+func newMailConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
+	return dialGRPCConn(lc, cfg.MailDialTarget())
+}
+
+func dialGRPCConn(lc fx.Lifecycle, target string) (*grpc.ClientConn, error) {
 	conn, err := grpc.NewClient(
-		cfg.GRPCDialTarget(),
+		target,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("dial gRPC %s: %w", cfg.GRPCDialTarget(), err)
+		return nil, fmt.Errorf("dial gRPC %s: %w", target, err)
 	}
 	lc.Append(fx.Hook{
 		OnStop: func(context.Context) error {
