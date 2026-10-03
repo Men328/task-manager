@@ -588,6 +588,42 @@
         "en": "Could not create a task from the email."
       }
     },
+    "MAIL_SCHEDULE_CREATE_FAILED": {
+      "owner": "mail",
+      "grpcCode": "Internal",
+      "httpStatus": 500,
+      "message": {
+        "vi": "Không tạo được lịch từ email.",
+        "en": "Could not create a schedule from the email."
+      }
+    },
+    "MAIL_EVENT_CREATE_FAILED": {
+      "owner": "mail",
+      "grpcCode": "Internal",
+      "httpStatus": 500,
+      "message": {
+        "vi": "Không tạo được sự kiện từ email.",
+        "en": "Could not create an event from the email."
+      }
+    },
+    "MAIL_BACKLOG_CREATE_FAILED": {
+      "owner": "mail",
+      "grpcCode": "Internal",
+      "httpStatus": 500,
+      "message": {
+        "vi": "Không lưu được email vào backlog.",
+        "en": "Could not save the email to the backlog."
+      }
+    },
+    "MAIL_STORAGE_FAILED": {
+      "owner": "mail",
+      "grpcCode": "Unavailable",
+      "httpStatus": 503,
+      "message": {
+        "vi": "Không lưu được tệp vào kho lưu trữ.",
+        "en": "Could not store the file in object storage."
+      }
+    },
     "CALENDAR_PROFILE_ID_REQUIRED": {
       "owner": "calendar",
       "grpcCode": "InvalidArgument",
@@ -640,6 +676,96 @@
       "message": {
         "vi": "Không tìm thấy lịch.",
         "en": "Schedule not found."
+      }
+    },
+    "EVENT_PROFILE_ID_REQUIRED": {
+      "owner": "event",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã hồ sơ.",
+        "en": "Profile id is required."
+      }
+    },
+    "EVENT_TITLE_REQUIRED": {
+      "owner": "event",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Tiêu đề sự kiện là bắt buộc.",
+        "en": "Event title is required."
+      }
+    },
+    "EVENT_ID_REQUIRED": {
+      "owner": "event",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã sự kiện.",
+        "en": "Event id is required."
+      }
+    },
+    "EVENT_START_AT_REQUIRED": {
+      "owner": "event",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thời gian bắt đầu là bắt buộc.",
+        "en": "Event start time is required."
+      }
+    },
+    "EVENT_TIME_RANGE_INVALID": {
+      "owner": "event",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thời gian kết thúc phải sau thời gian bắt đầu.",
+        "en": "Event end time must be after the start time."
+      }
+    },
+    "EVENT_NOT_FOUND": {
+      "owner": "event",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy sự kiện.",
+        "en": "Event not found."
+      }
+    },
+    "BACKLOG_PROFILE_ID_REQUIRED": {
+      "owner": "backlog",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã hồ sơ.",
+        "en": "Profile id is required."
+      }
+    },
+    "BACKLOG_TITLE_REQUIRED": {
+      "owner": "backlog",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Tiêu đề mục backlog là bắt buộc.",
+        "en": "Backlog title is required."
+      }
+    },
+    "BACKLOG_ID_REQUIRED": {
+      "owner": "backlog",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã mục backlog.",
+        "en": "Backlog id is required."
+      }
+    },
+    "BACKLOG_NOT_FOUND": {
+      "owner": "backlog",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy mục backlog.",
+        "en": "Backlog item not found."
       }
     }
   }

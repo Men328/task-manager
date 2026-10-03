@@ -2,7 +2,9 @@ go 1.25.0
 
 use (
 	./common
+	./service/backlog
 	./service/calendar
+	./service/event
 	./service/identity
 	./service/mail-provider
 	./service/task

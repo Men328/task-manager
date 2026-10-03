@@ -1,7 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit';
 
+import { backlogReducer } from './backlog/backlogSlice';
 import { boardReducer } from './board/boardSlice';
 import { calendarReducer } from './calendar/calendarSlice';
+import { eventReducer } from './event/eventSlice';
 import { sessionReducer } from './session/sessionSlice';
 import { statusesPageReducer } from './statuses/statusesSlice';
 
@@ -10,6 +12,8 @@ export const store = configureStore({
     session: sessionReducer,
     board: boardReducer,
     calendar: calendarReducer,
+    event: eventReducer,
+    backlog: backlogReducer,
     statusesPage: statusesPageReducer,
   },
 });

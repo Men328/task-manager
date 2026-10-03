@@ -21,7 +21,9 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 │   │   └── internal/{config,dependency,handler,model,repository,service}
 │   ├── task/                   # task, status, lifecycle (gRPC :9082 / HTTP :8082)
 │   ├── calendar/               # lịch cá nhân (schedule)   (gRPC :9083 / HTTP :8083)
-│   └── mail-provider/          # Gmail notice -> DeepSeek -> task (gRPC :9084 / HTTP :8084)
+│   ├── event/                  # sự kiện cá nhân (event)    (gRPC :9085 / HTTP :8085)
+│   ├── backlog/                # email không phân loại được (gRPC :9086 / HTTP :8086)
+│   └── mail-provider/          # Gmail notice -> phân loại -> task/schedule/event/backlog + S3 (gRPC :9084 / HTTP :8084)
 ├── frontend/                   # React + TSX + Mantine + Vite (+ Dockerfile, nginx.conf)
 ├── deployments/                # hạ tầng: docker/ (compose) + migrations/ (SQL)
 ├── scripts/                    # gen grpc, cài tool, dev, smoke test
@@ -37,9 +39,11 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 | `taskmanager/service/identity` | `service/identity/` |
 | `taskmanager/service/task` | `service/task/` |
 | `taskmanager/service/calendar` | `service/calendar/` |
+| `taskmanager/service/event` | `service/event/` |
+| `taskmanager/service/backlog` | `service/backlog/` |
 | `taskmanager/service/mail-provider` | `service/mail-provider/` |
 
-- Root `go.work` gom 5 module lại để phát triển local.
+- Root `go.work` gom 8 module lại để phát triển local.
 - Service dùng code chung qua module `common`:
   `require taskmanager/common v0.0.0-...` + `replace taskmanager/common => ../../common`.
   Nhờ `replace`, service build được **cả khi không có `go.work`** (đúng cách Dockerfile đang build).
@@ -66,9 +70,11 @@ make smoke      # verify end-to-end (build + start + gọi API thật)
 make run-identity   # terminal 1  -> :8081 / :9081
 make run-task       # terminal 2  -> :8082 / :9082
 make run-calendar   # terminal 3  -> :8083 / :9083
-make run-mail-provider  # terminal 4 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY)
-make web-install && make web-dev    # terminal 5 -> :5173
-make seed-demo      # (tuỳ chọn) seed dữ liệu demo giống design/ui.png
+make run-event      # terminal 4  -> :8085 / :9085
+make run-backlog    # terminal 5  -> :8086 / :9086
+make run-mail-provider  # terminal 6 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY)
+make web-install && make web-dev    # terminal 7 -> :5173
+make seed-demo      # (tuỳ chọn) seed dữ liệu demo: task/board + lịch + sự kiện + backlog
 ```
 
 ## Frontend (UI theo `design/ui.png`)
@@ -89,30 +95,64 @@ New Task) và board 4 cột. Không có nhân sự/project/sprint.
 - **Lịch (Calendar)**: mục **Lịch** trong nhóm *Kế hoạch* của sidebar (`/calendar`) hiển thị lịch
   của profile bằng [FullCalendar](https://github.com/fullcalendar/fullcalendar), CRUD cơ bản qua
   `calendar` service (`/v1/schedules`).
+- **Sự kiện (Events)**: mục **Sự kiện** trong nhóm *Kế hoạch* (`/events`) là bảng CRUD cơ bản qua
+  `event` service (`/v1/events`) — giống lịch nhưng có `status` (dự kiến/đã xác nhận/đã huỷ) và
+  `source` để truy vết sự kiện do mail worker tạo.
+- **Backlog**: mục **Backlog** trong nhóm *Kế hoạch* (`/backlog`) liệt kê email mà mail worker
+  không phân loại được thành task/lịch/sự kiện, CRUD cơ bản qua `backlog` service (`/v1/backlogs`).
 
 Chi tiết: `frontend/README.md`.
 
-## Tự động tạo task từ Gmail
+## Tự động phân loại email từ Gmail
 
 Tính năng tuỳ chọn: user tích **"Cho phép đọc Gmail"** ngay ở màn đăng nhập, sau đó mỗi email
-mới có thể được chuyển thành task.
+mới được **phân loại** và đẩy về đúng service.
 
 - Luồng: `identity` xin thêm scope `gmail.readonly` (+ `access_type=offline`) → gọi
   `mail-provider.Subscribe` → `users.watch(topic)`; khi Gmail có thay đổi, **Pub/Sub** báo về
   `mail-provider` (push qua webhook `POST /api/mail/v1/notifications`, hoặc **pull** nếu set
-  `MAIL_PULL_SUBSCRIPTION`) → gọi Gmail API lấy email gốc → gọi **DeepSeek** để bóc thành JSON →
-  gọi `task service` tạo task cho đúng profile.
+  `MAIL_PULL_SUBSCRIPTION`) → gọi Gmail API lấy email gốc → **lưu email gốc + attachment lên object storage S3**
+  → phân loại email → gọi service tương ứng.
+- **Rule phân loại** (chi tiết ở `service/mail-provider/README.md`): DeepSeek trả về đúng một
+  `category` trong `task | schedule | event | other`; nếu thiếu `DEEPSEEK_API_KEY` hoặc LLM lỗi thì
+  dùng **rule keyword** dự phòng (`internal/service/classifier.go`).
+- **Dispatch** sau phân loại:
+
+  | Category | Đích |
+  |---|---|
+  | `task` | `task` service (`CreateTask`) |
+  | `schedule` | `calendar` service (`CreateSchedule`) |
+  | `event` | `event` service (`CreateEvent`) |
+  | `other` (hoặc thiếu dữ kiện) | **`backlog` service** (`CreateBacklog`) |
+
+  Nhờ vậy không email nào bị mất: email không khớp rule nằm ở backlog kèm `reason`, `source`
+  (message id) và `object_key` (bản lưu object storage).
 - Chạy local không cần tunnel nếu dùng pull mode (`MAIL_PULL_SUBSCRIPTION` + credential GCP);
   push mode bắt buộc endpoint HTTPS công khai nên cần `make up-tunnel`.
 - Access token + refresh token của user được lưu ở **Postgres** (`mail_provider.sessions`, xem
   `service/mail-provider/README.md`); set `DATABASE_URL` cho `mail-provider-grpc` để bật. Không set
   thì service quay về cache trong RAM và restart là mất, user phải đăng nhập lại.
 - Cấu hình: `MAIL_PUBSUB_TOPIC`, `MAIL_PUBSUB_AUDIENCE`, `MAIL_PUBSUB_SERVICE_ACCOUNT`,
-  `DEEPSEEK_API_KEY`… trong `deployments/docker/.env` (xem `.env.example`).
+  `DEEPSEEK_API_KEY`, `S3_*`/`RUSTFS_*`… trong `deployments/docker/.env` (xem `.env.example`).
 - Topic Pub/Sub phải nằm **cùng GCP project với OAuth client**, nếu không `users.watch` báo
   `Invalid topicName`.
 
 Chi tiết đầy đủ: `service/mail-provider/README.md`.
+
+## Lưu trữ đối tượng (S3 — RustFS)
+
+MinIO OSS đã bị archive (dl.min.io ngừng phát hành binary, repo Docker `minio/minio` + `minio/mc`
+bị xoá), nên stack dùng **RustFS** — object storage **S3-compatible**, API `9000` nội bộ, console
+bind `127.0.0.1:9001`. Vì cùng API S3, `mail-provider` không phải đổi code (vẫn SDK `minio-go`);
+bucket do chính nó tạo lúc khởi động (`EnsureBucket`, có retry chờ RustFS lên).
+
+- Object key: `mail/{profile_id}/{yyyymmdd}/{message_id}.json` và
+  `mail/{profile_id}/{yyyymmdd}/{message_id}/attachments/{filename}`.
+- Đổi credential trong `deployments/docker/.env` (`RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY`).
+- Biến `S3_*` cấu hình endpoint/bucket (`S3_ENDPOINT`, `S3_BUCKET`…); tên `MINIO_*` cũ vẫn được đọc
+  nếu `S3_*` chưa đặt.
+- Bỏ trống `S3_ENDPOINT` (hoặc `MAIL_ARCHIVE_ENABLED=false`) để tắt archive; mọi thứ vẫn chạy,
+  chỉ mất bản lưu email gốc.
 
 ## Bộ mã lỗi chuẩn
 
@@ -145,7 +185,7 @@ HTTP status / URL / text kỹ thuật lên notification.
 ## Quickstart (Docker)
 
 ```bash
-make up        # postgres + migrate + identity + task + calendar + mail-provider + frontend
+make up        # postgres + migrate + rustfs + identity + task + calendar + event + backlog + mail-provider + frontend
 make up-core   # như trên nhưng KHÔNG kèm cloudflared (tắt tunnel)
 make up-tunnel # kèm cloudflared (Cloudflare Tunnel; cần token trong .env)
 make ps
@@ -166,8 +206,11 @@ của Cloudflare.
 | identity | nội bộ `identity:8081` (`/healthz`) |
 | task | nội bộ `task:8082` (`/healthz`) |
 | calendar | nội bộ `calendar:8083` (`/healthz`) |
+| event | nội bộ `event:8085` (`/healthz`) |
+| backlog | nội bộ `backlog:8086` (`/healthz`) |
 | mail-provider | nội bộ `mail-provider:8084` (`/healthz`) + webhook `/api/mail/v1/notifications` |
 | postgres | nội bộ `postgres:5432` |
+| rustfs | API nội bộ `rustfs:9000`, console `http://localhost:9001` |
 | cloudflared | profile `tunnel` — `make tunnel-logs` |
 
 Chi tiết Cloudflare Tunnel + biến env: `deployments/docker/README.md`.
@@ -230,7 +273,7 @@ tầng phải flat, `service/interfaces.go` bắt buộc, không comment trong c
 (ví dụ do chạy `go work init` bằng Go mới hơn). Sửa:
 
 ```bash
-go work edit -go=1.25.0    # go.work + 5 go.mod đang ở 1.25.0 -> Go >= 1.25 là chạy được
+go work edit -go=1.25.0    # go.work + 8 go.mod đang ở 1.25.0 -> Go >= 1.25 là chạy được
 ```
 
 rồi reload IDE để gopls load lại. **`make vet`** dùng `scripts/vet.sh` để bỏ qua cảnh báo vet phát sinh
@@ -238,7 +281,7 @@ trong source của dependency (Go 1.26 hay gặp với protobuf).
 
 ## Trạng thái hiện tại
 
-Cả 4 service Go đều có **repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory
+Cả 6 service Go đều có **repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory
 stub** khi không set `DATABASE_URL`. Business logic nằm ở `internal/service` (DI qua interface),
 transport gRPC ở `internal/handler`, validate/mapping ở `internal/dependency`; `cmd/grpc/infra.go`
 chọn Postgres/in-memory và quản lý `pgxpool` theo fx lifecycle.
@@ -246,6 +289,13 @@ chọn Postgres/in-memory và quản lý `pgxpool` theo fx lifecycle.
 `calendar` giữ **lịch cá nhân** ở `calendar.schedules` (CRUD cơ bản: title/mô tả/địa điểm/thời gian/
 all-day/màu) và phục vụ UI FullCalendar.
 
+`event` giữ **sự kiện** ở `event.events` (CRUD cơ bản + `status` vòng đời + `source` truy vết email)
+và phục vụ trang `/events`.
+
+`backlog` giữ **email không phân loại được** ở `backlog.backlogs` (CRUD cơ bản + `status`
+NEW/TRIAGED/ARCHIVED) và phục vụ trang `/backlog`; là đích đến của nhánh `other` trong mail worker.
+
 `mail-provider` dùng Postgres cho **subscription** (`mail_provider.sessions` +
-`mail_provider.noti_indexes`: refresh/access token, checkpoint `historyId`, hạn watch) và gọi ra
-ngoài (Gmail, DeepSeek) cũng như sang `task` qua gRPC.
+`mail_provider.noti_indexes`: refresh/access token, checkpoint `historyId`, hạn watch), **object
+storage S3-compatible (RustFS)** cho email gốc + attachment, và gọi ra ngoài (Gmail, DeepSeek) cũng như sang
+`task`/`calendar`/`event`/`backlog` qua gRPC.

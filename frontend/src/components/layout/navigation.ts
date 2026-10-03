@@ -1,4 +1,10 @@
-import { IconArrowsExchange, IconCalendarMonth, IconChecklist } from '@tabler/icons-react';
+import {
+  IconArchive,
+  IconArrowsExchange,
+  IconCalendarEvent,
+  IconCalendarMonth,
+  IconChecklist,
+} from '@tabler/icons-react';
 
 type IconComponent = typeof IconChecklist;
 
@@ -27,6 +33,8 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { key: 'tasks', labelKey: 'nav.myTask', icon: IconChecklist, to: '/' },
       { key: 'calendar', labelKey: 'nav.calendar', icon: IconCalendarMonth, to: '/calendar' },
+      { key: 'events', labelKey: 'nav.events', icon: IconCalendarEvent, to: '/events' },
+      { key: 'backlog', labelKey: 'nav.backlog', icon: IconArchive, to: '/backlog' },
     ],
   },
   {

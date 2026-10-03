@@ -1,14 +1,22 @@
 # service/mail-provider
 
 Service nhận **thông báo Gmail (Pub/Sub push)** → gọi **Gmail API** lấy email gốc →
-gọi **DeepSeek** để bóc thành JSON công việc → gọi **task service** để tạo task cho đúng user.
+gọi **DeepSeek** (có rule keyword dự phòng) để **phân loại email** thành
+`task | schedule | event | other` → gọi service tương ứng (`task`, `calendar`, `event`) hoặc
+**đẩy vào `backlog`** nếu là `other`. Email gốc + attachment được lưu trên **object storage
+S3-compatible (RustFS)**.
 
 - gRPC: `:9084` — HTTP gateway + webhook Pub/Sub: `:8084`
 - Proto: `common/proto/mail/v1/mail.proto`
-- Lưu trữ: **PostgreSQL** — `mail_provider.sessions` (refresh/access token) +
+- Lưu trữ quan hệ: **PostgreSQL** — `mail_provider.sessions` (refresh/access token) +
   `mail_provider.noti_indexes` (checkpoint `historyId`, hạn watch), migration `000005`.
   Set `DATABASE_URL` để dùng; không set thì quay về **in-memory** và restart là mất hết watch
   (user phải đăng nhập lại).
+- Lưu trữ đối tượng: **S3-compatible** (`S3_ENDPOINT`, bucket `S3_BUCKET`) — email gốc dạng JSON +
+  attachment. Stack Docker dùng **RustFS** vì MinIO OSS đã bị archive (dl.min.io ngừng phát hành
+  binary và repo Docker `minio/minio`/`minio/mc` bị xoá); client vẫn là SDK `minio-go` (S3 API).
+  Rỗng ⇒ tắt archive, mọi thứ vẫn chạy (chỉ mất bản lưu email gốc). Vì tương thích ngược, các biến
+  `MINIO_*` cũ vẫn được đọc nếu `S3_*` chưa đặt.
 
 ## Chức năng
 
@@ -65,12 +73,89 @@ Gmail có mail mới
       → enqueue (trả 200 ngay)
   → worker:
       access token (refresh nếu hết hạn) → users.history.list → users.messages.get
-      → DeepSeek /chat/completions  → JSON {is_actionable,title,description,priority,due_at}
-      → task service: CreateTask
+      → object storage S3: lưu email gốc (JSON) + attachment (nếu có)
+      → phân loại: DeepSeek /chat/completions, lỗi thì rule keyword dự phòng
+      → dispatch theo category (xem bảng bên dưới)
       → tiến checkpoint
 ```
 
-DeepSeek trả `is_actionable=false` thì bỏ qua, không tạo task.
+## Phân loại email: rule & dispatch
+
+Mỗi email được gán **đúng một** category. Thứ tự ưu tiên khi điểm bằng nhau:
+`event` > `schedule` > `task` > `other`.
+
+### 1. Rule chính — DeepSeek (LLM)
+
+`internal/repository/deepseek_client.go` yêu cầu model trả về duy nhất một JSON object:
+
+```json
+{
+  "category": "task | schedule | event | other",
+  "is_actionable": true,
+  "title": "tiêu đề ngắn gọn",
+  "description": "mô tả chi tiết",
+  "priority": "low | medium | high | urgent",
+  "due_at": "RFC3339 hoặc rỗng",
+  "start_at": "RFC3339 hoặc rỗng",
+  "end_at": "RFC3339 hoặc rỗng",
+  "all_day": false,
+  "location": "địa điểm hoặc rỗng",
+  "reason": "lý do ngắn nếu là other"
+}
+```
+
+Định nghĩa category (đưa nguyên văn vào system prompt):
+
+| Category | Nghĩa | Ví dụ |
+|---|---|---|
+| `task` | việc cần làm, có hành động | yêu cầu nộp báo cáo, hoá đơn, deadline |
+| `schedule` | lịch hẹn/lịch trình có thời gian | cuộc họp, appointment, ca làm |
+| `event` | sự kiện/thiệp mời/hội thảo/tiệc | thư mời hội thảo, sinh nhật, khai trương |
+| `other` | thông báo, quảng cáo, newsletter, spam, không đủ dữ kiện | bản tin nội bộ, khuyến mãi |
+
+### 2. Rule dự phòng — keyword (khi thiếu `DEEPSEEK_API_KEY` hoặc DeepSeek lỗi/trả category lạ)
+
+`internal/service/classifier.go` chấm điểm từ khoá trên `subject + snippet + body`
+(từ khoá xuất hiện trong subject được nhân đôi), lấy category điểm cao nhất:
+
+- **event**: `sự kiện`, `hội thảo`, `hội nghị`, `conference`, `webinar`, `workshop`, `seminar`,
+  `sinh nhật`, `birthday`, `đám cưới`, `wedding`, `tiệc`, `party`, `khai trương`, `ra mắt`,
+  `lễ`, `ceremony`, `thiệp mời`, `invitation`, `mời bạn`, `mời tham dự`, `mời tham gia`, `event`
+- **schedule**: `lịch`, `lịch hẹn`, `appointment`, `schedule`, `calendar`, `cuộc họp`, `meeting`,
+  `họp`, `đặt phòng`, `booking`, `reminder`, `nhắc lịch`, `ca làm`, `shift`, `call`, `zoom`,
+  `google meet`
+- **task**: `cần`, `hoàn thành`, `nộp`, `thanh toán`, `hóa đơn`/`hoá đơn`, `invoice`, `deadline`,
+  `hạn chót`, `yêu cầu`, `action required`, `todo`/`to-do`, `task`, `công việc`, `xử lý`,
+  `kiểm tra`, `duyệt`, `review`, `báo cáo`, `xác nhận`
+- Không khớp từ khoá nào ⇒ `other` (reason `no_rule_matched`).
+
+Với `schedule`/`event`, rule cố bóc thời gian bắt đầu từ text (`2026-10-05 09:00`,
+`12/11/2026 14:00`) để tạo bản ghi; không bóc được thì đẩy về backlog.
+
+### 3. Dispatch sau phân loại
+
+| Category | Điều kiện | Đích | Fallback → backlog (`reason`) |
+|---|---|---|---|
+| `task` | `is_actionable` + có `title` | `task service` (`CreateTask`) | `not_actionable` |
+| `schedule` | có `title` + `start_at` (hoặc `due_at`) | `calendar service` (`CreateSchedule`) | `missing_schedule_time` |
+| `event` | có `title` + `start_at` (hoặc `due_at`) | `event service` (`CreateEvent`) | `missing_event_time` |
+| `other` | luôn | **`backlog service`** (`CreateBacklog`) | — (reason từ LLM hoặc `unclassified`) |
+
+Nhờ bảng này **không email nào bị mất**: khi không phân loại được hoặc thiếu dữ kiện để tạo bản ghi,
+dữ liệu vẫn nằm ở backlog kèm `reason`, `source` (message id) và `object_key` (email gốc trên object storage).
+Bỏ `MAIL_RULE_FALLBACK_ENABLED` đi kèm `DEEPSEEK_API_KEY` rỗng thì email rơi hết vào backlog với
+reason `classifier_disabled`.
+
+### 4. Lưu trữ object storage (S3)
+
+Email gốc được lưu trước khi dispatch, object key:
+
+```
+mail/{profile_id}/{yyyymmdd}/{message_id}.json
+mail/{profile_id}/{yyyymmdd}/{message_id}/attachments/{filename}
+```
+
+Giới hạn: `MAIL_MAX_ATTACHMENTS` tệp/email và `MAIL_MAX_ATTACHMENT_BYTES` mỗi tệp.
 
 ## Biến môi trường
 
@@ -105,11 +190,28 @@ DeepSeek trả `is_actionable=false` thì bỏ qua, không tạo task.
 | `GMAIL_BASE_URL` | `https://gmail.googleapis.com` | Gmail API base |
 | `GMAIL_TIMEOUT` | `20s` | timeout gọi Gmail |
 | `GMAIL_MAX_BODY_BYTES` | `32768` | cắt bớt body trước khi gửi DeepSeek |
-| `DEEPSEEK_API_KEY` | rỗng | rỗng ⇒ vẫn nhận notice nhưng không tạo task |
+| `DEEPSEEK_API_KEY` | rỗng | rỗng ⇒ không gọi LLM, dùng rule keyword dự phòng |
 | `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | base URL |
 | `DEEPSEEK_MODEL` | `deepseek-chat` | model |
 | `DEEPSEEK_TIMEOUT` | `60s` | timeout gọi DeepSeek |
+| `MAIL_RULE_FALLBACK_ENABLED` | `true` | bật rule keyword khi LLM thiếu/lỗi |
 | `TASK_GRPC_DIAL_ADDR` | rỗng → `127.0.0.1:9082` | task service |
+| `MAIL_TASK_TIMEOUT` | `15s` | timeout gọi task service |
+| `CALENDAR_GRPC_DIAL_ADDR` | rỗng → `127.0.0.1:9083` | calendar service (schedule) |
+| `MAIL_SCHEDULE_TIMEOUT` | `15s` | timeout gọi calendar service |
+| `EVENT_GRPC_DIAL_ADDR` | rỗng → `127.0.0.1:9085` | event service |
+| `MAIL_EVENT_TIMEOUT` | `15s` | timeout gọi event service |
+| `BACKLOG_GRPC_DIAL_ADDR` | rỗng → `127.0.0.1:9086` | backlog service |
+| `MAIL_BACKLOG_TIMEOUT` | `15s` | timeout gọi backlog service |
+| `S3_ENDPOINT` | rỗng | `host:port` server S3; rỗng ⇒ tắt archive |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | rỗng | credential S3 |
+| `S3_BUCKET` | `task-manager` | bucket chứa email gốc |
+| `S3_REGION` | `us-east-1` | region ký S3 |
+| `S3_USE_SSL` | `false` | dùng HTTPS tới server S3 |
+| `S3_TIMEOUT` | `30s` | timeout gọi S3 |
+| `MAIL_ARCHIVE_ENABLED` | `true` | bật/tắt lưu email gốc |
+| `MAIL_MAX_ATTACHMENTS` | `5` | số attachment tối đa lưu mỗi email |
+| `MAIL_MAX_ATTACHMENT_BYTES` | `10485760` | kích thước tối đa mỗi attachment |
 
 ## Cấu trúc
 
@@ -119,14 +221,15 @@ cmd/grpc/                        # fx app: gRPC server (:9084), store Postgres/i
 cmd/http/                        # fx app: grpc-gateway (:8084) + webhook Pub/Sub + /healthz
 internal/config/config.go        # đọc env
 internal/model/                  # CORE: domain model + lỗi domain (chỉ stdlib)
-internal/service/                # nghiệp vụ: subscribe, token cache, queue, worker push + worker pull
-internal/repository/             # adapter I/O: Postgres/in-memory store, Gmail, Pub/Sub pull, OAuth token, DeepSeek, task
+internal/service/                # nghiệp vụ: subscribe, token cache, queue, worker push + worker pull, rule phân loại
+internal/repository/             # adapter I/O: Postgres/in-memory store, Gmail, Pub/Sub pull, OAuth token, DeepSeek, task/calendar/event/backlog client, S3
 internal/dependency/             # validate + mapping model <-> proto + map lỗi -> gRPC
 internal/handler/                # transport gRPC mỏng
 ```
 
 `service/interfaces.go` khai báo các port (`SubscriptionRepository`, `GmailClient`,
-`TokenRefresher`, `MailAnalyzer`, `TaskCreator`, `MailService`, `Worker`);
+`TokenRefresher`, `MailAnalyzer`, `TaskCreator`, `ScheduleCreator`, `EventCreator`,
+`BacklogCreator`, `BlobStore`, `MailService`, `Worker`);
 `service` chỉ import `model`, adapter ở `repository` thoả mãn port nhờ structural typing, `cmd`
 là nơi wiring concrete.
 

@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package backlog.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/backlog/v1;backlogv1";
+
+// Vòng đời xử lý của 1 mục backlog.
+enum BacklogStatus {
+  BACKLOG_STATUS_UNSPECIFIED = 0;
+  // Vừa được mail worker đẩy vào, chưa xử lý.
+  BACKLOG_STATUS_NEW = 1;
+  // Người dùng đã xem qua / phân loại lại.
+  BACKLOG_STATUS_TRIAGED = 2;
+  // Lưu trữ, không còn hiện trong danh sách mặc định.
+  BACKLOG_STATUS_ARCHIVED = 3;
+}
+
+// Mục backlog: dữ liệu mail worker KHÔNG phân loại được thành
+// task/schedule/event (category = other), hoặc không đủ dữ kiện để tạo.
+// Mapping DB: backlog.backlogs
+message Backlog {
+  string id = 1;
+  string profile_id = 2;
+  string title = 3;
+  string description = 4;
+  // Người gửi (header From) của email nguồn.
+  string sender = 5;
+  // Id email nguồn (Gmail message id); dùng để truy vết / chống trùng.
+  string source = 6;
+  // Nhãn phân loại thô của mail worker: task | schedule | event | other.
+  string category = 7;
+  // Lý do bị đẩy vào backlog (không actionable, thiếu dữ kiện, ...).
+  string reason = 8;
+  // Object key của email gốc trên object storage (S3).
+  string object_key = 9;
+  BacklogStatus status = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+message CreateBacklogRequest {
+  string profile_id = 1;
+  string title = 2;
+  string description = 3;
+  string sender = 4;
+  string source = 5;
+  string category = 6;
+  string reason = 7;
+  string object_key = 8;
+  // Bỏ trống = BACKLOG_STATUS_NEW.
+  BacklogStatus status = 9;
+}
+
+message CreateBacklogResponse {
+  Backlog backlog = 1;
+}
+
+message GetBacklogRequest {
+  string id = 1;
+}
+
+message GetBacklogResponse {
+  Backlog backlog = 1;
+}
+
+message ListBacklogsRequest {
+  string profile_id = 1;
+  // Lọc theo trạng thái (optional).
+  BacklogStatus status = 2;
+  // Lọc theo nhãn phân loại thô (optional).
+  string category = 3;
+}
+
+message ListBacklogsResponse {
+  repeated Backlog backlogs = 1;
+}
+
+message UpdateBacklogRequest {
+  string id = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string reason = 4;
+  optional BacklogStatus status = 5;
+}
+
+message UpdateBacklogResponse {
+  Backlog backlog = 1;
+}
+
+message DeleteBacklogRequest {
+  string id = 1;
+}
+
+message DeleteBacklogResponse {}
+
+service BacklogService {
+  rpc CreateBacklog(CreateBacklogRequest) returns (CreateBacklogResponse) {
+    option (google.api.http) = {
+      post: "/v1/backlogs"
+      body: "*"
+    };
+  }
+
+  rpc GetBacklog(GetBacklogRequest) returns (GetBacklogResponse) {
+    option (google.api.http) = {get: "/v1/backlogs/{id}"};
+  }
+
+  rpc ListBacklogs(ListBacklogsRequest) returns (ListBacklogsResponse) {
+    option (google.api.http) = {get: "/v1/backlogs"};
+  }
+
+  rpc UpdateBacklog(UpdateBacklogRequest) returns (UpdateBacklogResponse) {
+    option (google.api.http) = {
+      patch: "/v1/backlogs/{id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteBacklog(DeleteBacklogRequest) returns (DeleteBacklogResponse) {
+    option (google.api.http) = {delete: "/v1/backlogs/{id}"};
+  }
+}

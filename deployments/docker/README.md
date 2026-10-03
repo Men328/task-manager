@@ -2,10 +2,11 @@
 
 | File | Việc |
 |---|---|
-| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + identity(-grpc) + task(-grpc) + calendar(-grpc) + mail-provider(-grpc) + frontend + cloudflared (profile `tunnel`) |
+| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + rustfs + identity(-grpc) + task(-grpc) + calendar(-grpc) + event(-grpc) + backlog(-grpc) + mail-provider(-grpc) + frontend + cloudflared (profile `tunnel`) |
 
 Dockerfile nằm **trong từng service** (`service/identity/Dockerfile`, `service/task/Dockerfile`,
-`service/calendar/Dockerfile`, `service/mail-provider/Dockerfile`, `frontend/Dockerfile`) để mỗi
+`service/calendar/Dockerfile`, `service/event/Dockerfile`, `service/backlog/Dockerfile`,
+`service/mail-provider/Dockerfile`, `frontend/Dockerfile`) để mỗi
 service tự đóng gói. Compose trỏ tới chúng với build context là **root repo**, vì mỗi service cần
 copy thêm module `common/`.
 
@@ -45,13 +46,18 @@ trong network Docker nội bộ và được các container gọi nhau bằng t�
 | task-grpc | tm-task-grpc | nội bộ `task-grpc:9082` | không publish ra host |
 | calendar (gateway) | tm-calendar | nội bộ `calendar:8083` | không publish ra host |
 | calendar-grpc | tm-calendar-grpc | nội bộ `calendar-grpc:9083` | không publish ra host |
+| event (gateway) | tm-event | nội bộ `event:8085` | không publish ra host |
+| event-grpc | tm-event-grpc | nội bộ `event-grpc:9085` | không publish ra host |
+| backlog (gateway) | tm-backlog | nội bộ `backlog:8086` | không publish ra host |
+| backlog-grpc | tm-backlog-grpc | nội bộ `backlog-grpc:9086` | không publish ra host |
 | mail-provider (gateway) | tm-mail-provider | nội bộ `mail-provider:8084` | webhook `/api/mail/v1/notifications` |
-| mail-provider-grpc | tm-mail-provider-grpc | nội bộ `mail-provider-grpc:9084` | subscription (token + checkpoint) ở Postgres |
+| mail-provider-grpc | tm-mail-provider-grpc | nội bộ `mail-provider-grpc:9084` | subscription ở Postgres; email gốc ở object storage S3 |
+| rustfs | tm-rustfs | API nội bộ `rustfs:9000`; console `127.0.0.1:9001` | object storage S3-compatible (thay MinIO OSS đã archive) |
 | postgres | tm-postgres | nội bộ `postgres:5432` | không publish ra host |
 | cloudflared | tm-cloudflared | — (outbound) | profile `tunnel`, đẩy `frontend:3000` ra Internet |
 
-Tên service HTTP giữ nguyên (`identity`, `task`, `calendar`, `mail-provider`) nên nginx của frontend
-không phải đổi proxy.
+Tên service HTTP giữ nguyên (`identity`, `task`, `calendar`, `event`, `backlog`, `mail-provider`)
+nên nginx của frontend không phải đổi proxy.
 
 ## Cloudflare Tunnel
 
@@ -140,8 +146,9 @@ Lưu ý `make up-core` chỉ **không khởi động** cloudflared — nếu nó
 
 ```
 postgres (healthy) -> migrate (chạy xong, exit 0)
-  -> identity(-grpc)/task(-grpc)/calendar(-grpc)/mail-provider(-grpc)
-  -> gateway identity/task/calendar/mail-provider (healthy, /healthz chỉ 200 khi gọi được gRPC health)
+  -> rustfs (healthy)
+  -> identity(-grpc)/task(-grpc)/calendar(-grpc)/event(-grpc)/backlog(-grpc)/mail-provider(-grpc)
+  -> gateway identity/task/calendar/event/backlog/mail-provider (healthy, /healthz chỉ 200 khi gọi được gRPC health)
   -> frontend (healthy, /healthz do nginx trả)
   -> cloudflared (profile tunnel)
 ```
@@ -157,9 +164,15 @@ make migrate-down      # rollback 1 bước
 
 ## Ghi chú
 
-- `identity-grpc`, `task-grpc`, `calendar-grpc` và `mail-provider-grpc` nối Postgres qua `DATABASE_URL`
-  (đã bật sẵn trong compose). Bỏ trống biến này thì service tự quay về repository in-memory stub và
-  log cảnh báo.
+- `identity-grpc`, `task-grpc`, `calendar-grpc`, `event-grpc`, `backlog-grpc` và `mail-provider-grpc`
+  nối Postgres qua `DATABASE_URL` (đã bật sẵn trong compose). Bỏ trống biến này thì service tự quay
+  về repository in-memory stub và log cảnh báo.
+- `mail-provider-grpc` dial `task-grpc`/`calendar-grpc`/`event-grpc`/`backlog-grpc` qua các biến
+  `*_GRPC_DIAL_ADDR`, và đọc/ghi object storage S3 qua `S3_*` để lưu email gốc + attachment.
+  Bucket do mail-provider tự tạo lúc khởi động (`EnsureBucket`, idempotent, có retry chờ RustFS lên).
+- Credential object storage đặt trong `.env` (`RUSTFS_ACCESS_KEY`, `RUSTFS_SECRET_KEY`); đổi mật
+  khẩu mặc định trước khi đưa console ra ngoài. MinIO OSS đã bị archive nên stack dùng RustFS
+  (cùng API S3, code mail-provider không đổi).
 - `identity-grpc` dial `task-grpc` qua `TASK_GRPC_DIAL_ADDR` để tạo bộ status + lifecycle mặc định
   ngay khi có profile mới; task service lỗi thì profile vẫn được tạo (chỉ log cảnh báo).
 - Image `migrate/migrate:latest` nên pin version khi dùng thật.

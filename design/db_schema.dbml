@@ -362,6 +362,85 @@ Table calendar.schedules {
 }
 
 // =============================================================================
+// SERVICE: event
+// =============================================================================
+// Sự kiện cá nhân của từng profile. Khác calendar.schedules ở `status` (vòng đời
+// planned/confirmed/cancelled) và `source` (id email nguồn khi mail worker tạo).
+// CRUD cơ bản: chưa có người tham gia, lặp/định kỳ, nhắc hẹn.
+// =============================================================================
+
+Table event.events {
+  id          uuid         [pk, default: `gen_random_uuid()`]
+  profile_id  uuid         [not null]
+  title       varchar(500) [not null]
+  description text
+  location    varchar(255)
+  start_at    timestamptz  [not null, note: 'Thời điểm bắt đầu']
+  end_at      timestamptz  [note: 'NULL = mốc thời gian không có thời lượng']
+  all_day     boolean      [not null, default: false]
+  color       varchar(9)   [note: '#RRGGBB hoặc #RRGGBBAA; NULL = màu mặc định của UI']
+  status      varchar(20)  [not null, default: 'PLANNED', note: 'PLANNED | CONFIRMED | CANCELLED']
+  source      varchar(255) [note: 'Id email nguồn; NULL = người dùng tạo trên UI']
+  created_at  timestamptz  [not null, default: `now()`]
+  updated_at  timestamptz  [not null, default: `now()`]
+
+  Note: '''
+  Ràng buộc cần enforce thêm ở tầng DB (PostgreSQL):
+    CONSTRAINT ck_event_events_title_not_blank CHECK (btrim(title) <> '');
+    CONSTRAINT ck_event_events_time_range CHECK (end_at IS NULL OR end_at >= start_at);
+    CONSTRAINT ck_event_events_color_format
+      CHECK (color IS NULL OR color ~* '^#[0-9a-f]{6}([0-9a-f]{2})?$');
+    CONSTRAINT ck_event_events_status
+      CHECK (status IN ('PLANNED', 'CONFIRMED', 'CANCELLED'));
+
+  Truy vấn chính: sự kiện của 1 profile trong khoảng [from, to) + lọc status
+  -> index (profile_id, start_at).
+  '''
+
+  indexes {
+    (profile_id, start_at)
+  }
+}
+
+// =============================================================================
+// SERVICE: backlog
+// =============================================================================
+// Mail worker đẩy mọi email KHÔNG phân loại được thành task/schedule/event vào
+// đây (category = 'other'), kèm lý do và object key của email gốc trên object storage.
+// Người dùng cũng tạo/sửa mục backlog trực tiếp trên UI.
+// =============================================================================
+
+Table backlog.backlogs {
+  id          uuid         [pk, default: `gen_random_uuid()`]
+  profile_id  uuid         [not null]
+  title       varchar(500) [not null]
+  description text
+  sender      varchar(320) [note: 'Header From của email nguồn']
+  source      varchar(255) [note: 'Gmail message id; dùng để truy vết/chống trùng']
+  category    varchar(20)  [not null, default: 'other', note: 'task | schedule | event | other']
+  reason      text         [note: 'Lý do bị đẩy vào backlog']
+  object_key  varchar(512) [note: 'Object key trên object storage S3 (email gốc JSON)']
+  status      varchar(20)  [not null, default: 'NEW', note: 'NEW | TRIAGED | ARCHIVED']
+  created_at  timestamptz  [not null, default: `now()`]
+  updated_at  timestamptz  [not null, default: `now()`]
+
+  Note: '''
+  Ràng buộc cần enforce thêm ở tầng DB (PostgreSQL):
+    CONSTRAINT ck_backlog_backlogs_title_not_blank CHECK (btrim(title) <> '');
+    CONSTRAINT ck_backlog_backlogs_status
+      CHECK (status IN ('NEW', 'TRIAGED', 'ARCHIVED'));
+
+  Truy vấn chính: backlog mới nhất của 1 profile -> index (profile_id, created_at DESC).
+  Truy vết theo message id nguồn -> partial index (source) WHERE source IS NOT NULL.
+  '''
+
+  indexes {
+    (profile_id, created_at)
+    source [note: 'partial index WHERE source IS NOT NULL']
+  }
+}
+
+// =============================================================================
 // RELATIONSHIPS
 // =============================================================================
 
@@ -396,6 +475,12 @@ Ref: mail_provider.NOTI_INDEXES.profile_id > identity.PROFILES.id [delete: casca
 // --- calendar: lịch thuộc 1 profile ---
 Ref: calendar.schedules.profile_id > identity.PROFILES.id [delete: cascade]
 
+// --- event: sự kiện thuộc 1 profile ---
+Ref: event.events.profile_id > identity.PROFILES.id [delete: cascade]
+
+// --- backlog: mục backlog thuộc 1 profile ---
+Ref: backlog.backlogs.profile_id > identity.PROFILES.id [delete: cascade]
+
 // =============================================================================
 // TABLE GROUPS (chỉ để hiển thị đẹp trên dbdiagram, không ảnh hưởng DDL)
 // =============================================================================
@@ -413,6 +498,14 @@ TableGroup task_service {
 
 TableGroup calendar_service {
   calendar.schedules
+}
+
+TableGroup event_service {
+  event.events
+}
+
+TableGroup backlog_service {
+  backlog.backlogs
 }
 
 TableGroup mail_provider_service {

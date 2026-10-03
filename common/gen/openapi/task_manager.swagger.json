@@ -1,12 +1,18 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "calendar/v1/schedule.proto",
+    "title": "backlog/v1/backlog.proto",
     "version": "version not set"
   },
   "tags": [
     {
+      "name": "BacklogService"
+    },
+    {
       "name": "CalendarService"
+    },
+    {
+      "name": "EventService"
     },
     {
       "name": "ProfileService"
@@ -32,6 +38,364 @@
     "application/json"
   ],
   "paths": {
+    "/v1/backlogs": {
+      "get": {
+        "operationId": "BacklogService_ListBacklogs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListBacklogsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "description": "Lọc theo trạng thái (optional).\n\n - BACKLOG_STATUS_NEW: Vừa được mail worker đẩy vào, chưa xử lý.\n - BACKLOG_STATUS_TRIAGED: Người dùng đã xem qua / phân loại lại.\n - BACKLOG_STATUS_ARCHIVED: Lưu trữ, không còn hiện trong danh sách mặc định.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "BACKLOG_STATUS_UNSPECIFIED",
+              "BACKLOG_STATUS_NEW",
+              "BACKLOG_STATUS_TRIAGED",
+              "BACKLOG_STATUS_ARCHIVED"
+            ],
+            "default": "BACKLOG_STATUS_UNSPECIFIED"
+          },
+          {
+            "name": "category",
+            "description": "Lọc theo nhãn phân loại thô (optional).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "BacklogService"
+        ]
+      },
+      "post": {
+        "operationId": "BacklogService_CreateBacklog",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateBacklogResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateBacklogRequest"
+            }
+          }
+        ],
+        "tags": [
+          "BacklogService"
+        ]
+      }
+    },
+    "/v1/backlogs/{id}": {
+      "get": {
+        "operationId": "BacklogService_GetBacklog",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetBacklogResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "BacklogService"
+        ]
+      },
+      "delete": {
+        "operationId": "BacklogService_DeleteBacklog",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteBacklogResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "BacklogService"
+        ]
+      },
+      "patch": {
+        "operationId": "BacklogService_UpdateBacklog",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateBacklogResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BacklogServiceUpdateBacklogBody"
+            }
+          }
+        ],
+        "tags": [
+          "BacklogService"
+        ]
+      }
+    },
+    "/v1/events": {
+      "get": {
+        "operationId": "EventService_ListEvents",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListEventsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "from",
+            "description": "Lọc theo khoảng thời gian (optional): trả sự kiện giao với [from, to).",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "status",
+            "description": "Lọc theo trạng thái (optional).\n\n - EVENT_STATUS_PLANNED: Đã lên kế hoạch, chưa chốt.\n - EVENT_STATUS_CONFIRMED: Đã xác nhận tham dự / đã chốt.\n - EVENT_STATUS_CANCELLED: Đã huỷ.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "EVENT_STATUS_UNSPECIFIED",
+              "EVENT_STATUS_PLANNED",
+              "EVENT_STATUS_CONFIRMED",
+              "EVENT_STATUS_CANCELLED"
+            ],
+            "default": "EVENT_STATUS_UNSPECIFIED"
+          }
+        ],
+        "tags": [
+          "EventService"
+        ]
+      },
+      "post": {
+        "operationId": "EventService_CreateEvent",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateEventResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateEventRequest"
+            }
+          }
+        ],
+        "tags": [
+          "EventService"
+        ]
+      }
+    },
+    "/v1/events/{id}": {
+      "get": {
+        "operationId": "EventService_GetEvent",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetEventResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "EventService"
+        ]
+      },
+      "delete": {
+        "operationId": "EventService_DeleteEvent",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteEventResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "EventService"
+        ]
+      },
+      "patch": {
+        "operationId": "EventService_UpdateEvent",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateEventResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/EventServiceUpdateEventBody"
+            }
+          }
+        ],
+        "tags": [
+          "EventService"
+        ]
+      }
+    },
     "/v1/profiles": {
       "get": {
         "operationId": "ProfileService_ListProfiles",
@@ -980,6 +1344,23 @@
     }
   },
   "definitions": {
+    "BacklogServiceUpdateBacklogBody": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1BacklogStatus"
+        }
+      }
+    },
     "CalendarServiceUpdateScheduleBody": {
       "type": "object",
       "properties": {
@@ -1006,6 +1387,38 @@
         },
         "color": {
           "type": "string"
+        }
+      }
+    },
+    "EventServiceUpdateEventBody": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "startAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "message field đã có presence (nil = không đổi) nên không cần `optional`."
+        },
+        "endAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "allDay": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1EventStatus"
         }
       }
     },
@@ -1146,11 +1559,158 @@
         }
       }
     },
+    "v1Backlog": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "profileId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "sender": {
+          "type": "string",
+          "description": "Người gửi (header From) của email nguồn."
+        },
+        "source": {
+          "type": "string",
+          "description": "Id email nguồn (Gmail message id); dùng để truy vết / chống trùng."
+        },
+        "category": {
+          "type": "string",
+          "description": "Nhãn phân loại thô của mail worker: task | schedule | event | other."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Lý do bị đẩy vào backlog (không actionable, thiếu dữ kiện, ...)."
+        },
+        "objectKey": {
+          "type": "string",
+          "description": "Object key của email gốc trên object storage (S3)."
+        },
+        "status": {
+          "$ref": "#/definitions/v1BacklogStatus"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Mục backlog: dữ liệu mail worker KHÔNG phân loại được thành\ntask/schedule/event (category = other), hoặc không đủ dữ kiện để tạo.\nMapping DB: backlog.backlogs"
+    },
+    "v1BacklogStatus": {
+      "type": "string",
+      "enum": [
+        "BACKLOG_STATUS_UNSPECIFIED",
+        "BACKLOG_STATUS_NEW",
+        "BACKLOG_STATUS_TRIAGED",
+        "BACKLOG_STATUS_ARCHIVED"
+      ],
+      "default": "BACKLOG_STATUS_UNSPECIFIED",
+      "description": "Vòng đời xử lý của 1 mục backlog.\n\n - BACKLOG_STATUS_NEW: Vừa được mail worker đẩy vào, chưa xử lý.\n - BACKLOG_STATUS_TRIAGED: Người dùng đã xem qua / phân loại lại.\n - BACKLOG_STATUS_ARCHIVED: Lưu trữ, không còn hiện trong danh sách mặc định."
+    },
     "v1ChangeTaskStatusResponse": {
       "type": "object",
       "properties": {
         "task": {
           "$ref": "#/definitions/v1Task"
+        }
+      }
+    },
+    "v1CreateBacklogRequest": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "sender": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "objectKey": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1BacklogStatus",
+          "description": "Bỏ trống = BACKLOG_STATUS_NEW."
+        }
+      }
+    },
+    "v1CreateBacklogResponse": {
+      "type": "object",
+      "properties": {
+        "backlog": {
+          "$ref": "#/definitions/v1Backlog"
+        }
+      }
+    },
+    "v1CreateEventRequest": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "startAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "allDay": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1EventStatus",
+          "description": "Bỏ trống = EVENT_STATUS_PLANNED."
+        },
+        "source": {
+          "type": "string"
+        }
+      }
+    },
+    "v1CreateEventResponse": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "#/definitions/v1Event"
         }
       }
     },
@@ -1333,6 +1893,12 @@
         }
       }
     },
+    "v1DeleteBacklogResponse": {
+      "type": "object"
+    },
+    "v1DeleteEventResponse": {
+      "type": "object"
+    },
     "v1DeleteProfileResponse": {
       "type": "object"
     },
@@ -1347,6 +1913,86 @@
     },
     "v1DeleteTaskStatusResponse": {
       "type": "object"
+    },
+    "v1Event": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "profileId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "startAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm bắt đầu; bắt buộc."
+        },
+        "endAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm kết thúc; rỗng = không xác định."
+        },
+        "allDay": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "string",
+          "description": "Màu hiển thị `#RRGGBB` / `#RRGGBBAA`; rỗng = màu mặc định của UI."
+        },
+        "status": {
+          "$ref": "#/definitions/v1EventStatus"
+        },
+        "source": {
+          "type": "string",
+          "description": "Nguồn tạo: rỗng = người dùng tạo trên UI; ngược lại là id email nguồn."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Sự kiện (event) cá nhân thuộc 1 profile.\nKhác `schedule` ở chỗ có `status` + `source` để theo dõi sự kiện đến từ email.\nMapping DB: event.events"
+    },
+    "v1EventStatus": {
+      "type": "string",
+      "enum": [
+        "EVENT_STATUS_UNSPECIFIED",
+        "EVENT_STATUS_PLANNED",
+        "EVENT_STATUS_CONFIRMED",
+        "EVENT_STATUS_CANCELLED"
+      ],
+      "default": "EVENT_STATUS_UNSPECIFIED",
+      "description": "Trạng thái nghiệp vụ của 1 sự kiện.\n\n - EVENT_STATUS_PLANNED: Đã lên kế hoạch, chưa chốt.\n - EVENT_STATUS_CONFIRMED: Đã xác nhận tham dự / đã chốt.\n - EVENT_STATUS_CANCELLED: Đã huỷ."
+    },
+    "v1GetBacklogResponse": {
+      "type": "object",
+      "properties": {
+        "backlog": {
+          "$ref": "#/definitions/v1Backlog"
+        }
+      }
+    },
+    "v1GetEventResponse": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "#/definitions/v1Event"
+        }
+      }
     },
     "v1GetProfileResponse": {
       "type": "object",
@@ -1385,6 +2031,30 @@
       "properties": {
         "status": {
           "$ref": "#/definitions/v1TaskStatus"
+        }
+      }
+    },
+    "v1ListBacklogsResponse": {
+      "type": "object",
+      "properties": {
+        "backlogs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Backlog"
+          }
+        }
+      }
+    },
+    "v1ListEventsResponse": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Event"
+          }
         }
       }
     },
@@ -1733,6 +2403,22 @@
       ],
       "default": "TASK_STATUS_CATEGORY_UNSPECIFIED",
       "description": "Nhóm ngữ nghĩa của status, dùng cho logic app.\nMapping DB: enum status_category"
+    },
+    "v1UpdateBacklogResponse": {
+      "type": "object",
+      "properties": {
+        "backlog": {
+          "$ref": "#/definitions/v1Backlog"
+        }
+      }
+    },
+    "v1UpdateEventResponse": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "#/definitions/v1Event"
+        }
+      }
     },
     "v1UpdateProfileResponse": {
       "type": "object",

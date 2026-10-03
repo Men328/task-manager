@@ -204,3 +204,132 @@ export interface ListSchedulesParams {
   from?: string;
   to?: string;
 }
+
+/* -------------------------------------------------------------------------- */
+/* event service                                                              */
+/* -------------------------------------------------------------------------- */
+
+export type EventStatus =
+  | 'EVENT_STATUS_UNSPECIFIED'
+  | 'EVENT_STATUS_PLANNED'
+  | 'EVENT_STATUS_CONFIRMED'
+  | 'EVENT_STATUS_CANCELLED';
+
+export const EVENT_STATUSES: EventStatus[] = [
+  'EVENT_STATUS_PLANNED',
+  'EVENT_STATUS_CONFIRMED',
+  'EVENT_STATUS_CANCELLED',
+];
+
+/** event service: EVENTS */
+export interface Event {
+  id: string;
+  profileId: string;
+  title: string;
+  description?: string | null;
+  location?: string | null;
+  /** ISO-8601 UTC */
+  startAt: string;
+  endAt?: string | null;
+  allDay: boolean;
+  /** `#RRGGBB` or `#RRGGBBAA` */
+  color?: string | null;
+  status: EventStatus;
+  /** Id email nguồn (rỗng = người dùng tạo trên UI). */
+  source?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateEventInput {
+  profileId: string;
+  title: string;
+  description?: string;
+  location?: string;
+  startAt: string;
+  endAt?: string;
+  allDay?: boolean;
+  color?: string;
+  status?: EventStatus;
+  source?: string;
+}
+
+export interface UpdateEventInput {
+  title?: string;
+  description?: string;
+  location?: string;
+  startAt?: string;
+  endAt?: string;
+  allDay?: boolean;
+  color?: string;
+  status?: EventStatus;
+}
+
+export interface ListEventsParams {
+  profileId: string;
+  /** ISO-8601; chỉ lấy sự kiện giao với [from, to). */
+  from?: string;
+  to?: string;
+  status?: EventStatus;
+}
+
+/* -------------------------------------------------------------------------- */
+/* backlog service                                                            */
+/* -------------------------------------------------------------------------- */
+
+export type BacklogStatus =
+  | 'BACKLOG_STATUS_UNSPECIFIED'
+  | 'BACKLOG_STATUS_NEW'
+  | 'BACKLOG_STATUS_TRIAGED'
+  | 'BACKLOG_STATUS_ARCHIVED';
+
+export const BACKLOG_STATUSES: BacklogStatus[] = [
+  'BACKLOG_STATUS_NEW',
+  'BACKLOG_STATUS_TRIAGED',
+  'BACKLOG_STATUS_ARCHIVED',
+];
+
+/** backlog service: BACKLOGS */
+export interface Backlog {
+  id: string;
+  profileId: string;
+  title: string;
+  description?: string | null;
+  /** Header From của email nguồn. */
+  sender?: string | null;
+  /** Gmail message id của email nguồn. */
+  source?: string | null;
+  /** Nhãn phân loại thô: task | schedule | event | other. */
+  category: string;
+  reason?: string | null;
+  /** Object key của email gốc trên object storage (S3). */
+  objectKey?: string | null;
+  status: BacklogStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateBacklogInput {
+  profileId: string;
+  title: string;
+  description?: string;
+  sender?: string;
+  source?: string;
+  category?: string;
+  reason?: string;
+  objectKey?: string;
+  status?: BacklogStatus;
+}
+
+export interface UpdateBacklogInput {
+  title?: string;
+  description?: string;
+  reason?: string;
+  status?: BacklogStatus;
+}
+
+export interface ListBacklogsParams {
+  profileId: string;
+  status?: BacklogStatus;
+  category?: string;
+}

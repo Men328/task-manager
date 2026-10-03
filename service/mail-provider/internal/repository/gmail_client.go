@@ -20,6 +20,8 @@ import (
 
 const gmailResponseLimit = 4 << 20
 
+const gmailAttachmentLimit = 32 << 20
+
 var htmlTagPattern = regexp.MustCompile(`<[^>]*>`)
 
 var whitespacePattern = regexp.MustCompile(`\s+`)
@@ -32,12 +34,15 @@ type gmailClient struct {
 
 type gmailPayload struct {
 	MimeType string `json:"mimeType"`
+	Filename string `json:"filename"`
 	Headers  []struct {
 		Name  string `json:"name"`
 		Value string `json:"value"`
 	} `json:"headers"`
 	Body struct {
-		Data string `json:"data"`
+		Data         string `json:"data"`
+		AttachmentID string `json:"attachmentId"`
+		Size         int64  `json:"size"`
 	} `json:"body"`
 	Parts []gmailPayload `json:"parts"`
 }
@@ -182,16 +187,40 @@ func (c *gmailClient) Message(ctx context.Context, accessToken string, messageID
 	}
 
 	message := model.EmailMessage{
-		ID:         raw.ID,
-		ThreadID:   raw.ThreadID,
-		From:       headerValue(raw.Payload, "From"),
-		To:         headerValue(raw.Payload, "To"),
-		Subject:    headerValue(raw.Payload, "Subject"),
-		Snippet:    raw.Snippet,
-		Body:       truncate(text, c.maxBodyBytes),
-		ReceivedAt: parseInternalDate(raw.InternalDate),
+		ID:          raw.ID,
+		ThreadID:    raw.ThreadID,
+		From:        headerValue(raw.Payload, "From"),
+		To:          headerValue(raw.Payload, "To"),
+		Subject:     headerValue(raw.Payload, "Subject"),
+		Snippet:     raw.Snippet,
+		Body:        truncate(text, c.maxBodyBytes),
+		ReceivedAt:  parseInternalDate(raw.InternalDate),
+		Attachments: collectAttachments(raw.Payload),
 	}
 	return message, nil
+}
+
+func (c *gmailClient) Attachment(ctx context.Context, accessToken string, messageID string, attachmentID string) ([]byte, error) {
+	path := "/gmail/v1/users/me/messages/" + url.PathEscape(messageID) + "/attachments/" + url.PathEscape(attachmentID)
+	body, status, err := c.requestWithLimit(ctx, http.MethodGet, path, accessToken, nil, gmailAttachmentLimit)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, gmailStatusError(status, body)
+	}
+
+	var raw struct {
+		Data string `json:"data"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, fmt.Errorf("%w: giải mã attachment: %v", model.ErrGmailFailed, err)
+	}
+	decoded, ok := decodeBase64Bytes(raw.Data)
+	if !ok {
+		return nil, fmt.Errorf("%w: attachment không phải base64 hợp lệ", model.ErrGmailFailed)
+	}
+	return decoded, nil
 }
 
 func (c *gmailClient) ProfileHistoryID(ctx context.Context, accessToken string) (string, error) {
@@ -213,6 +242,10 @@ func (c *gmailClient) ProfileHistoryID(ctx context.Context, accessToken string) 
 }
 
 func (c *gmailClient) request(ctx context.Context, method string, path string, accessToken string, payload any) ([]byte, int, error) {
+	return c.requestWithLimit(ctx, method, path, accessToken, payload, gmailResponseLimit)
+}
+
+func (c *gmailClient) requestWithLimit(ctx context.Context, method string, path string, accessToken string, payload any, limit int64) ([]byte, int, error) {
 	var reader io.Reader
 	if payload != nil {
 		encoded, err := json.Marshal(payload)
@@ -238,7 +271,7 @@ func (c *gmailClient) request(ctx context.Context, method string, path string, a
 	}
 	defer response.Body.Close()
 
-	body, err := io.ReadAll(io.LimitReader(response.Body, gmailResponseLimit))
+	body, err := io.ReadAll(io.LimitReader(response.Body, limit))
 	if err != nil {
 		return nil, 0, fmt.Errorf("%w: đọc response: %v", model.ErrGmailFailed, err)
 	}
@@ -271,6 +304,29 @@ func collectBodies(payload *gmailPayload, plain *strings.Builder, rich *strings.
 	}
 }
 
+func collectAttachments(payload *gmailPayload) []model.EmailAttachment {
+	out := make([]model.EmailAttachment, 0)
+	var walk func(current *gmailPayload)
+	walk = func(current *gmailPayload) {
+		if current == nil {
+			return
+		}
+		if current.Body.AttachmentID != "" {
+			out = append(out, model.EmailAttachment{
+				Filename:     strings.TrimSpace(current.Filename),
+				MimeType:     current.MimeType,
+				AttachmentID: current.Body.AttachmentID,
+				Size:         current.Body.Size,
+			})
+		}
+		for index := range current.Parts {
+			walk(&current.Parts[index])
+		}
+	}
+	walk(payload)
+	return out
+}
+
 func headerValue(payload *gmailPayload, name string) string {
 	if payload == nil {
 		return ""
@@ -294,6 +350,19 @@ func decodeBase64(value string) string {
 		}
 	}
 	return ""
+}
+
+func decodeBase64Bytes(value string) ([]byte, bool) {
+	if value == "" {
+		return nil, false
+	}
+	encodings := []*base64.Encoding{base64.RawURLEncoding, base64.URLEncoding, base64.StdEncoding}
+	for _, encoding := range encodings {
+		if decoded, err := encoding.DecodeString(value); err == nil {
+			return decoded, true
+		}
+	}
+	return nil, false
 }
 
 func stripHTML(value string) string {

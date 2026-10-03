@@ -1,4 +1,9 @@
-import type { TaskPriority, TaskStatusCategory } from '../types';
+import type {
+  BacklogStatus,
+  EventStatus,
+  TaskPriority,
+  TaskStatusCategory,
+} from '../types';
 
 /** Key i18n cho nhãn priority (màu nằm trong PriorityBadge.module.css). */
 export const PRIORITY_LABEL_KEY: Record<TaskPriority, string> = {
@@ -38,3 +43,41 @@ export function statusColor(color: string | null | undefined, index: number): st
 export function isDoneCategory(category: TaskStatusCategory | undefined): boolean {
   return category === 'TASK_STATUS_CATEGORY_DONE';
 }
+
+/** Key i18n cho nhãn trạng thái sự kiện. */
+export const EVENT_STATUS_LABEL_KEY: Record<EventStatus, string> = {
+  EVENT_STATUS_UNSPECIFIED: 'eventStatus.unspecified',
+  EVENT_STATUS_PLANNED: 'eventStatus.planned',
+  EVENT_STATUS_CONFIRMED: 'eventStatus.confirmed',
+  EVENT_STATUS_CANCELLED: 'eventStatus.cancelled',
+};
+
+export const EVENT_STATUS_COLOR: Record<EventStatus, string> = {
+  EVENT_STATUS_UNSPECIFIED: 'gray',
+  EVENT_STATUS_PLANNED: 'blue',
+  EVENT_STATUS_CONFIRMED: 'teal',
+  EVENT_STATUS_CANCELLED: 'red',
+};
+
+/** Key i18n cho nhãn trạng thái backlog. */
+export const BACKLOG_STATUS_LABEL_KEY: Record<BacklogStatus, string> = {
+  BACKLOG_STATUS_UNSPECIFIED: 'backlogStatus.unspecified',
+  BACKLOG_STATUS_NEW: 'backlogStatus.new',
+  BACKLOG_STATUS_TRIAGED: 'backlogStatus.triaged',
+  BACKLOG_STATUS_ARCHIVED: 'backlogStatus.archived',
+};
+
+export const BACKLOG_STATUS_COLOR: Record<BacklogStatus, string> = {
+  BACKLOG_STATUS_UNSPECIFIED: 'gray',
+  BACKLOG_STATUS_NEW: 'brand',
+  BACKLOG_STATUS_TRIAGED: 'teal',
+  BACKLOG_STATUS_ARCHIVED: 'gray',
+};
+
+/** Key i18n cho nhãn category thô của backlog (mail worker gán). */
+export const BACKLOG_CATEGORY_LABEL_KEY: Record<string, string> = {
+  task: 'backlogCategory.task',
+  schedule: 'backlogCategory.schedule',
+  event: 'backlogCategory.event',
+  other: 'backlogCategory.other',
+};

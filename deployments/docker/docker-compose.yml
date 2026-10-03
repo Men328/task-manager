@@ -55,6 +55,36 @@ services:
       - up
     restart: "no"
 
+  # ----------------------------------------------------------------- rustfs
+  # Object storage S3-compatible cho hệ thống: mail-provider lưu email gốc (JSON)
+  # + attachment. MinIO OSS đã bị archive (dl.min.io ngừng phát hành binary và
+  # repo Docker minio/minio + minio/mc bị xoá) nên dùng RustFS — cùng API S3 nên
+  # code mail-provider không đổi (vẫn dùng SDK minio-go).
+  # API (9000) chỉ nằm trong network nội bộ; console (9001) bind 127.0.0.1 để
+  # quản trị từ máy host. Credential đặt trong .env (RUSTFS_ACCESS_KEY/SECRET_KEY).
+  # Bucket do mail-provider tự tạo lúc khởi động (EnsureBucket, idempotent).
+  rustfs:
+    image: rustfs/rustfs:${RUSTFS_VERSION:-latest}
+    container_name: tm-rustfs
+    command: ["/data"]
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_OBS_LOGGER_LEVEL: ${RUSTFS_LOG_LEVEL:-error}
+    ports:
+      - "127.0.0.1:${RUSTFS_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - rustfsdata:/data
+    healthcheck:
+      test: ["CMD", "/usr/bin/curl", "-f", "http://localhost:9000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
   # --------------------------------------------------------------- identity
   identity-grpc:
     build:
@@ -199,6 +229,88 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ------------------------------------------------------------------ event
+  # Sự kiện cá nhân (EVENT.events): giống lịch nhưng có status + source.
+  event-grpc:
+    build:
+      context: ../..
+      dockerfile: service/event/Dockerfile
+    container_name: tm-event-grpc
+    entrypoint: ["/usr/local/bin/grpc"]
+    environment:
+      SERVICE_NAME: event
+      GRPC_ADDR: ":9085"
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  event:
+    build:
+      context: ../..
+      dockerfile: service/event/Dockerfile
+    container_name: tm-event
+    entrypoint: ["/usr/local/bin/http"]
+    environment:
+      SERVICE_NAME: event
+      HTTP_ADDR: ":8085"
+      GRPC_DIAL_ADDR: "event-grpc:9085"
+      LOG_LEVEL: info
+    depends_on:
+      event-grpc:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8085/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- backlog
+  # Nơi mail worker đẩy email không phân loại được (category other).
+  backlog-grpc:
+    build:
+      context: ../..
+      dockerfile: service/backlog/Dockerfile
+    container_name: tm-backlog-grpc
+    entrypoint: ["/usr/local/bin/grpc"]
+    environment:
+      SERVICE_NAME: backlog
+      GRPC_ADDR: ":9086"
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  backlog:
+    build:
+      context: ../..
+      dockerfile: service/backlog/Dockerfile
+    container_name: tm-backlog
+    entrypoint: ["/usr/local/bin/http"]
+    environment:
+      SERVICE_NAME: backlog
+      HTTP_ADDR: ":8086"
+      GRPC_DIAL_ADDR: "backlog-grpc:9086"
+      LOG_LEVEL: info
+    depends_on:
+      backlog-grpc:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8086/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   # --------------------------------------------------------- mail-provider
   # Nhận notice Gmail qua Pub/Sub push -> gọi Gmail API -> DeepSeek -> tạo task.
   # Subscription (refresh token + checkpoint historyId) lưu ở Postgres; bỏ trống
@@ -215,6 +327,23 @@ services:
       LOG_LEVEL: info
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
       TASK_GRPC_DIAL_ADDR: "task-grpc:9082"
+      # Worker phân loại email rồi gọi service tương ứng (schedule/event) và
+      # đẩy email "other" sang backlog.
+      CALENDAR_GRPC_DIAL_ADDR: "calendar-grpc:9083"
+      EVENT_GRPC_DIAL_ADDR: "event-grpc:9085"
+      BACKLOG_GRPC_DIAL_ADDR: "backlog-grpc:9086"
+      # Object storage S3 (RustFS): lưu email gốc + attachment.
+      # Bỏ trống S3_ENDPOINT để tắt archive.
+      S3_ENDPOINT: ${S3_ENDPOINT:-rustfs:9000}
+      S3_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      S3_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+      S3_BUCKET: ${S3_BUCKET:-task-manager}
+      S3_USE_SSL: ${S3_USE_SSL:-false}
+      S3_TIMEOUT: ${S3_TIMEOUT:-30s}
+      MAIL_ARCHIVE_ENABLED: ${MAIL_ARCHIVE_ENABLED:-true}
+      MAIL_RULE_FALLBACK_ENABLED: ${MAIL_RULE_FALLBACK_ENABLED:-true}
+      MAIL_MAX_ATTACHMENTS: ${MAIL_MAX_ATTACHMENTS:-5}
+      MAIL_MAX_ATTACHMENT_BYTES: ${MAIL_MAX_ATTACHMENT_BYTES:-10485760}
       # Dùng cùng OAuth client với identity để refresh access token của user.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
@@ -253,6 +382,14 @@ services:
         condition: service_completed_successfully
       task-grpc:
         condition: service_started
+      calendar-grpc:
+        condition: service_started
+      event-grpc:
+        condition: service_started
+      backlog-grpc:
+        condition: service_started
+      rustfs:
+        condition: service_healthy
     restart: unless-stopped
 
   mail-provider:
@@ -301,6 +438,10 @@ services:
         condition: service_healthy
       calendar:
         condition: service_healthy
+      event:
+        condition: service_healthy
+      backlog:
+        condition: service_healthy
       mail-provider:
         condition: service_healthy
     healthcheck:
@@ -334,3 +475,4 @@ services:
 
 volumes:
   pgdata:
+  rustfsdata:
