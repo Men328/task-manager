@@ -587,6 +587,60 @@
         "vi": "Không tạo được công việc từ email.",
         "en": "Could not create a task from the email."
       }
+    },
+    "CALENDAR_PROFILE_ID_REQUIRED": {
+      "owner": "calendar",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã hồ sơ.",
+        "en": "Profile id is required."
+      }
+    },
+    "CALENDAR_TITLE_REQUIRED": {
+      "owner": "calendar",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Tiêu đề lịch là bắt buộc.",
+        "en": "Schedule title is required."
+      }
+    },
+    "CALENDAR_ID_REQUIRED": {
+      "owner": "calendar",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã lịch.",
+        "en": "Schedule id is required."
+      }
+    },
+    "CALENDAR_START_AT_REQUIRED": {
+      "owner": "calendar",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thời gian bắt đầu là bắt buộc.",
+        "en": "Schedule start time is required."
+      }
+    },
+    "CALENDAR_TIME_RANGE_INVALID": {
+      "owner": "calendar",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thời gian kết thúc phải sau thời gian bắt đầu.",
+        "en": "Schedule end time must be after the start time."
+      }
+    },
+    "CALENDAR_NOT_FOUND": {
+      "owner": "calendar",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy lịch.",
+        "en": "Schedule not found."
+      }
     }
   }
 }

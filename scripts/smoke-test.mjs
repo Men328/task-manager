@@ -10,6 +10,7 @@
  */
 const IDENTITY = process.env.IDENTITY_URL ?? 'http://localhost:8081';
 const TASK = process.env.TASK_URL ?? 'http://localhost:8082';
+const CALENDAR = process.env.CALENDAR_URL ?? 'http://localhost:8083';
 
 async function req(method, url, body) {
   const res = await fetch(url, {
@@ -57,6 +58,7 @@ function checkCode(label, r, expectedStatus, expectedCode, extra) {
 // ---------------------------------------------------------------- health
 check('GET /healthz (identity)', await req('GET', `${IDENTITY}/healthz`), 200);
 check('GET /healthz (task)', await req('GET', `${TASK}/healthz`), 200);
+check('GET /healthz (calendar)', await req('GET', `${CALENDAR}/healthz`), 200);
 
 // ---------------------------------------------------------------- identity
 const profile = check(
@@ -169,6 +171,54 @@ checkCode('PATCH /v1/tasks/{id} tạo vòng lặp -> 400 + TASK_CYCLE_DETECTED',
   await req('PATCH', `${TASK}/v1/tasks/${taskId}`, { parent_task_id: subId }), 400, 'TASK_CYCLE_DETECTED');
 check('DELETE /v1/tasks/{id} (con)', await req('DELETE', `${TASK}/v1/tasks/${subId}`), 200);
 check('DELETE /v1/tasks/{id} (cha)', await req('DELETE', `${TASK}/v1/tasks/${taskId}`), 200);
+
+// ---------------------------------------------------------------- calendar
+const schedule = check(
+  'POST /v1/schedules',
+  await req('POST', `${CALENDAR}/v1/schedules`, {
+    profile_id: profileId,
+    title: 'Họp nhóm',
+    description: 'Standup',
+    location: 'Zoom',
+    start_at: '2026-10-05T01:00:00Z',
+    end_at: '2026-10-05T02:00:00Z',
+  }),
+  200,
+  (r) => r.data.schedule?.title === 'Họp nhóm' &&
+    r.data.schedule?.allDay === false &&
+    Boolean(r.data.schedule?.createdAt),
+);
+const scheduleId = schedule.schedule.id;
+
+check('GET /v1/schedules/{id}',
+  await req('GET', `${CALENDAR}/v1/schedules/${scheduleId}`), 200,
+  (r) => r.data.schedule?.location === 'Zoom');
+check('GET /v1/schedules?from&to (trong khoảng)',
+  await req('GET', `${CALENDAR}/v1/schedules?profile_id=${profileId}&from=2026-10-01T00:00:00Z&to=2026-11-01T00:00:00Z`), 200,
+  (r) => r.data.schedules?.length === 1);
+check('GET /v1/schedules?from&to (ngoài khoảng)',
+  await req('GET', `${CALENDAR}/v1/schedules?profile_id=${profileId}&from=2026-11-01T00:00:00Z&to=2026-12-01T00:00:00Z`), 200,
+  (r) => (r.data.schedules ?? []).length === 0);
+check('PATCH /v1/schedules/{id}',
+  await req('PATCH', `${CALENDAR}/v1/schedules/${scheduleId}`, { title: 'Họp nhóm (đã sửa)', all_day: true }), 200,
+  (r) => r.data.schedule?.title === 'Họp nhóm (đã sửa)' && r.data.schedule?.allDay === true);
+checkCode('POST /v1/schedules thiếu title -> 400 + CALENDAR_TITLE_REQUIRED',
+  await req('POST', `${CALENDAR}/v1/schedules`, { profile_id: profileId, start_at: '2026-10-05T01:00:00Z' }),
+  400, 'CALENDAR_TITLE_REQUIRED');
+checkCode('POST /v1/schedules end < start -> 400 + CALENDAR_TIME_RANGE_INVALID',
+  await req('POST', `${CALENDAR}/v1/schedules`, {
+    profile_id: profileId,
+    title: 'Sai giờ',
+    start_at: '2026-10-05T02:00:00Z',
+    end_at: '2026-10-05T01:00:00Z',
+  }),
+  400, 'CALENDAR_TIME_RANGE_INVALID');
+checkCode('GET /v1/schedules/{id} không tồn tại -> 404 + CALENDAR_NOT_FOUND',
+  await req('GET', `${CALENDAR}/v1/schedules/00000000-0000-0000-0000-000000000000`),
+  404, 'CALENDAR_NOT_FOUND');
+check('DELETE /v1/schedules/{id}', await req('DELETE', `${CALENDAR}/v1/schedules/${scheduleId}`), 200);
+checkCode('GET /v1/schedules/{id} sau khi xoá -> 404 + CALENDAR_NOT_FOUND',
+  await req('GET', `${CALENDAR}/v1/schedules/${scheduleId}`), 404, 'CALENDAR_NOT_FOUND');
 
 console.log(failures === 0 ? '\nSMOKE: ALL PASS' : `\nSMOKE: ${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

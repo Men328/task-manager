@@ -5,7 +5,7 @@ React + TypeScript (TSX) + Mantine + Vite. UI dựng theo `design/ui.png` (Kanba
 ## Chạy
 
 ```bash
-# cần backend đang chạy: make run-identity & make run-task
+# cần backend đang chạy: make run-identity & make run-task & make run-calendar
 npm install
 npm run dev          # http://localhost:5173
 npm run build        # tsc -b && vite build
@@ -24,7 +24,7 @@ make seed-demo       # tạo 1 profile + 4 status + rule + task mẫu như trong
 src/
 ├── main.tsx                    # Provider (redux) + MantineProvider + Notifications + Router
 ├── theme.ts                    # Mantine theme + color scheme manager + token trỏ CSS var
-├── App.tsx                     # routes: / (board), /statuses + bootstrap fetchProfiles
+├── App.tsx                     # routes: / (board), /calendar, /statuses + bootstrap fetchProfiles
 ├── types.ts                    # type khớp proto
 ├── styles/
 │   ├── tokens.css              # token màu light/dark (--tm-*) + layout, đổi theo data-mantine-color-scheme
@@ -37,16 +37,18 @@ src/
 │   ├── useLanguage.ts          # hook đọc/đổi ngôn ngữ
 │   └── locales/{vi,en}.json    # resource dịch
 ├── context/                    # Redux Toolkit: store + slice tách theo page
-│   ├── store.ts                # configureStore (session, board, statusesPage)
+│   ├── store.ts                # configureStore (session, board, calendar, statusesPage)
 │   ├── hooks.ts                # useAppDispatch / useAppSelector có type
 │   ├── index.ts                # re-export store + hooks + use* của từng page
 │   ├── session/                # slice dùng chung: profiles, profileId, query
 │   ├── board/                  # slice BoardPage: statuses/transitions/tasks, filter, CRUD
+│   ├── calendar/               # slice CalendarPage: schedules theo khoảng thời gian + CRUD
 │   └── statuses/               # slice StatusesPage: statuses/transitions/tasks, seed
 ├── api/
 │   ├── client.ts               # fetch wrapper, ApiError, getErrorCode/getErrorMessage, asList/unwrap envelope
 │   ├── identity.ts             # /v1/profiles
-│   └── task.ts                 # /v1/statuses, /v1/transitions, /v1/tasks
+│   ├── task.ts                 # /v1/statuses, /v1/transitions, /v1/tasks
+│   └── calendar.ts             # /v1/schedules
 ├── config/
 │   └── error_codes.json        # MIRROR bộ mã lỗi chuẩn (sinh bằng `make error-codes`, không sửa tay)
 ├── lib/
@@ -60,16 +62,19 @@ src/
 │   ├── board/                  # BoardHeader, KanbanBoard, KanbanColumn, TaskCard,
 │   │                           # TaskTable, PriorityBadge, TaskProgress
 │   ├── task/TaskFormModal.tsx  # modal tạo task
+│   ├── calendar/               # ScheduleFormModal — modal CRUD lịch
 │   └── common/States.tsx       # ApiErrorAlert / CenteredPanel / LoadingBlock
 └── pages/                      # mỗi page = 1 thư mục
     ├── BoardPage/              # index.tsx + BoardPage.module.css
+    ├── CalendarPage/           # FullCalendar (dayGrid/timeGrid) + modal CRUD lịch
     └── StatusesPage/           # index.tsx + StatusesPage.module.css
 ```
 
 ## State (Redux Toolkit)
 
-- Store gom 3 slice: `session` (dùng chung), `board` (BoardPage), `statusesPage` (StatusesPage).
-- Component dùng hook theo page: `useSession()`, `useBoard()`, `useStatuses()`,
+- Store gom 4 slice: `session` (dùng chung), `board` (BoardPage), `calendar` (CalendarPage),
+  `statusesPage` (StatusesPage).
+- Component dùng hook theo page: `useSession()`, `useBoard()`, `useCalendar()`, `useStatuses()`,
   `useSidebarCounts()`. Muốn truy cập thô thì dùng `useAppSelector` / `useAppDispatch`.
 - Async qua `createAsyncThunk` (fetch + mutate rồi refetch); derived data memo hoá bằng
   `createSelector` (cardsByStatus, visibleTaskCount, statusById, taskById).
@@ -99,15 +104,15 @@ src/
   (tất cả đọc từ `config.json`).
 - **Module chuyển ngôn ngữ**: `src/components/layout/LanguageSwitcher.tsx` (gắn ở TopBar) dùng hook
   `useLanguage()`; component dịch text qua `useTranslation()` + `t('key')`.
-- **Toàn bộ text UI** đi qua `t()`: nav/sidebar/topbar, board header, kanban, table, form, states, cả 2
-  page. Nhãn priority (`priority.*`) và status category (`category.*`) map qua `lib/tokens.ts`.
+- **Toàn bộ text UI** đi qua `t()`: nav/sidebar/topbar, board header, kanban, table, form, lịch, states,
+  cả 3 page. Nhãn priority (`priority.*`) và status category (`category.*`) map qua `lib/tokens.ts`.
 - `document.title`, meta description và `<html lang>` tự cập nhật theo ngôn ngữ; format ngày dùng
   locale hiện tại (`formatShortDate(value, i18n.language)`).
 - Thêm ngôn ngữ: tạo `locales/<code>.json` (copy cấu trúc key từ `en.json`) và thêm một entry vào
   `languages` trong `config.json`. Không cần sửa `index.ts`/`types.ts`.
 - Không dịch (cố ý): phím tắt `⌘K`, câu lệnh trong khối `Code`, và dữ liệu do người dùng/DB
   (tên status, email, display name...).
-- Test nhanh: mở `/?lng=en` hoặc `/statuses?lng=vi`.
+- Test nhanh: mở `/?lng=en`, `/calendar?lng=en` hoặc `/statuses?lng=vi`.
 
 ## Design tokens
 
@@ -149,7 +154,7 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 
 ## Nối API
 
-- Dev: Vite proxy `/api/identity/*` → `:8081`, `/api/task/*` → `:8082`
+- Dev: Vite proxy `/api/identity/*` → `:8081`, `/api/task/*` → `:8082`, `/api/calendar/*` → `:8083`
   (bỏ prefix).
 - Prod (Docker): nginx proxy y hệt, xem `nginx.conf`. FE **luôn gọi same-origin** (`/api/...`
   trên chính port frontend) nên khi chạy sau Cloudflare Tunnel chỉ có một origin/port; xem
@@ -183,6 +188,9 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 | Xoá task (tab Table) | `DELETE /v1/tasks/{id}` |
 | Lifecycle | `GET /v1/transitions` |
 | Nút "Tạo bộ status mặc định" | `POST /v1/statuses/seed` (idempotent; backend tự gọi khi tạo profile mới) |
+| Lịch tháng/tuần/ngày | `GET /v1/schedules?profile_id=...&from=...&to=...` (FullCalendar tải theo khoảng đang xem) |
+| Tạo / sửa lịch (click ô, kéo thả, modal) | `POST /v1/schedules`, `PATCH /v1/schedules/{id}` |
+| Xoá lịch | `DELETE /v1/schedules/{id}` |
 
 ## Chưa có trong base (đã có sẵn chỗ trên UI)
 
@@ -199,7 +207,7 @@ Sidebar đọc từ `components/layout/navigation.ts` (`NAV_SECTIONS`), chia 3 v
 | Vùng | Nhãn i18n | Nội dung dự kiến | Hiện tại |
 |---|---|---|---|
 | `dashboard` | `nav.groups.dashboard` | menu thống kê | trống (hiện gợi ý "sắp có") |
-| `planning` | `nav.groups.planning` | task, calendar… | chỉ **Công việc của tôi** (`/`) |
+| `planning` | `nav.groups.planning` | task, calendar | **Công việc của tôi** (`/`) + **Lịch** (`/calendar`) |
 | `config` | `nav.groups.config` | cấu hình (status…) | **Trạng thái & vòng đời** (`/statuses`) |
 
 Thêm mục mới = thêm entry `{ key, labelKey, icon, to }` vào `items` của vùng tương ứng. Vùng rỗng vẫn
@@ -212,10 +220,12 @@ App target **người dùng cá nhân**, không có nhân sự / project / sprin
 việc gom task + quan sát/phân tích:
 
 - **Kế hoạch → Công việc của tôi** (`/`) — kanban + table.
+- **Kế hoạch → Lịch** (`/calendar`) — FullCalendar (tháng/tuần/ngày) đọc/ghi `calendar.schedules`
+  qua calendar service; click ô để tạo, click event để sửa/xoá, kéo thả để đổi thời gian.
 - **Cấu hình → Trạng thái & vòng đời** (`/statuses`) — cấu hình cột cho board.
 
 Đã bỏ: các navlink doanh nghiệp (Department/Employee/Payroll/Schedule/Design/Project Manager/HR/
 Development), card **Upgrade PRO**, breadcrumb Dashboard/Project, nút **Invite**, cụm avatar nhóm.
-Dự kiến bổ sung sau (dùng lại dữ liệu task hiện có, chưa cần backend mới): **Lịch** (theo `dueAt`/
-`startAt`) vào vùng **Kế hoạch**, **Hộp thư/Noti** (quá hạn, đến hạn, task chưa có trạng thái) và
-**Tổng quan/Insights** (thống kê theo trạng thái & độ ưu tiên) vào vùng **Tổng quan**.
+Dự kiến bổ sung sau (dùng lại dữ liệu task hiện có, chưa cần backend mới): **Hộp thư/Noti** (quá hạn,
+đến hạn, task chưa có trạng thái) và **Tổng quan/Insights** (thống kê theo trạng thái & độ ưu tiên)
+vào vùng **Tổng quan**.

@@ -20,6 +20,7 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 │   │   ├── cmd/grpc, cmd/http  # entrypoint gRPC server / grpc-gateway (fx app)
 │   │   └── internal/{config,dependency,handler,model,repository,service}
 │   ├── task/                   # task, status, lifecycle (gRPC :9082 / HTTP :8082)
+│   ├── calendar/               # lịch cá nhân (schedule)   (gRPC :9083 / HTTP :8083)
 │   └── mail-provider/          # Gmail notice -> DeepSeek -> task (gRPC :9084 / HTTP :8084)
 ├── frontend/                   # React + TSX + Mantine + Vite (+ Dockerfile, nginx.conf)
 ├── deployments/                # hạ tầng: docker/ (compose) + migrations/ (SQL)
@@ -35,9 +36,10 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 | `taskmanager/common` | `common/` |
 | `taskmanager/service/identity` | `service/identity/` |
 | `taskmanager/service/task` | `service/task/` |
+| `taskmanager/service/calendar` | `service/calendar/` |
 | `taskmanager/service/mail-provider` | `service/mail-provider/` |
 
-- Root `go.work` gom 4 module lại để phát triển local.
+- Root `go.work` gom 5 module lại để phát triển local.
 - Service dùng code chung qua module `common`:
   `require taskmanager/common v0.0.0-...` + `replace taskmanager/common => ../../common`.
   Nhờ `replace`, service build được **cả khi không có `go.work`** (đúng cách Dockerfile đang build).
@@ -63,8 +65,9 @@ make smoke      # verify end-to-end (build + start + gọi API thật)
 
 make run-identity   # terminal 1  -> :8081 / :9081
 make run-task       # terminal 2  -> :8082 / :9082
-make run-mail-provider  # terminal 3 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY)
-make web-install && make web-dev    # terminal 4 -> :5173
+make run-calendar   # terminal 3  -> :8083 / :9083
+make run-mail-provider  # terminal 4 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY)
+make web-install && make web-dev    # terminal 5 -> :5173
 make seed-demo      # (tuỳ chọn) seed dữ liệu demo giống design/ui.png
 ```
 
@@ -83,6 +86,9 @@ New Task) và board 4 cột. Không có nhân sự/project/sprint.
 - Lần đầu chạy (chưa có status): **bộ status + lifecycle mặc định** (4 status + 5 rule) do task
   service tự tạo khi identity tạo profile mới; nếu vì lý do nào đó chưa có, board/trang Statuses có
   nút **Tạo bộ status mặc định** gọi lại `POST /v1/statuses/seed` (idempotent).
+- **Lịch (Calendar)**: mục **Lịch** trong nhóm *Kế hoạch* của sidebar (`/calendar`) hiển thị lịch
+  của profile bằng [FullCalendar](https://github.com/fullcalendar/fullcalendar), CRUD cơ bản qua
+  `calendar` service (`/v1/schedules`).
 
 Chi tiết: `frontend/README.md`.
 
@@ -139,7 +145,7 @@ HTTP status / URL / text kỹ thuật lên notification.
 ## Quickstart (Docker)
 
 ```bash
-make up        # postgres + migrate + identity + task + mail-provider + frontend
+make up        # postgres + migrate + identity + task + calendar + mail-provider + frontend
 make up-core   # như trên nhưng KHÔNG kèm cloudflared (tắt tunnel)
 make up-tunnel # kèm cloudflared (Cloudflare Tunnel; cần token trong .env)
 make ps
@@ -159,6 +165,7 @@ của Cloudflare.
 | frontend (entrypoint) | http://localhost:3000 |
 | identity | nội bộ `identity:8081` (`/healthz`) |
 | task | nội bộ `task:8082` (`/healthz`) |
+| calendar | nội bộ `calendar:8083` (`/healthz`) |
 | mail-provider | nội bộ `mail-provider:8084` (`/healthz`) + webhook `/api/mail/v1/notifications` |
 | postgres | nội bộ `postgres:5432` |
 | cloudflared | profile `tunnel` — `make tunnel-logs` |
@@ -223,7 +230,7 @@ tầng phải flat, `service/interfaces.go` bắt buộc, không comment trong c
 (ví dụ do chạy `go work init` bằng Go mới hơn). Sửa:
 
 ```bash
-go work edit -go=1.25.0    # go.work + 4 go.mod đang ở 1.25.0 -> Go >= 1.25 là chạy được
+go work edit -go=1.25.0    # go.work + 5 go.mod đang ở 1.25.0 -> Go >= 1.25 là chạy được
 ```
 
 rồi reload IDE để gopls load lại. **`make vet`** dùng `scripts/vet.sh` để bỏ qua cảnh báo vet phát sinh
@@ -231,10 +238,13 @@ trong source của dependency (Go 1.26 hay gặp với protobuf).
 
 ## Trạng thái hiện tại
 
-Cả 3 service Go đều có **repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory
+Cả 4 service Go đều có **repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory
 stub** khi không set `DATABASE_URL`. Business logic nằm ở `internal/service` (DI qua interface),
 transport gRPC ở `internal/handler`, validate/mapping ở `internal/dependency`; `cmd/grpc/infra.go`
 chọn Postgres/in-memory và quản lý `pgxpool` theo fx lifecycle.
+
+`calendar` giữ **lịch cá nhân** ở `calendar.schedules` (CRUD cơ bản: title/mô tả/địa điểm/thời gian/
+all-day/màu) và phục vụ UI FullCalendar.
 
 `mail-provider` dùng Postgres cho **subscription** (`mail_provider.sessions` +
 `mail_provider.noti_indexes`: refresh/access token, checkpoint `historyId`, hạn watch) và gọi ra

@@ -7,6 +7,7 @@ import { restoreSession } from './context/session/sessionSlice';
 import { readToken } from './lib/session';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { BoardPage } from './pages/BoardPage';
+import { CalendarPage } from './pages/CalendarPage';
 import { LoginPage } from './pages/LoginPage';
 import { StatusesPage } from './pages/StatusesPage';
 
@@ -41,6 +42,7 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<BoardPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/statuses" element={<StatusesPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

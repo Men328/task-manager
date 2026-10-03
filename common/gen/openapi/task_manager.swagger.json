@@ -1,10 +1,13 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "identity/v1/profile.proto",
+    "title": "calendar/v1/schedule.proto",
     "version": "version not set"
   },
   "tags": [
+    {
+      "name": "CalendarService"
+    },
     {
       "name": "ProfileService"
     },
@@ -187,6 +190,175 @@
         ],
         "tags": [
           "ProfileService"
+        ]
+      }
+    },
+    "/v1/schedules": {
+      "get": {
+        "operationId": "CalendarService_ListSchedules",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListSchedulesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "from",
+            "description": "Lọc theo khoảng thời gian (optional): trả lịch giao với [from, to).\nDùng cho calendar khi chỉ cần tải đúng khoảng đang hiển thị.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "CalendarService"
+        ]
+      },
+      "post": {
+        "operationId": "CalendarService_CreateSchedule",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateScheduleResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateScheduleRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CalendarService"
+        ]
+      }
+    },
+    "/v1/schedules/{id}": {
+      "get": {
+        "operationId": "CalendarService_GetSchedule",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetScheduleResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "CalendarService"
+        ]
+      },
+      "delete": {
+        "operationId": "CalendarService_DeleteSchedule",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteScheduleResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "CalendarService"
+        ]
+      },
+      "patch": {
+        "operationId": "CalendarService_UpdateSchedule",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateScheduleResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CalendarServiceUpdateScheduleBody"
+            }
+          }
+        ],
+        "tags": [
+          "CalendarService"
         ]
       }
     },
@@ -808,6 +980,35 @@
     }
   },
   "definitions": {
+    "CalendarServiceUpdateScheduleBody": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "startAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "message field đã có presence (nil = không đổi) nên không cần `optional`."
+        },
+        "endAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "allDay": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "string"
+        }
+      }
+    },
     "ProfileServiceUpdateProfileBody": {
       "type": "object",
       "properties": {
@@ -981,6 +1182,45 @@
         }
       }
     },
+    "v1CreateScheduleRequest": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "startAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "allDay": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "string"
+        }
+      }
+    },
+    "v1CreateScheduleResponse": {
+      "type": "object",
+      "properties": {
+        "schedule": {
+          "$ref": "#/definitions/v1Schedule"
+        }
+      }
+    },
     "v1CreateStatusTransitionRequest": {
       "type": "object",
       "properties": {
@@ -1096,6 +1336,9 @@
     "v1DeleteProfileResponse": {
       "type": "object"
     },
+    "v1DeleteScheduleResponse": {
+      "type": "object"
+    },
     "v1DeleteStatusTransitionResponse": {
       "type": "object"
     },
@@ -1110,6 +1353,14 @@
       "properties": {
         "profile": {
           "$ref": "#/definitions/v1Profile"
+        }
+      }
+    },
+    "v1GetScheduleResponse": {
+      "type": "object",
+      "properties": {
+        "schedule": {
+          "$ref": "#/definitions/v1Schedule"
         }
       }
     },
@@ -1149,6 +1400,18 @@
         },
         "nextPageToken": {
           "type": "string"
+        }
+      }
+    },
+    "v1ListSchedulesResponse": {
+      "type": "object",
+      "properties": {
+        "schedules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Schedule"
+          }
         }
       }
     },
@@ -1226,6 +1489,53 @@
         }
       },
       "title": "Profile là hồ sơ của một identity.\nMapping DB: identity.PROFILES"
+    },
+    "v1Schedule": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "profileId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "startAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm bắt đầu; bắt buộc."
+        },
+        "endAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm kết thúc; rỗng = không xác định (calendar hiển thị như mốc thời gian)."
+        },
+        "allDay": {
+          "type": "boolean",
+          "description": "Lịch cả ngày (FullCalendar allDay)."
+        },
+        "color": {
+          "type": "string",
+          "description": "Màu hiển thị `#RRGGBB` / `#RRGGBBAA`; rỗng = dùng màu mặc định của UI."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Lịch (schedule) cá nhân thuộc 1 profile.\nMapping DB: calendar.schedules"
     },
     "v1SeedDefaultStatusesRequest": {
       "type": "object",
@@ -1429,6 +1739,14 @@
       "properties": {
         "profile": {
           "$ref": "#/definitions/v1Profile"
+        }
+      }
+    },
+    "v1UpdateScheduleResponse": {
+      "type": "object",
+      "properties": {
+        "schedule": {
+          "$ref": "#/definitions/v1Schedule"
         }
       }
     },

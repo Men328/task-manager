@@ -19,12 +19,13 @@ make gen
 ```
 
 Luồng: `buf dep update` (tải `google/api/annotations.proto`) → `buf lint` → `buf generate` →
-`go mod tidy` cho **từng module** (`common`, `service/identity`, `service/mail-provider`,
-`service/task`).
+`go mod tidy` cho **từng module** (`common`, `service/calendar`, `service/identity`,
+`service/mail-provider`, `service/task`).
 
 Output:
 
 ```
+common/gen/go/calendar/v1/schedule*.go
 common/gen/go/identity/v1/profile.pb.go
 common/gen/go/identity/v1/profile.pb.gw.go
 common/gen/go/identity/v1/profile_grpc.pb.go
@@ -41,10 +42,11 @@ common/gen/openapi/task_manager.swagger.json
 Mỗi service gồm 2 process: `cmd/grpc` (gRPC server) + `cmd/http` (grpc-gateway).
 
 ```bash
-bash scripts/dev.sh        # chạy cả 3 service (6 process), Ctrl+C để dừng
+bash scripts/dev.sh        # chạy cả 4 service (8 process), Ctrl+C để dừng
 # hoặc chạy 1 service (cả grpc + gateway)
 make run-identity
 make run-task
+make run-calendar
 make run-mail-provider   # cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY để chạy đủ luồng
 
 # hoặc chạy riêng từng process
@@ -57,6 +59,7 @@ Kiểm tra:
 ```bash
 curl -s localhost:8081/healthz   # {"status":"ok","service":"identity"}
 curl -s localhost:8082/healthz   # {"status":"ok","service":"task"}
+curl -s localhost:8083/healthz   # {"status":"ok","service":"calendar"}
 curl -s localhost:8084/healthz   # {"status":"ok","service":"mail-provider"}
 ```
 
@@ -70,13 +73,13 @@ make web-dev
 ```
 
 Vite proxy `/api/identity/*` → `localhost:8081`, `/api/task/*` → `localhost:8082`,
-`/api/mail/*` → `localhost:8084`
+`/api/calendar/*` → `localhost:8083`, `/api/mail/*` → `localhost:8084`
 (xem `frontend/vite.config.ts`).
 
 ## 5. Chạy bằng Docker
 
 ```bash
-make up        # build + start: postgres, migrate, identity(-grpc), task(-grpc), mail-provider(-grpc), frontend
+make up        # build + start: postgres, migrate, identity(-grpc), task(-grpc), calendar(-grpc), mail-provider(-grpc), frontend
 make ps
 make logs
 make down
@@ -89,7 +92,7 @@ docker compose -f deployments/docker/docker-compose.yml up --build -d
 ```
 
 Thứ tự khởi động: `postgres (healthy)` → `migrate (exit 0)` → `*-grpc` → gateway
-`identity`/`task`/`mail-provider` (healthy) → `frontend`. Mỗi service Go chạy 2 container:
+`identity`/`task`/`calendar`/`mail-provider` (healthy) → `frontend`. Mỗi service Go chạy 2 container:
 `<svc>-grpc` và `<svc>` (gateway).
 
 Dockerfile nằm trong từng service (`service/*/Dockerfile`, `frontend/Dockerfile`); build context là
@@ -117,9 +120,9 @@ Chi tiết + bảng ánh xạ với `design/db_schema.dbml`: `deployments/migrat
 make smoke
 ```
 
-Build 6 binary (gRPC + gateway của mỗi service), start ở port mặc định, gọi thật toàn bộ luồng
-(profile → status → transition rule → task cha/con → đổi status → ràng buộc xoá) rồi tắt.
-Yêu cầu port `8081/8082/8084/9081/9082/9084` đang trống.
+Build 8 binary (gRPC + gateway của mỗi service), start ở port mặc định, gọi thật toàn bộ luồng
+(profile → status → transition rule → task cha/con → đổi status → ràng buộc xoá → CRUD lịch) rồi tắt.
+Yêu cầu port `8081/8082/8083/8084/9081/9082/9083/9084` đang trống.
 
 Khi service đã chạy sẵn thì chỉ chạy phần test:
 
@@ -189,13 +192,13 @@ toolchain của bạn. Go từ chối chạy nếu toolchain < version ghi trong
 Sửa (chạy được ngay cả khi `go.work` đang cao hơn toolchain hiện tại):
 
 ```bash
-go work edit -go=1.25.0    # khớp `go` directive trong 3 go.mod
+go work edit -go=1.25.0    # khớp `go` directive trong 6 go.mod
 go build all               # kiểm tra
 ```
 
 Rồi reload cửa sổ IDE để gopls load lại workspace.
 
-`go.work` và cả 3 module đang ở `go 1.25.0` — đây là mức tối thiểu mà dependency yêu cầu, nên
+`go.work` và cả 6 module đang ở `go 1.25.0` — đây là mức tối thiểu mà dependency yêu cầu, nên
 **Go >= 1.25 là chạy được**. Đừng chạy lại `go work init` (nó ghi version toolchain hiện tại vào `go.work`).
 
 ### `make vet` báo lỗi trong `.../pkg/mod/google.golang.org/protobuf@...`
@@ -208,14 +211,14 @@ trong module cache (không phải code của mình). `scripts/vet.sh` lọc các
 
 Mỗi service đọc env với default như sau:
 
-| Biến | identity | task |
-|---|---|---|
-| `SERVICE_NAME` | `identity` | `task` |
-| `GRPC_ADDR` | `:9081` | `:9082` |
-| `HTTP_ADDR` | `:8081` | `:8082` |
-| `GRPC_DIAL_ADDR` | (rỗng) | (rỗng) |
-| `LOG_LEVEL` | `info` | `info` |
-| `DATABASE_URL` | (rỗng → in-memory) | (rỗng → in-memory) |
+| Biến | identity | task | calendar |
+|---|---|---|---|
+| `SERVICE_NAME` | `identity` | `task` | `calendar` |
+| `GRPC_ADDR` | `:9081` | `:9082` | `:9083` |
+| `HTTP_ADDR` | `:8081` | `:8082` | `:8083` |
+| `GRPC_DIAL_ADDR` | (rỗng) | (rỗng) | (rỗng) |
+| `LOG_LEVEL` | `info` | `info` | `info` |
+| `DATABASE_URL` | (rỗng → in-memory) | (rỗng → in-memory) | (rỗng → in-memory) |
 | `GOOGLE_CLIENT_ID` | (rỗng) | — |
 | `GOOGLE_CLIENT_SECRET` | (rỗng) | — |
 | `GOOGLE_REDIRECT_URL` | `http://localhost:8081/v1/auth/google/callback` | — |
@@ -228,10 +231,11 @@ Mỗi service đọc env với default như sau:
 `GRPC_ADDR` là địa chỉ `cmd/grpc` listen; `GRPC_DIAL_ADDR` là target `cmd/http` dial tới
 (rỗng → tự suy ra `127.0.0.1:<port>`; đặt trong Docker, ví dụ `identity-grpc:9081`).
 
-`DATABASE_URL` dùng cho `cmd/grpc` của identity **và** của mail-provider: có giá trị thì chạy
-repository Postgres (mail-provider lưu subscription vào `mail_provider.sessions` +
-`mail_provider.noti_indexes`), rỗng thì quay về in-memory stub (log cảnh báo). Các biến `GOOGLE_*`,
-`FRONTEND_BASE_URL`, `SESSION_*` chỉ gateway identity (`cmd/http`) dùng cho luồng đăng nhập Google.
+`DATABASE_URL` dùng cho `cmd/grpc` của identity, task, calendar **và** của mail-provider: có giá trị
+thì chạy repository Postgres (mail-provider lưu subscription vào `mail_provider.sessions` +
+`mail_provider.noti_indexes`; calendar lưu lịch vào `calendar.schedules`), rỗng thì quay về in-memory
+stub (log cảnh báo). Các biến `GOOGLE_*`, `FRONTEND_BASE_URL`, `SESSION_*` chỉ gateway identity
+(`cmd/http`) dùng cho luồng đăng nhập Google.
 
 `identity` còn đọc `MAIL_GRPC_DIAL_ADDR` (mặc định `127.0.0.1:9084`) để gọi mail-provider khi user
 tích quyền đọc mail. `mail-provider` có bộ biến riêng khá dài — `MAIL_*` (topic Pub/Sub, label, gia

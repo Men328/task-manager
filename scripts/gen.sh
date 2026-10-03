@@ -4,7 +4,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-MODULES="common service/identity service/mail-provider service/task"
+MODULES="common service/calendar service/identity service/mail-provider service/task"
 
 log() { printf '\033[36m==>\033[0m %s\n' "$*"; }
 

@@ -159,3 +159,48 @@ export interface CreateTaskInput {
   dueAt?: string;
   startAt?: string;
 }
+
+/** calendar service: SCHEDULES */
+export interface Schedule {
+  id: string;
+  profileId: string;
+  title: string;
+  description?: string | null;
+  location?: string | null;
+  /** ISO-8601 UTC */
+  startAt: string;
+  endAt?: string | null;
+  allDay: boolean;
+  /** `#RRGGBB` or `#RRGGBBAA` */
+  color?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateScheduleInput {
+  profileId: string;
+  title: string;
+  description?: string;
+  location?: string;
+  startAt: string;
+  endAt?: string;
+  allDay?: boolean;
+  color?: string;
+}
+
+export interface UpdateScheduleInput {
+  title?: string;
+  description?: string;
+  location?: string;
+  startAt?: string;
+  endAt?: string;
+  allDay?: boolean;
+  color?: string;
+}
+
+export interface ListSchedulesParams {
+  profileId: string;
+  /** ISO-8601; chỉ lấy lịch giao với [from, to). */
+  from?: string;
+  to?: string;
+}
