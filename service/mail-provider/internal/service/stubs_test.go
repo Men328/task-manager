@@ -123,6 +123,8 @@ type stubGmail struct {
 	historyErr       error
 	messages         map[string]model.EmailMessage
 	messageErr       error
+	attachments      map[string][]byte
+	attachmentErr    error
 	profileHistoryID string
 	profileErr       error
 }
@@ -150,6 +152,17 @@ func (g *stubGmail) Message(_ context.Context, _ string, messageID string) (mode
 	return message, nil
 }
 
+func (g *stubGmail) Attachment(_ context.Context, _ string, _ string, attachmentID string) ([]byte, error) {
+	if g.attachmentErr != nil {
+		return nil, g.attachmentErr
+	}
+	data, found := g.attachments[attachmentID]
+	if !found {
+		return nil, model.ErrGmailFailed
+	}
+	return data, nil
+}
+
 func (g *stubGmail) ProfileHistoryID(_ context.Context, _ string) (string, error) {
 	return g.profileHistoryID, g.profileErr
 }
@@ -166,11 +179,11 @@ func (r *stubRefresher) Refresh(_ context.Context, _ string) (model.Token, error
 }
 
 type stubAnalyzer struct {
-	draft model.TaskDraft
+	draft model.MailDraft
 	err   error
 }
 
-func (a *stubAnalyzer) Analyze(_ context.Context, _ model.EmailMessage) (model.TaskDraft, error) {
+func (a *stubAnalyzer) Analyze(_ context.Context, _ model.EmailMessage) (model.MailDraft, error) {
 	return a.draft, a.err
 }
 
@@ -187,4 +200,79 @@ func (t *stubTasks) Create(_ context.Context, in model.TaskInput) (model.TaskRef
 		return model.TaskRef{}, t.err
 	}
 	return model.TaskRef{ID: "task-1", Title: in.Title}, nil
+}
+
+type stubSchedules struct {
+	created chan model.ScheduleInput
+	err     error
+}
+
+func (s *stubSchedules) Create(_ context.Context, in model.ScheduleInput) (model.ScheduleRef, error) {
+	if s.created != nil {
+		s.created <- in
+	}
+	if s.err != nil {
+		return model.ScheduleRef{}, s.err
+	}
+	return model.ScheduleRef{ID: "schedule-1", Title: in.Title}, nil
+}
+
+type stubEvents struct {
+	created chan model.EventInput
+	err     error
+}
+
+func (e *stubEvents) Create(_ context.Context, in model.EventInput) (model.EventRef, error) {
+	if e.created != nil {
+		e.created <- in
+	}
+	if e.err != nil {
+		return model.EventRef{}, e.err
+	}
+	return model.EventRef{ID: "event-1", Title: in.Title}, nil
+}
+
+type stubBacklogs struct {
+	created chan model.BacklogInput
+	err     error
+}
+
+func (b *stubBacklogs) Create(_ context.Context, in model.BacklogInput) (model.BacklogRef, error) {
+	if b.created != nil {
+		b.created <- in
+	}
+	if b.err != nil {
+		return model.BacklogRef{}, b.err
+	}
+	return model.BacklogRef{ID: "backlog-1", Title: in.Title}, nil
+}
+
+type stubStorage struct {
+	mu      sync.Mutex
+	objects map[string][]byte
+	err     error
+}
+
+func newStubStorage() *stubStorage {
+	return &stubStorage{objects: map[string][]byte{}}
+}
+
+func (s *stubStorage) Put(_ context.Context, key string, _ string, data []byte) (string, error) {
+	if s.err != nil {
+		return "", s.err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.objects[key] = data
+	return key, nil
+}
+
+func (s *stubStorage) stored() map[string][]byte {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make(map[string][]byte, len(s.objects))
+	for key, value := range s.objects {
+		out[key] = value
+	}
+	return out
 }

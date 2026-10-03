@@ -18,6 +18,8 @@
     "emptyGroup": "Sắp có",
     "myTask": "Công việc của tôi",
     "calendar": "Lịch",
+    "events": "Sự kiện",
+    "backlog": "Backlog",
     "statusesLifecycle": "Trạng thái & vòng đời"
   },
   "sidebar": {
@@ -184,6 +186,100 @@
     "startRequired": "Thời gian bắt đầu là bắt buộc",
     "deleteConfirm": "Xoá lịch này?"
   },
+  "eventPage": {
+    "breadcrumb": "Kế hoạch",
+    "title": "Sự kiện",
+    "subtitle": "Sự kiện cá nhân của hồ sơ hiện tại — có trạng thái và nguồn tạo",
+    "newEvent": "Thêm sự kiện",
+    "filterAll": "Tất cả",
+    "allDay": "Cả ngày",
+    "emptyTitle": "Chưa có sự kiện nào",
+    "emptyDesc": "Tạo sự kiện để theo dõi hội thảo, tiệc, thư mời... hoặc để mail worker tự tạo từ email.",
+    "panelTitle": "Sự kiện ({{n}})",
+    "colEvent": "Sự kiện",
+    "colTime": "Thời gian",
+    "colLocation": "Địa điểm",
+    "colStatus": "Trạng thái",
+    "deleted": "Đã xoá sự kiện",
+    "deleteFailed": "Không xoá được sự kiện"
+  },
+  "eventForm": {
+    "title": "Thêm sự kiện",
+    "editTitle": "Sửa sự kiện",
+    "titleLabel": "Tiêu đề",
+    "titlePlaceholder": "Sự kiện gì?",
+    "statusLabel": "Trạng thái",
+    "allDayLabel": "Cả ngày",
+    "startLabel": "Bắt đầu",
+    "endLabel": "Kết thúc",
+    "locationLabel": "Địa điểm",
+    "locationPlaceholder": "Ở đâu?",
+    "descriptionLabel": "Mô tả",
+    "descriptionPlaceholder": "Mô tả ngắn...",
+    "colorLabel": "Màu",
+    "sourceLabel": "Nguồn email",
+    "submit": "Lưu",
+    "created": "Đã tạo sự kiện",
+    "updated": "Đã cập nhật sự kiện",
+    "saveFailed": "Không lưu được sự kiện",
+    "titleRequired": "Tiêu đề là bắt buộc",
+    "startRequired": "Thời gian bắt đầu là bắt buộc",
+    "deleteConfirm": "Xoá sự kiện này?"
+  },
+  "backlogPage": {
+    "breadcrumb": "Kế hoạch",
+    "title": "Backlog",
+    "subtitle": "Email không thuộc task/lịch/sự kiện được mail worker đẩy về đây",
+    "newItem": "Thêm mục",
+    "filterAll": "Tất cả",
+    "emptyTitle": "Backlog đang trống",
+    "emptyDesc": "Mọi email không phân loại được thành task/lịch/sự kiện sẽ xuất hiện ở đây kèm lý do và bản lưu trên object storage.",
+    "panelTitle": "Mục backlog ({{n}})",
+    "panelDesc": "Do mail worker đẩy vào khi không khớp rule phân loại",
+    "colItem": "Nội dung",
+    "colSender": "Người gửi",
+    "colCategory": "Phân loại",
+    "colReason": "Lý do",
+    "colCreated": "Thời gian",
+    "colStatus": "Trạng thái",
+    "deleted": "Đã xoá mục backlog",
+    "deleteFailed": "Không xoá được mục backlog"
+  },
+  "backlogForm": {
+    "title": "Thêm mục backlog",
+    "editTitle": "Sửa mục backlog",
+    "titleLabel": "Tiêu đề",
+    "senderLabel": "Người gửi",
+    "descriptionLabel": "Nội dung",
+    "reasonLabel": "Lý do",
+    "reasonHint": "Vì sao email này nằm ở backlog",
+    "statusLabel": "Trạng thái",
+    "objectKeyLabel": "Bản lưu object storage",
+    "submit": "Lưu",
+    "created": "Đã thêm mục backlog",
+    "updated": "Đã cập nhật mục backlog",
+    "saveFailed": "Không lưu được mục backlog",
+    "titleRequired": "Tiêu đề là bắt buộc",
+    "deleteConfirm": "Xoá mục backlog này?"
+  },
+  "eventStatus": {
+    "unspecified": "Không xác định",
+    "planned": "Dự kiến",
+    "confirmed": "Đã xác nhận",
+    "cancelled": "Đã huỷ"
+  },
+  "backlogStatus": {
+    "unspecified": "Không xác định",
+    "new": "Mới",
+    "triaged": "Đã xử lý",
+    "archived": "Lưu trữ"
+  },
+  "backlogCategory": {
+    "task": "Công việc",
+    "schedule": "Lịch",
+    "event": "Sự kiện",
+    "other": "Khác"
+  },
   "priority": {
     "unspecified": "Không ưu tiên",
     "low": "Ưu tiên thấp",
@@ -203,7 +299,9 @@
     "loadProfiles": "Không tải được hồ sơ",
     "loadBoard": "Không tải được dữ liệu board",
     "loadStatuses": "Không tải được dữ liệu trạng thái",
-    "loadCalendar": "Không tải được dữ liệu lịch"
+    "loadCalendar": "Không tải được dữ liệu lịch",
+    "loadEvents": "Không tải được dữ liệu sự kiện",
+    "loadBacklog": "Không tải được dữ liệu backlog"
   },
   "login": {
     "title": "Đăng nhập",

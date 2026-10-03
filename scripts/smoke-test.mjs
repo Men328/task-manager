@@ -1,5 +1,6 @@
 /**
- * Smoke test end-to-end cho base: gọi thẳng HTTP gateway của identity + task.
+ * Smoke test end-to-end cho base: gọi thẳng HTTP gateway của identity + task +
+ * calendar + event + backlog.
  * Chạy qua `make smoke` (script sẽ tự build & start service).
  *
  * Lưu ý mapping mã lỗi của grpc-gateway:
@@ -11,6 +12,8 @@
 const IDENTITY = process.env.IDENTITY_URL ?? 'http://localhost:8081';
 const TASK = process.env.TASK_URL ?? 'http://localhost:8082';
 const CALENDAR = process.env.CALENDAR_URL ?? 'http://localhost:8083';
+const EVENT = process.env.EVENT_URL ?? 'http://localhost:8085';
+const BACKLOG = process.env.BACKLOG_URL ?? 'http://localhost:8086';
 
 async function req(method, url, body) {
   const res = await fetch(url, {
@@ -59,6 +62,8 @@ function checkCode(label, r, expectedStatus, expectedCode, extra) {
 check('GET /healthz (identity)', await req('GET', `${IDENTITY}/healthz`), 200);
 check('GET /healthz (task)', await req('GET', `${TASK}/healthz`), 200);
 check('GET /healthz (calendar)', await req('GET', `${CALENDAR}/healthz`), 200);
+check('GET /healthz (event)', await req('GET', `${EVENT}/healthz`), 200);
+check('GET /healthz (backlog)', await req('GET', `${BACKLOG}/healthz`), 200);
 
 // ---------------------------------------------------------------- identity
 const profile = check(
@@ -219,6 +224,106 @@ checkCode('GET /v1/schedules/{id} không tồn tại -> 404 + CALENDAR_NOT_FOUND
 check('DELETE /v1/schedules/{id}', await req('DELETE', `${CALENDAR}/v1/schedules/${scheduleId}`), 200);
 checkCode('GET /v1/schedules/{id} sau khi xoá -> 404 + CALENDAR_NOT_FOUND',
   await req('GET', `${CALENDAR}/v1/schedules/${scheduleId}`), 404, 'CALENDAR_NOT_FOUND');
+
+// ---------------------------------------------------------------- event
+const event = check(
+  'POST /v1/events (status + source)',
+  await req('POST', `${EVENT}/v1/events`, {
+    profile_id: profileId,
+    title: 'Hội thảo AI',
+    description: 'Sự kiện công nghệ',
+    location: 'Hà Nội',
+    start_at: '2026-11-12T07:00:00Z',
+    end_at: '2026-11-12T09:00:00Z',
+    status: 'EVENT_STATUS_CONFIRMED',
+    source: 'msg-smoke-1',
+  }),
+  200,
+  (r) => r.data.event?.status === 'EVENT_STATUS_CONFIRMED' &&
+    r.data.event?.source === 'msg-smoke-1' &&
+    Boolean(r.data.event?.createdAt),
+);
+const eventId = event.event.id;
+
+check('POST /v1/events (không truyền status -> PLANNED)',
+  await req('POST', `${EVENT}/v1/events`, {
+    profile_id: profileId, title: 'Sự kiện mặc định', start_at: '2026-11-13T07:00:00Z',
+  }),
+  200,
+  (r) => r.data.event?.status === 'EVENT_STATUS_PLANNED');
+check('GET /v1/events/{id}',
+  await req('GET', `${EVENT}/v1/events/${eventId}`), 200,
+  (r) => r.data.event?.location === 'Hà Nội');
+check('GET /v1/events?from&to (trong khoảng)',
+  await req('GET', `${EVENT}/v1/events?profile_id=${profileId}&from=2026-11-01T00:00:00Z&to=2026-12-01T00:00:00Z`), 200,
+  (r) => r.data.events?.length === 2);
+check('GET /v1/events?status=CONFIRMED',
+  await req('GET', `${EVENT}/v1/events?profile_id=${profileId}&status=EVENT_STATUS_CONFIRMED`), 200,
+  (r) => r.data.events?.length === 1 && r.data.events[0].id === eventId);
+check('PATCH /v1/events/{id} -> CANCELLED',
+  await req('PATCH', `${EVENT}/v1/events/${eventId}`, { status: 'EVENT_STATUS_CANCELLED' }), 200,
+  (r) => r.data.event?.status === 'EVENT_STATUS_CANCELLED');
+checkCode('POST /v1/events thiếu title -> 400 + EVENT_TITLE_REQUIRED',
+  await req('POST', `${EVENT}/v1/events`, { profile_id: profileId, start_at: '2026-11-12T07:00:00Z' }),
+  400, 'EVENT_TITLE_REQUIRED');
+checkCode('POST /v1/events end < start -> 400 + EVENT_TIME_RANGE_INVALID',
+  await req('POST', `${EVENT}/v1/events`, {
+    profile_id: profileId, title: 'Sai giờ',
+    start_at: '2026-11-12T09:00:00Z', end_at: '2026-11-12T07:00:00Z',
+  }),
+  400, 'EVENT_TIME_RANGE_INVALID');
+checkCode('GET /v1/events/{id} không tồn tại -> 404 + EVENT_NOT_FOUND',
+  await req('GET', `${EVENT}/v1/events/00000000-0000-0000-0000-000000000000`),
+  404, 'EVENT_NOT_FOUND');
+check('DELETE /v1/events/{id}', await req('DELETE', `${EVENT}/v1/events/${eventId}`), 200);
+checkCode('GET /v1/events/{id} sau khi xoá -> 404 + EVENT_NOT_FOUND',
+  await req('GET', `${EVENT}/v1/events/${eventId}`), 404, 'EVENT_NOT_FOUND');
+
+// ---------------------------------------------------------------- backlog
+const backlog = check(
+  'POST /v1/backlogs (mail worker đẩy email other)',
+  await req('POST', `${BACKLOG}/v1/backlogs`, {
+    profile_id: profileId,
+    title: 'Newsletter tháng 10',
+    description: 'Khuyến mãi cuối năm',
+    sender: 'promo@shop.vn',
+    source: 'msg-smoke-2',
+    category: 'other',
+    reason: 'no_rule_matched',
+    object_key: 'mail/p/20261003/msg-smoke-2.json',
+  }),
+  200,
+  (r) => r.data.backlog?.category === 'other' &&
+    r.data.backlog?.status === 'BACKLOG_STATUS_NEW' &&
+    r.data.backlog?.objectKey === 'mail/p/20261003/msg-smoke-2.json',
+);
+const backlogId = backlog.backlog.id;
+
+check('POST /v1/backlogs (mặc định status NEW + category other)',
+  await req('POST', `${BACKLOG}/v1/backlogs`, { profile_id: profileId, title: 'Mục thủ công' }),
+  200,
+  (r) => r.data.backlog?.status === 'BACKLOG_STATUS_NEW' && r.data.backlog?.category === 'other');
+check('GET /v1/backlogs?status=NEW',
+  await req('GET', `${BACKLOG}/v1/backlogs?profile_id=${profileId}&status=BACKLOG_STATUS_NEW`), 200,
+  (r) => r.data.backlogs?.length === 2);
+check('PATCH /v1/backlogs/{id} -> TRIAGED',
+  await req('PATCH', `${BACKLOG}/v1/backlogs/${backlogId}`, {
+    status: 'BACKLOG_STATUS_TRIAGED', reason: 'reviewed',
+  }),
+  200,
+  (r) => r.data.backlog?.status === 'BACKLOG_STATUS_TRIAGED' && r.data.backlog?.reason === 'reviewed');
+check('GET /v1/backlogs?status=TRIAGED',
+  await req('GET', `${BACKLOG}/v1/backlogs?profile_id=${profileId}&status=BACKLOG_STATUS_TRIAGED`), 200,
+  (r) => r.data.backlogs?.length === 1 && r.data.backlogs[0].id === backlogId);
+checkCode('POST /v1/backlogs thiếu title -> 400 + BACKLOG_TITLE_REQUIRED',
+  await req('POST', `${BACKLOG}/v1/backlogs`, { profile_id: profileId }),
+  400, 'BACKLOG_TITLE_REQUIRED');
+checkCode('GET /v1/backlogs/{id} không tồn tại -> 404 + BACKLOG_NOT_FOUND',
+  await req('GET', `${BACKLOG}/v1/backlogs/00000000-0000-0000-0000-000000000000`),
+  404, 'BACKLOG_NOT_FOUND');
+check('DELETE /v1/backlogs/{id}', await req('DELETE', `${BACKLOG}/v1/backlogs/${backlogId}`), 200);
+checkCode('GET /v1/backlogs/{id} sau khi xoá -> 404 + BACKLOG_NOT_FOUND',
+  await req('GET', `${BACKLOG}/v1/backlogs/${backlogId}`), 404, 'BACKLOG_NOT_FOUND');
 
 console.log(failures === 0 ? '\nSMOKE: ALL PASS' : `\nSMOKE: ${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

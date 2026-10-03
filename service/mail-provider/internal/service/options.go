@@ -7,16 +7,20 @@ import (
 )
 
 type Options struct {
-	TopicName         string
-	LabelIDs          []string
-	RenewInterval     time.Duration
-	RenewThreshold    time.Duration
-	WorkerCount       int
-	DefaultPriority   model.Priority
-	AnalyzerEnabled   bool
-	PullRetryDelay    time.Duration
-	PullSubscription  string
-	HeartbeatInterval time.Duration
+	TopicName           string
+	LabelIDs            []string
+	RenewInterval       time.Duration
+	RenewThreshold      time.Duration
+	WorkerCount         int
+	DefaultPriority     model.Priority
+	AnalyzerEnabled     bool
+	RuleFallbackEnabled bool
+	ArchiveEnabled      bool
+	MaxAttachments      int
+	MaxAttachmentBytes  int64
+	PullRetryDelay      time.Duration
+	PullSubscription    string
+	HeartbeatInterval   time.Duration
 }
 
 func (o Options) withDefaults() Options {
@@ -29,6 +33,12 @@ func (o Options) withDefaults() Options {
 	}
 	if out.PullRetryDelay <= 0 {
 		out.PullRetryDelay = 5 * time.Second
+	}
+	if out.MaxAttachments <= 0 {
+		out.MaxAttachments = model.DefaultMaxAttachments
+	}
+	if out.MaxAttachmentBytes <= 0 {
+		out.MaxAttachmentBytes = model.DefaultMaxAttachmentBytes
 	}
 	return out
 }

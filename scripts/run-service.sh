@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # Chạy 1 service Go ở local: gRPC server (cmd/grpc) + HTTP gateway (cmd/http).
-# Usage: scripts/run-service.sh <calendar|identity|mail-provider|task>
+# Usage: scripts/run-service.sh <backlog|calendar|event|identity|mail-provider|task>
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 service="${1:-}"
 case "$service" in
+  backlog)  grpc_port=9086; http_port=8086 ;;
   calendar) grpc_port=9083; http_port=8083 ;;
+  event)    grpc_port=9085; http_port=8085 ;;
   identity) grpc_port=9081; http_port=8081 ;;
   mail-provider) grpc_port=9084; http_port=8084 ;;
   task)     grpc_port=9082; http_port=8082 ;;
-  *) echo "usage: $0 <calendar|identity|mail-provider|task>" >&2; exit 1 ;;
+  *) echo "usage: $0 <backlog|calendar|event|identity|mail-provider|task>" >&2; exit 1 ;;
 esac
 
 pids=()

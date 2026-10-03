@@ -6,8 +6,10 @@ import { useAppDispatch, useAppSelector } from './context';
 import { restoreSession } from './context/session/sessionSlice';
 import { readToken } from './lib/session';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
+import { BacklogPage } from './pages/BacklogPage';
 import { BoardPage } from './pages/BoardPage';
 import { CalendarPage } from './pages/CalendarPage';
+import { EventPage } from './pages/EventPage';
 import { LoginPage } from './pages/LoginPage';
 import { StatusesPage } from './pages/StatusesPage';
 
@@ -43,6 +45,8 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<BoardPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/events" element={<EventPage />} />
+          <Route path="/backlog" element={<BacklogPage />} />
           <Route path="/statuses" element={<StatusesPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

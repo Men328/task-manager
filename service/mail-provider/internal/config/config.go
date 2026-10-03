@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"taskmanager/service/mail-provider/internal/model"
 )
 
 type Config struct {
@@ -50,6 +52,27 @@ type Config struct {
 	TaskGRPCDialAddr string
 	DefaultPriority  string
 	TaskTimeout      time.Duration
+
+	CalendarGRPCDialAddr string
+	ScheduleTimeout      time.Duration
+
+	EventGRPCDialAddr string
+	EventTimeout      time.Duration
+
+	BacklogGRPCDialAddr string
+	BacklogTimeout      time.Duration
+
+	S3Endpoint          string
+	S3AccessKey         string
+	S3SecretKey         string
+	S3Bucket            string
+	S3Region            string
+	S3UseSSL            bool
+	S3Timeout           time.Duration
+	ArchiveEnabled      bool
+	RuleFallbackEnabled bool
+	MaxAttachments      int
+	MaxAttachmentBytes  int64
 
 	QueueSize   int
 	WorkerCount int
@@ -96,6 +119,27 @@ func Load() Config {
 		TaskGRPCDialAddr: getenv("TASK_GRPC_DIAL_ADDR", ""),
 		DefaultPriority:  getenv("MAIL_DEFAULT_PRIORITY", "medium"),
 		TaskTimeout:      getduration("MAIL_TASK_TIMEOUT", 15*time.Second),
+
+		CalendarGRPCDialAddr: getenv("CALENDAR_GRPC_DIAL_ADDR", ""),
+		ScheduleTimeout:      getduration("MAIL_SCHEDULE_TIMEOUT", 15*time.Second),
+
+		EventGRPCDialAddr: getenv("EVENT_GRPC_DIAL_ADDR", ""),
+		EventTimeout:      getduration("MAIL_EVENT_TIMEOUT", 15*time.Second),
+
+		BacklogGRPCDialAddr: getenv("BACKLOG_GRPC_DIAL_ADDR", ""),
+		BacklogTimeout:      getduration("MAIL_BACKLOG_TIMEOUT", 15*time.Second),
+
+		S3Endpoint:          firstEnv("S3_ENDPOINT", "MINIO_ENDPOINT"),
+		S3AccessKey:         firstEnv("S3_ACCESS_KEY", "MINIO_ACCESS_KEY"),
+		S3SecretKey:         firstEnv("S3_SECRET_KEY", "MINIO_SECRET_KEY"),
+		S3Bucket:            firstEnvDefault("task-manager", "S3_BUCKET", "MINIO_BUCKET"),
+		S3Region:            firstEnvDefault("us-east-1", "S3_REGION", "MINIO_REGION"),
+		S3UseSSL:            firstBool(false, "S3_USE_SSL", "MINIO_USE_SSL"),
+		S3Timeout:           firstDuration(30*time.Second, "S3_TIMEOUT", "MINIO_TIMEOUT"),
+		ArchiveEnabled:      getbool("MAIL_ARCHIVE_ENABLED", true),
+		RuleFallbackEnabled: getbool("MAIL_RULE_FALLBACK_ENABLED", true),
+		MaxAttachments:      getint("MAIL_MAX_ATTACHMENTS", model.DefaultMaxAttachments),
+		MaxAttachmentBytes:  int64(getint("MAIL_MAX_ATTACHMENT_BYTES", model.DefaultMaxAttachmentBytes)),
 
 		QueueSize:   getint("MAIL_QUEUE_SIZE", 256),
 		WorkerCount: getint("MAIL_WORKER_COUNT", 2),
@@ -145,6 +189,26 @@ func (c Config) TaskDialTarget() string {
 	return dialTarget(c.TaskGRPCDialAddr, ":9082")
 }
 
+func (c Config) ScheduleDialTarget() string {
+	return dialTarget(c.CalendarGRPCDialAddr, ":9083")
+}
+
+func (c Config) EventDialTarget() string {
+	return dialTarget(c.EventGRPCDialAddr, ":9085")
+}
+
+func (c Config) BacklogDialTarget() string {
+	return dialTarget(c.BacklogGRPCDialAddr, ":9086")
+}
+
+func (c Config) StorageConfigured() bool {
+	return strings.TrimSpace(c.S3Endpoint) != ""
+}
+
+func (c Config) ArchiveConfigured() bool {
+	return c.ArchiveEnabled && c.StorageConfigured()
+}
+
 func dialTarget(configured string, fallbackPort string) string {
 	if configured != "" {
 		return configured
@@ -165,6 +229,58 @@ func getint(key string, fallback int) int {
 		return fallback
 	}
 	parsed, err := strconv.Atoi(v)
+	if err != nil || parsed <= 0 {
+		return fallback
+	}
+	return parsed
+}
+
+func getbool(key string, fallback bool) bool {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(v)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func firstEnv(keys ...string) string {
+	for _, key := range keys {
+		if v := strings.TrimSpace(os.Getenv(key)); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+func firstEnvDefault(fallback string, keys ...string) string {
+	if v := firstEnv(keys...); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func firstBool(fallback bool, keys ...string) bool {
+	value := firstEnv(keys...)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func firstDuration(fallback time.Duration, keys ...string) time.Duration {
+	value := firstEnv(keys...)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
 	if err != nil || parsed <= 0 {
 		return fallback
 	}

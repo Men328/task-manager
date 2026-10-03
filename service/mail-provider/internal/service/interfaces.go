@@ -22,6 +22,7 @@ type GmailClient interface {
 	Stop(ctx context.Context, accessToken string) error
 	NewMessageIDs(ctx context.Context, accessToken string, startHistoryID string, labelIDs []string) ([]string, string, error)
 	Message(ctx context.Context, accessToken string, messageID string) (model.EmailMessage, error)
+	Attachment(ctx context.Context, accessToken string, messageID string, attachmentID string) ([]byte, error)
 	ProfileHistoryID(ctx context.Context, accessToken string) (string, error)
 }
 
@@ -30,7 +31,7 @@ type TokenRefresher interface {
 }
 
 type MailAnalyzer interface {
-	Analyze(ctx context.Context, message model.EmailMessage) (model.TaskDraft, error)
+	Analyze(ctx context.Context, message model.EmailMessage) (model.MailDraft, error)
 }
 
 type NotificationSource interface {
@@ -40,6 +41,22 @@ type NotificationSource interface {
 
 type TaskCreator interface {
 	Create(ctx context.Context, in model.TaskInput) (model.TaskRef, error)
+}
+
+type ScheduleCreator interface {
+	Create(ctx context.Context, in model.ScheduleInput) (model.ScheduleRef, error)
+}
+
+type EventCreator interface {
+	Create(ctx context.Context, in model.EventInput) (model.EventRef, error)
+}
+
+type BacklogCreator interface {
+	Create(ctx context.Context, in model.BacklogInput) (model.BacklogRef, error)
+}
+
+type BlobStore interface {
+	Put(ctx context.Context, key string, contentType string, data []byte) (string, error)
 }
 
 type MailService interface {

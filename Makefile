@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 # Mỗi thư mục trong service/ (và common/) là 1 Go module riêng, quản lý bằng go.work.
 # Vì root không phải module nên `go build ./...` không dùng được -> loop từng module.
-MODULES := common service/calendar service/identity service/mail-provider service/task tools/quality
+MODULES := common service/backlog service/calendar service/event service/identity service/mail-provider service/task tools/quality
 
 GOBIN ?= $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(GOBIN):$(PATH)
@@ -18,6 +18,8 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
         up up-core up-tunnel tunnel-up tunnel-stop down logs tunnel-logs ps build-images web-install web-dev web-build \
         run-identity run-identity-grpc run-identity-http run-task run-task-grpc run-task-http \
         run-calendar run-calendar-grpc run-calendar-http \
+        run-event run-event-grpc run-event-http \
+        run-backlog run-backlog-grpc run-backlog-http \
         run-mail-provider run-mail-provider-grpc run-mail-provider-http \
         quality-all quality-fmt quality-vet quality-arch
 
@@ -146,6 +148,24 @@ run-calendar-grpc: ## Chỉ chạy gRPC server calendar (:9083)
 
 run-calendar-http: ## Chỉ chạy HTTP gateway calendar (:8083)
 	cd service/calendar && go run ./cmd/http
+
+run-event: ## Chạy event local: gRPC :9085 + gateway :8085
+	bash scripts/run-service.sh event
+
+run-event-grpc: ## Chỉ chạy gRPC server event (:9085)
+	cd service/event && go run ./cmd/grpc
+
+run-event-http: ## Chỉ chạy HTTP gateway event (:8085)
+	cd service/event && go run ./cmd/http
+
+run-backlog: ## Chạy backlog local: gRPC :9086 + gateway :8086
+	bash scripts/run-service.sh backlog
+
+run-backlog-grpc: ## Chỉ chạy gRPC server backlog (:9086)
+	cd service/backlog && go run ./cmd/grpc
+
+run-backlog-http: ## Chỉ chạy HTTP gateway backlog (:8086)
+	cd service/backlog && go run ./cmd/http
 
 run-mail-provider: ## Chạy mail-provider local: gRPC :9084 + gateway :8084
 	bash scripts/run-service.sh mail-provider

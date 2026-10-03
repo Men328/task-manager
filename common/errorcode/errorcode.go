@@ -79,6 +79,10 @@ const (
 	MailUnauthorized         = "MAIL_UNAUTHORIZED"
 	MailAnalyzeFailed        = "MAIL_ANALYZE_FAILED"
 	MailTaskCreateFailed     = "MAIL_TASK_CREATE_FAILED"
+	MailScheduleCreateFailed = "MAIL_SCHEDULE_CREATE_FAILED"
+	MailEventCreateFailed    = "MAIL_EVENT_CREATE_FAILED"
+	MailBacklogCreateFailed  = "MAIL_BACKLOG_CREATE_FAILED"
+	MailStorageFailed        = "MAIL_STORAGE_FAILED"
 
 	CalendarProfileIDRequired = "CALENDAR_PROFILE_ID_REQUIRED"
 	CalendarTitleRequired     = "CALENDAR_TITLE_REQUIRED"
@@ -86,6 +90,18 @@ const (
 	CalendarStartAtRequired   = "CALENDAR_START_AT_REQUIRED"
 	CalendarTimeRangeInvalid  = "CALENDAR_TIME_RANGE_INVALID"
 	CalendarNotFound          = "CALENDAR_NOT_FOUND"
+
+	EventProfileIDRequired = "EVENT_PROFILE_ID_REQUIRED"
+	EventTitleRequired     = "EVENT_TITLE_REQUIRED"
+	EventIDRequired        = "EVENT_ID_REQUIRED"
+	EventStartAtRequired   = "EVENT_START_AT_REQUIRED"
+	EventTimeRangeInvalid  = "EVENT_TIME_RANGE_INVALID"
+	EventNotFound          = "EVENT_NOT_FOUND"
+
+	BacklogProfileIDRequired = "BACKLOG_PROFILE_ID_REQUIRED"
+	BacklogTitleRequired     = "BACKLOG_TITLE_REQUIRED"
+	BacklogIDRequired        = "BACKLOG_ID_REQUIRED"
+	BacklogNotFound          = "BACKLOG_NOT_FOUND"
 )
 
 type LocalizedMessage struct {
