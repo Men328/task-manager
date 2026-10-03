@@ -17,6 +17,7 @@
     },
     "emptyGroup": "Sắp có",
     "myTask": "Công việc của tôi",
+    "calendar": "Lịch",
     "statusesLifecycle": "Trạng thái & vòng đời"
   },
   "sidebar": {
@@ -153,6 +154,36 @@
     "seedDoneMessage": "To Do → On Progress → In Review → Completed",
     "seedFailedTitle": "Không tạo được trạng thái"
   },
+  "calendarPage": {
+    "breadcrumb": "Kế hoạch",
+    "title": "Lịch",
+    "subtitle": "Lịch cá nhân của hồ sơ hiện tại",
+    "newSchedule": "Thêm lịch",
+    "updateFailedTitle": "Không cập nhật được lịch",
+    "deleted": "Đã xoá lịch",
+    "deleteFailed": "Không xoá được lịch"
+  },
+  "scheduleForm": {
+    "title": "Thêm lịch",
+    "editTitle": "Sửa lịch",
+    "titleLabel": "Tiêu đề",
+    "titlePlaceholder": "Có việc gì?",
+    "descriptionLabel": "Mô tả",
+    "descriptionPlaceholder": "Mô tả ngắn...",
+    "locationLabel": "Địa điểm",
+    "locationPlaceholder": "Ở đâu?",
+    "allDayLabel": "Cả ngày",
+    "startLabel": "Bắt đầu",
+    "endLabel": "Kết thúc",
+    "colorLabel": "Màu",
+    "submit": "Lưu",
+    "created": "Đã tạo lịch",
+    "updated": "Đã cập nhật lịch",
+    "saveFailed": "Không lưu được lịch",
+    "titleRequired": "Tiêu đề là bắt buộc",
+    "startRequired": "Thời gian bắt đầu là bắt buộc",
+    "deleteConfirm": "Xoá lịch này?"
+  },
   "priority": {
     "unspecified": "Không ưu tiên",
     "low": "Ưu tiên thấp",
@@ -171,7 +202,8 @@
     "noProfile": "Chưa chọn hồ sơ",
     "loadProfiles": "Không tải được hồ sơ",
     "loadBoard": "Không tải được dữ liệu board",
-    "loadStatuses": "Không tải được dữ liệu trạng thái"
+    "loadStatuses": "Không tải được dữ liệu trạng thái",
+    "loadCalendar": "Không tải được dữ liệu lịch"
   },
   "login": {
     "title": "Đăng nhập",

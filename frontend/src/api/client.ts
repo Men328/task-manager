@@ -15,11 +15,17 @@ export const IDENTITY_BASE_URL: string =
 export const TASK_BASE_URL: string =
   (import.meta.env.VITE_TASK_API_URL as string | undefined) ?? '/api/task';
 
+export const CALENDAR_BASE_URL: string =
+  (import.meta.env.VITE_CALENDAR_API_URL as string | undefined) ?? '/api/calendar';
+
 /** Base URL used by the identity service calls. */
 export const identityApi = IDENTITY_BASE_URL;
 
 /** Base URL used by the task service calls. */
 export const taskApi = TASK_BASE_URL;
+
+/** Base URL used by the calendar service calls. */
+export const calendarApi = CALENDAR_BASE_URL;
 
 export class ApiError extends Error {
   /** HTTP status code, or 0 when the request never reached the server. */

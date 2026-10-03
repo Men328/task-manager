@@ -17,6 +17,7 @@
     },
     "emptyGroup": "Coming soon",
     "myTask": "My Tasks",
+    "calendar": "Calendar",
     "statusesLifecycle": "Statuses & Lifecycle"
   },
   "sidebar": {
@@ -153,6 +154,36 @@
     "seedDoneMessage": "To Do → On Progress → In Review → Completed",
     "seedFailedTitle": "Could not create status"
   },
+  "calendarPage": {
+    "breadcrumb": "Planning",
+    "title": "Calendar",
+    "subtitle": "Schedules for the current profile",
+    "newSchedule": "New schedule",
+    "updateFailedTitle": "Could not update the schedule",
+    "deleted": "Schedule deleted",
+    "deleteFailed": "Could not delete the schedule"
+  },
+  "scheduleForm": {
+    "title": "New schedule",
+    "editTitle": "Edit schedule",
+    "titleLabel": "Title",
+    "titlePlaceholder": "What is it?",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Short description...",
+    "locationLabel": "Location",
+    "locationPlaceholder": "Where?",
+    "allDayLabel": "All day",
+    "startLabel": "Start",
+    "endLabel": "End",
+    "colorLabel": "Color",
+    "submit": "Save",
+    "created": "Schedule created",
+    "updated": "Schedule updated",
+    "saveFailed": "Could not save the schedule",
+    "titleRequired": "Title is required",
+    "startRequired": "Start time is required",
+    "deleteConfirm": "Delete this schedule?"
+  },
   "priority": {
     "unspecified": "No priority",
     "low": "Low priority",
@@ -171,7 +202,8 @@
     "noProfile": "No profile selected",
     "loadProfiles": "Could not load profiles",
     "loadBoard": "Could not load board data",
-    "loadStatuses": "Could not load status data"
+    "loadStatuses": "Could not load status data",
+    "loadCalendar": "Could not load schedule data"
   },
   "login": {
     "title": "Sign in",

@@ -2,10 +2,10 @@
 
 | File | Việc |
 |---|---|
-| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + identity(-grpc) + task(-grpc) + mail-provider(-grpc) + frontend + cloudflared (profile `tunnel`) |
+| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + identity(-grpc) + task(-grpc) + calendar(-grpc) + mail-provider(-grpc) + frontend + cloudflared (profile `tunnel`) |
 
 Dockerfile nằm **trong từng service** (`service/identity/Dockerfile`, `service/task/Dockerfile`,
-`service/mail-provider/Dockerfile`, `frontend/Dockerfile`) để mỗi
+`service/calendar/Dockerfile`, `service/mail-provider/Dockerfile`, `frontend/Dockerfile`) để mỗi
 service tự đóng gói. Compose trỏ tới chúng với build context là **root repo**, vì mỗi service cần
 copy thêm module `common/`.
 
@@ -43,19 +43,21 @@ trong network Docker nội bộ và được các container gọi nhau bằng t�
 | identity-grpc | tm-identity-grpc | nội bộ `identity-grpc:9081` | không publish ra host |
 | task (gateway) | tm-task | nội bộ `task:8082` | không publish ra host |
 | task-grpc | tm-task-grpc | nội bộ `task-grpc:9082` | không publish ra host |
+| calendar (gateway) | tm-calendar | nội bộ `calendar:8083` | không publish ra host |
+| calendar-grpc | tm-calendar-grpc | nội bộ `calendar-grpc:9083` | không publish ra host |
 | mail-provider (gateway) | tm-mail-provider | nội bộ `mail-provider:8084` | webhook `/api/mail/v1/notifications` |
 | mail-provider-grpc | tm-mail-provider-grpc | nội bộ `mail-provider-grpc:9084` | subscription (token + checkpoint) ở Postgres |
 | postgres | tm-postgres | nội bộ `postgres:5432` | không publish ra host |
 | cloudflared | tm-cloudflared | — (outbound) | profile `tunnel`, đẩy `frontend:3000` ra Internet |
 
-Tên service HTTP giữ nguyên (`identity`, `task`, `mail-provider`) nên nginx của frontend
+Tên service HTTP giữ nguyên (`identity`, `task`, `calendar`, `mail-provider`) nên nginx của frontend
 không phải đổi proxy.
 
 ## Cloudflare Tunnel
 
 FE gọi API **same-origin** tại `/api/...` trên chính port frontend; nginx của frontend mới
 forward nội bộ tới các service Go. Vì vậy chỉ cần đưa **một origin** ra Internet và nó khớp
-thẳng với public hostname của Cloudflare — không lộ port `8081/8082/8084`.
+thẳng với public hostname của Cloudflare — không lộ port `8081/8082/8083/8084`.
 
 1. Tạo tunnel tại [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) →
    **Networks → Tunnels → Create a tunnel** (chọn *Cloudflared*).
@@ -138,8 +140,8 @@ Lưu ý `make up-core` chỉ **không khởi động** cloudflared — nếu nó
 
 ```
 postgres (healthy) -> migrate (chạy xong, exit 0)
-  -> identity(-grpc)/task(-grpc)/mail-provider(-grpc)
-  -> gateway identity/task/mail-provider (healthy, /healthz chỉ 200 khi gọi được gRPC health)
+  -> identity(-grpc)/task(-grpc)/calendar(-grpc)/mail-provider(-grpc)
+  -> gateway identity/task/calendar/mail-provider (healthy, /healthz chỉ 200 khi gọi được gRPC health)
   -> frontend (healthy, /healthz do nginx trả)
   -> cloudflared (profile tunnel)
 ```
@@ -155,8 +157,9 @@ make migrate-down      # rollback 1 bước
 
 ## Ghi chú
 
-- `identity-grpc`, `task-grpc` và `mail-provider-grpc` nối Postgres qua `DATABASE_URL` (đã bật sẵn
-  trong compose). Bỏ trống biến này thì service tự quay về repository in-memory stub và log cảnh báo.
+- `identity-grpc`, `task-grpc`, `calendar-grpc` và `mail-provider-grpc` nối Postgres qua `DATABASE_URL`
+  (đã bật sẵn trong compose). Bỏ trống biến này thì service tự quay về repository in-memory stub và
+  log cảnh báo.
 - `identity-grpc` dial `task-grpc` qua `TASK_GRPC_DIAL_ADDR` để tạo bộ status + lifecycle mặc định
   ngay khi có profile mới; task service lỗi thì profile vẫn được tạo (chỉ log cảnh báo).
 - Image `migrate/migrate:latest` nên pin version khi dùng thật.

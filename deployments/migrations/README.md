@@ -6,7 +6,8 @@ Migration PostgreSQL, chạy bằng [golang-migrate](https://github.com/golang-m
 deployments/migrations/
 ├── 000001_init_identity.up.sql   / .down.sql   # schema identity: PROFILES, AUTH_PROVIDERS
 ├── 000002_init_task.up.sql       / .down.sql   # schema task: TASK_STATUSES, STATUS_TRANSITIONS, TASKS, TASK_STATUS_LOGS
-└── 000005_init_mail_provider.up.sql / .down.sql # schema mail_provider: SESSIONS, NOTI_INDEXES
+├── 000005_init_mail_provider.up.sql / .down.sql # schema mail_provider: SESSIONS, NOTI_INDEXES
+└── 000006_init_calendar.up.sql   / .down.sql   # schema calendar: SCHEDULES
 ```
 
 > Migration `000003`/`000004` (workspace) đã bị xoá cùng tính năng workspace. Repo không còn
@@ -37,6 +38,7 @@ deployments/migrations/
 | `task.TASK_STATUSES` | `task.task_statuses` |
 | `task.STATUS_TRANSITIONS` | `task.status_transitions` |
 | `task.TASK_STATUS_LOGS` | `task.task_status_logs` |
+| `calendar.SCHEDULES` | `calendar.schedules` |
 | `mail_provider.SESSIONS` | `mail_provider.sessions` |
 | `mail_provider.NOTI_INDEXES` | `mail_provider.noti_indexes` |
 
@@ -72,6 +74,9 @@ Nguồn thiết kế: `design/db_schema.dbml` (dbdiagram.io). Các ràng buộc 
 | Chặn vòng lặp cây task | trigger `trg_tasks_prevent_cycle` |
 | `updated_at` tự cập nhật | trigger `fn_set_updated_at` cho từng bảng |
 | Email không phân biệt hoa/thường | unique index trên `lower(email)` cho profile chưa xoá mềm |
+| `calendar`: `title` không rỗng | `CHECK ck_calendar_schedules_title_not_blank (btrim(title) <> '')` |
+| `calendar`: `end_at` không sớm hơn `start_at` | `CHECK ck_calendar_schedules_time_range (end_at IS NULL OR end_at >= start_at)` |
+| `calendar`: `color` đúng định dạng hex | `CHECK ck_calendar_schedules_color_format (color IS NULL OR color ~* '^#[0-9a-f]{6}([0-9a-f]{2})?$')` |
 | `mail_provider`: hộp thư đã ngắt kết nối không chặn hộp thư mới | partial unique index `uq_mail_provider_sessions_email ... (lower(email)) WHERE revoked_at IS NULL` |
 | `mail_provider`: `history_id` là uint64 opaque, không dùng `bigint` | `varchar(32)` + `CHECK ck_mail_provider_noti_indexes_history_id_digits (history_id IS NULL OR history_id ~ '^[0-9]+$')` |
 | `mail_provider`: 1 profile 1 kết nối / 1 checkpoint | `UNIQUE (profile_id, provider)` và `UNIQUE (profile_id)` |

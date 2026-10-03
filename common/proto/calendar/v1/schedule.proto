@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package calendar.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/calendar/v1;calendarv1";
+
+// Lịch (schedule) cá nhân thuộc 1 profile.
+// Mapping DB: calendar.schedules
+message Schedule {
+  string id = 1;
+  string profile_id = 2;
+  string title = 3;
+  string description = 4;
+  string location = 5;
+  // Thời điểm bắt đầu; bắt buộc.
+  google.protobuf.Timestamp start_at = 6;
+  // Thời điểm kết thúc; rỗng = không xác định (calendar hiển thị như mốc thời gian).
+  google.protobuf.Timestamp end_at = 7;
+  // Lịch cả ngày (FullCalendar allDay).
+  bool all_day = 8;
+  // Màu hiển thị `#RRGGBB` / `#RRGGBBAA`; rỗng = dùng màu mặc định của UI.
+  string color = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message CreateScheduleRequest {
+  string profile_id = 1;
+  string title = 2;
+  string description = 3;
+  string location = 4;
+  google.protobuf.Timestamp start_at = 5;
+  google.protobuf.Timestamp end_at = 6;
+  bool all_day = 7;
+  string color = 8;
+}
+
+message CreateScheduleResponse {
+  Schedule schedule = 1;
+}
+
+message GetScheduleRequest {
+  string id = 1;
+}
+
+message GetScheduleResponse {
+  Schedule schedule = 1;
+}
+
+message ListSchedulesRequest {
+  string profile_id = 1;
+  // Lọc theo khoảng thời gian (optional): trả lịch giao với [from, to).
+  // Dùng cho calendar khi chỉ cần tải đúng khoảng đang hiển thị.
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+}
+
+message ListSchedulesResponse {
+  repeated Schedule schedules = 1;
+}
+
+message UpdateScheduleRequest {
+  string id = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string location = 4;
+  // message field đã có presence (nil = không đổi) nên không cần `optional`.
+  google.protobuf.Timestamp start_at = 5;
+  google.protobuf.Timestamp end_at = 6;
+  optional bool all_day = 7;
+  optional string color = 8;
+}
+
+message UpdateScheduleResponse {
+  Schedule schedule = 1;
+}
+
+message DeleteScheduleRequest {
+  string id = 1;
+}
+
+message DeleteScheduleResponse {}
+
+service CalendarService {
+  rpc CreateSchedule(CreateScheduleRequest) returns (CreateScheduleResponse) {
+    option (google.api.http) = {
+      post: "/v1/schedules"
+      body: "*"
+    };
+  }
+
+  rpc GetSchedule(GetScheduleRequest) returns (GetScheduleResponse) {
+    option (google.api.http) = {get: "/v1/schedules/{id}"};
+  }
+
+  rpc ListSchedules(ListSchedulesRequest) returns (ListSchedulesResponse) {
+    option (google.api.http) = {get: "/v1/schedules"};
+  }
+
+  rpc UpdateSchedule(UpdateScheduleRequest) returns (UpdateScheduleResponse) {
+    option (google.api.http) = {
+      patch: "/v1/schedules/{id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteSchedule(DeleteScheduleRequest) returns (DeleteScheduleResponse) {
+    option (google.api.http) = {delete: "/v1/schedules/{id}"};
+  }
+}

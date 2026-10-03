@@ -1,0 +1,63 @@
+.root {
+  min-height: 0;
+}
+
+.headerBar {
+  flex: 0 0 auto;
+}
+
+.scrollArea {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Bọc FullCalendar để nó có chiều cao xác định (height="100%"). */
+.calendarWrap {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendarWrap :global(.fc) {
+  flex: 1 1 auto;
+  min-height: 0;
+  color: var(--tm-text);
+}
+
+/* Đồng bộ FullCalendar với token màu của app (light/dark). */
+.calendarWrap {
+  --fc-border-color: var(--tm-border);
+  --fc-page-bg-color: var(--tm-surface);
+  --fc-neutral-bg-color: var(--tm-column-bg);
+  --fc-neutral-text-color: var(--tm-text-muted);
+  --fc-today-bg-color: var(--tm-nav-active-bg);
+  --fc-list-event-hover-bg-color: var(--tm-column-bg);
+  --fc-button-text-color: #ffffff;
+  --fc-button-bg-color: var(--tm-brand);
+  --fc-button-border-color: var(--tm-brand);
+  --fc-button-hover-bg-color: var(--tm-brand);
+  --fc-button-hover-border-color: var(--tm-brand);
+  --fc-button-active-bg-color: var(--tm-brand);
+  --fc-button-active-border-color: var(--tm-brand);
+  --fc-event-text-color: #ffffff;
+}
+
+.calendarWrap :global(.fc .fc-toolbar-title) {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tm-text);
+}
+
+.calendarWrap :global(.fc .fc-col-header-cell-cushion),
+.calendarWrap :global(.fc .fc-daygrid-day-number) {
+  color: var(--tm-text-muted);
+  text-decoration: none;
+  font-size: 12.5px;
+}
+
+.calendarWrap :global(.fc .fc-day-today .fc-daygrid-day-number) {
+  color: var(--tm-brand);
+  font-weight: 700;
+}

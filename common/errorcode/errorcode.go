@@ -79,6 +79,13 @@ const (
 	MailUnauthorized         = "MAIL_UNAUTHORIZED"
 	MailAnalyzeFailed        = "MAIL_ANALYZE_FAILED"
 	MailTaskCreateFailed     = "MAIL_TASK_CREATE_FAILED"
+
+	CalendarProfileIDRequired = "CALENDAR_PROFILE_ID_REQUIRED"
+	CalendarTitleRequired     = "CALENDAR_TITLE_REQUIRED"
+	CalendarIDRequired        = "CALENDAR_ID_REQUIRED"
+	CalendarStartAtRequired   = "CALENDAR_START_AT_REQUIRED"
+	CalendarTimeRangeInvalid  = "CALENDAR_TIME_RANGE_INVALID"
+	CalendarNotFound          = "CALENDAR_NOT_FOUND"
 )
 
 type LocalizedMessage struct {

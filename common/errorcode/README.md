@@ -27,7 +27,7 @@ theo ngôn ngữ, mã lạ thì fallback theo HTTP status.
 }
 ```
 
-- `owner`: `common` | `identity` | `task` | `client` (mã phía FE, không có `grpcCode`).
+- `owner`: `common` | `identity` | `task` | `calendar` | `mail` | `client` (mã phía FE, không có `grpcCode`).
 - `grpcCode`: tên `codes.Code` để suy ra gRPC status (và HTTP status qua grpc-gateway).
 - `httpStatus`: chỉ để tra cứu/đối chiếu (grpc-gateway tự map từ `grpcCode`).
 - `message`: text hiển thị cho người dùng, theo ngôn ngữ.
