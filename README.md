@@ -23,6 +23,7 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 │   ├── calendar/               # lịch cá nhân (schedule)   (gRPC :9083 / HTTP :8083)
 │   ├── event/                  # sự kiện cá nhân (event)    (gRPC :9085 / HTTP :8085)
 │   ├── backlog/                # email không phân loại được (gRPC :9086 / HTTP :8086)
+│   ├── report/                 # báo cáo task/lịch/sự kiện/backlog (gRPC :9087 / HTTP :8087)
 │   └── mail-provider/          # Gmail notice -> phân loại -> task/schedule/event/backlog + S3 (gRPC :9084 / HTTP :8084)
 ├── frontend/                   # React + TSX + Mantine + Vite (+ Dockerfile, nginx.conf)
 ├── deployments/                # hạ tầng: docker/ (compose) + migrations/ (SQL)
@@ -41,9 +42,10 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 | `taskmanager/service/calendar` | `service/calendar/` |
 | `taskmanager/service/event` | `service/event/` |
 | `taskmanager/service/backlog` | `service/backlog/` |
+| `taskmanager/service/report` | `service/report/` |
 | `taskmanager/service/mail-provider` | `service/mail-provider/` |
 
-- Root `go.work` gom 8 module lại để phát triển local.
+- Root `go.work` gom 9 module lại để phát triển local.
 - Service dùng code chung qua module `common`:
   `require taskmanager/common v0.0.0-...` + `replace taskmanager/common => ../../common`.
   Nhờ `replace`, service build được **cả khi không có `go.work`** (đúng cách Dockerfile đang build).
@@ -72,8 +74,9 @@ make run-task       # terminal 2  -> :8082 / :9082
 make run-calendar   # terminal 3  -> :8083 / :9083
 make run-event      # terminal 4  -> :8085 / :9085
 make run-backlog    # terminal 5  -> :8086 / :9086
-make run-mail-provider  # terminal 6 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY)
-make web-install && make web-dev    # terminal 7 -> :5173
+make run-report     # terminal 6  -> :8087 / :9087 (cần task service)
+make run-mail-provider  # terminal 7 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY)
+make web-install && make web-dev    # terminal 8 -> :5173
 make seed-demo      # (tuỳ chọn) seed dữ liệu demo: task/board + lịch + sự kiện + backlog
 ```
 
@@ -100,6 +103,10 @@ New Task) và board 4 cột. Không có nhân sự/project/sprint.
   `source` để truy vết sự kiện do mail worker tạo.
 - **Backlog**: mục **Backlog** trong nhóm *Kế hoạch* (`/backlog`) liệt kê email mà mail worker
   không phân loại được thành task/lịch/sự kiện, CRUD cơ bản qua `backlog` service (`/v1/backlogs`).
+- **Báo cáo (Reports)**: mục **Báo cáo** trong nhóm *Tổng quan* (`/reports`) hiển thị thẻ tổng quan task,
+  tỉ lệ % task theo status (donut + legend), line chart tạo mới/hoàn thành theo khoảng thời gian
+  (ngày/tuần/tháng), cùng **thống kê lịch, sự kiện và backlog** (thẻ số liệu + donut theo status +
+  breakdown category). Dữ liệu lấy từ `report` service (`/v1/reports/*`).
 
 Chi tiết: `frontend/README.md`.
 
@@ -185,7 +192,7 @@ HTTP status / URL / text kỹ thuật lên notification.
 ## Quickstart (Docker)
 
 ```bash
-make up        # postgres + migrate + rustfs + identity + task + calendar + event + backlog + mail-provider + frontend
+make up        # postgres + migrate + rustfs + identity + task + calendar + event + backlog + report + mail-provider + frontend
 make up-core   # như trên nhưng KHÔNG kèm cloudflared (tắt tunnel)
 make up-tunnel # kèm cloudflared (Cloudflare Tunnel; cần token trong .env)
 make ps
@@ -208,6 +215,7 @@ của Cloudflare.
 | calendar | nội bộ `calendar:8083` (`/healthz`) |
 | event | nội bộ `event:8085` (`/healthz`) |
 | backlog | nội bộ `backlog:8086` (`/healthz`) |
+| report | nội bộ `report:8087` (`/healthz`) |
 | mail-provider | nội bộ `mail-provider:8084` (`/healthz`) + webhook `/api/mail/v1/notifications` |
 | postgres | nội bộ `postgres:5432` |
 | rustfs | API nội bộ `rustfs:9000`, console `http://localhost:9001` |
@@ -273,7 +281,7 @@ tầng phải flat, `service/interfaces.go` bắt buộc, không comment trong c
 (ví dụ do chạy `go work init` bằng Go mới hơn). Sửa:
 
 ```bash
-go work edit -go=1.25.0    # go.work + 8 go.mod đang ở 1.25.0 -> Go >= 1.25 là chạy được
+go work edit -go=1.25.0    # go.work + 9 go.mod đang ở 1.25.0 -> Go >= 1.25 là chạy được
 ```
 
 rồi reload IDE để gopls load lại. **`make vet`** dùng `scripts/vet.sh` để bỏ qua cảnh báo vet phát sinh
@@ -281,10 +289,12 @@ trong source của dependency (Go 1.26 hay gặp với protobuf).
 
 ## Trạng thái hiện tại
 
-Cả 6 service Go đều có **repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory
-stub** khi không set `DATABASE_URL`. Business logic nằm ở `internal/service` (DI qua interface),
-transport gRPC ở `internal/handler`, validate/mapping ở `internal/dependency`; `cmd/grpc/infra.go`
-chọn Postgres/in-memory và quản lý `pgxpool` theo fx lifecycle.
+Các service Go có dữ liệu riêng (identity, task, calendar, event, backlog, mail-provider) đều có
+**repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory stub** khi không set
+`DATABASE_URL`. Business logic nằm ở `internal/service` (DI qua interface), transport gRPC ở
+`internal/handler`, validate/mapping ở `internal/dependency`; `cmd/grpc/infra.go` chọn
+Postgres/in-memory và quản lý `pgxpool` theo fx lifecycle. `report` không có DB riêng: nó gọi
+`task` service qua gRPC rồi tổng hợp.
 
 `calendar` giữ **lịch cá nhân** ở `calendar.schedules` (CRUD cơ bản: title/mô tả/địa điểm/thời gian/
 all-day/màu) và phục vụ UI FullCalendar.
@@ -294,6 +304,11 @@ và phục vụ trang `/events`.
 
 `backlog` giữ **email không phân loại được** ở `backlog.backlogs` (CRUD cơ bản + `status`
 NEW/TRIAGED/ARCHIVED) và phục vụ trang `/backlog`; là đích đến của nhánh `other` trong mail worker.
+
+`report` là service **read-only** tổng hợp dữ liệu qua gRPC từ `task` (`TASK_GRPC_DIAL_ADDR`),
+`event`, `calendar` và `backlog` thành các đầu API báo cáo (`/v1/reports/overview`,
+`/v1/reports/status-breakdown`, `/v1/reports/timeseries`, `/v1/reports/activity`) và phục vụ trang
+`/reports`.
 
 `mail-provider` dùng Postgres cho **subscription** (`mail_provider.sessions` +
 `mail_provider.noti_indexes`: refresh/access token, checkpoint `historyId`, hạn watch), **object

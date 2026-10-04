@@ -7,6 +7,7 @@ import react from '@vitejs/plugin-react';
 // /api/calendar/*  -> http://localhost:8083/*  (calendar service)
 // /api/event/*     -> http://localhost:8085/*  (event service)
 // /api/backlog/*   -> http://localhost:8086/*  (backlog service)
+// /api/report/*    -> http://localhost:8087/*  (report service)
 // /api/mail/*      -> http://localhost:8084/*  (mail-provider webhook)
 // `rewrite` is the current Vite (§5/§6) API for rewriting the proxied path.
 export default defineConfig({
@@ -39,6 +40,11 @@ export default defineConfig({
         target: 'http://localhost:8086',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/backlog/, ''),
+      },
+      '/api/report': {
+        target: 'http://localhost:8087',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/report/, ''),
       },
       '/api/mail': {
         target: 'http://localhost:8084',

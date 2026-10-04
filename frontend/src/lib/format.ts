@@ -34,8 +34,16 @@ export function isOverdue(value: string | null | undefined): boolean {
   return date.getTime() < today.getTime();
 }
 
-/** "Rico Tandoor" -> "RT" */
-export function initials(name: string | null | undefined, fallback = '?'): string {
+/** "25%" — làm tròn tối đa 1 chữ số thập phân, bỏ phần ".0". */
+export function formatPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return '—';
+  }
+  const rounded = Math.round(value * 10) / 10;
+  return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)}%`;
+}
+
+/** "Rico Tandoor" -> "RT" */export function initials(name: string | null | undefined, fallback = '?'): string {
   if (!hasText(name)) {
     return fallback;
   }

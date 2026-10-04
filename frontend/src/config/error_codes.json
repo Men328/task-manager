@@ -767,6 +767,42 @@
         "vi": "Không tìm thấy mục backlog.",
         "en": "Backlog item not found."
       }
+    },
+    "REPORT_PROFILE_ID_REQUIRED": {
+      "owner": "report",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã hồ sơ.",
+        "en": "Profile id is required."
+      }
+    },
+    "REPORT_RANGE_INVALID": {
+      "owner": "report",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Khoảng thời gian không hợp lệ: thời gian bắt đầu phải trước thời gian kết thúc.",
+        "en": "Invalid time range: the start time must be before the end time."
+      }
+    },
+    "REPORT_INTERVAL_INVALID": {
+      "owner": "report",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Độ phân giải thời gian không hợp lệ (chỉ hỗ trợ ngày/tuần/tháng).",
+        "en": "Invalid interval (only day/week/month are supported)."
+      }
+    },
+    "REPORT_TASK_SOURCE_FAILED": {
+      "owner": "report",
+      "grpcCode": "Unavailable",
+      "httpStatus": 503,
+      "message": {
+        "vi": "Không lấy được dữ liệu task để tổng hợp báo cáo.",
+        "en": "Could not load task data to build the report."
+      }
     }
   }
 }

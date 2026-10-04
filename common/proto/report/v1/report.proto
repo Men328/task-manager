@@ -1,0 +1,175 @@
+syntax = "proto3";
+
+package report.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/report/v1;reportv1";
+
+// Độ phân giải bucket thời gian cho báo cáo dạng chuỗi.
+enum ReportInterval {
+  REPORT_INTERVAL_UNSPECIFIED = 0;
+  REPORT_INTERVAL_DAY = 1;
+  REPORT_INTERVAL_WEEK = 2;
+  REPORT_INTERVAL_MONTH = 3;
+}
+
+// Tổng quan cơ bản của task trong 1 profile + khoảng thời gian.
+// Report service tổng hợp qua task service (không đọc trực tiếp DB).
+message ReportOverview {
+  string profile_id = 1;
+  // Khoảng thời gian hiệu lực sau khi service áp default (mặc định 30 ngày gần nhất).
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+  int32 total_tasks = 4;
+  int32 root_tasks = 5;
+  int32 subtask_count = 6;
+  int32 todo_tasks = 7;
+  int32 in_progress_tasks = 8;
+  int32 done_tasks = 9;
+  int32 cancelled_tasks = 10;
+  int32 overdue_tasks = 11;
+  // Task có due_at trong vòng 7 ngày tới và chưa done/cancelled.
+  int32 due_soon_tasks = 12;
+  int32 created_in_range = 13;
+  int32 completed_in_range = 14;
+  // 0..100
+  double completion_rate = 15;
+  // 0..100
+  double overdue_rate = 16;
+}
+
+message GetReportOverviewRequest {
+  string profile_id = 1;
+  // Bỏ trống = mặc định 30 ngày gần nhất.
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+  bool include_archived = 4;
+}
+
+message GetReportOverviewResponse {
+  ReportOverview overview = 1;
+}
+
+// 1 dòng trong báo cáo tỉ lệ % task theo status.
+message StatusBreakdownItem {
+  string status_id = 1;
+  string status_name = 2;
+  string status_slug = 3;
+  string color = 4;
+  // todo | in_progress | done | cancelled
+  string category = 5;
+  int32 count = 6;
+  // 0..100
+  double percentage = 7;
+}
+
+message GetStatusBreakdownRequest {
+  string profile_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+  bool include_archived = 4;
+}
+
+message GetStatusBreakdownResponse {
+  repeated StatusBreakdownItem items = 1;
+  int32 total = 2;
+}
+
+// 1 điểm trên line chart: số task tạo mới / hoàn thành trong bucket.
+message TimeSeriesPoint {
+  google.protobuf.Timestamp bucket_start = 1;
+  // Nhãn bucket dạng ngày ISO (YYYY-MM-DD) theo UTC.
+  string bucket = 2;
+  int32 created = 3;
+  int32 completed = 4;
+}
+
+message GetTaskTimeSeriesRequest {
+  string profile_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+  // Bỏ trống = REPORT_INTERVAL_DAY.
+  ReportInterval interval = 4;
+  bool include_archived = 5;
+}
+
+message GetTaskTimeSeriesResponse {
+  ReportInterval interval = 1;
+  repeated TimeSeriesPoint points = 2;
+  int32 total_created = 3;
+  int32 total_completed = 4;
+}
+
+// Số lượng theo 1 giá trị phân loại (category của backlog).
+message CategoryCount {
+  string category = 1;
+  int32 count = 2;
+}
+
+// Thống kê sự kiện (event service) theo khoảng thời gian.
+message EventStats {
+  // Sự kiện giao với [from, to].
+  int32 total_events = 1;
+  int32 planned_events = 2;
+  int32 confirmed_events = 3;
+  int32 cancelled_events = 4;
+  // Sự kiện có start_at >= now (không giới hạn khoảng).
+  int32 upcoming_events = 5;
+  int32 all_day_events = 6;
+}
+
+// Thống kê lịch (calendar service) theo khoảng thời gian.
+message ScheduleStats {
+  // Lịch giao với [from, to].
+  int32 total_schedules = 1;
+  int32 all_day_schedules = 2;
+  int32 upcoming_schedules = 3;
+  // Lịch bắt đầu trong ngày hôm nay (UTC).
+  int32 today_schedules = 4;
+}
+
+// Thống kê backlog (backlog service) theo khoảng thời gian.
+message BacklogStats {
+  // Mục backlog có created_at trong [from, to].
+  int32 total_backlogs = 1;
+  int32 new_backlogs = 2;
+  int32 triaged_backlogs = 3;
+  int32 archived_backlogs = 4;
+  repeated CategoryCount by_category = 5;
+}
+
+message GetActivityReportRequest {
+  string profile_id = 1;
+  // Bỏ trống = mặc định 30 ngày gần nhất.
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+}
+
+message GetActivityReportResponse {
+  string profile_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+  EventStats events = 4;
+  ScheduleStats schedules = 5;
+  BacklogStats backlogs = 6;
+}
+
+service ReportService {
+  rpc GetReportOverview(GetReportOverviewRequest) returns (GetReportOverviewResponse) {
+    option (google.api.http) = {get: "/v1/reports/overview"};
+  }
+
+  rpc GetStatusBreakdown(GetStatusBreakdownRequest) returns (GetStatusBreakdownResponse) {
+    option (google.api.http) = {get: "/v1/reports/status-breakdown"};
+  }
+
+  rpc GetTaskTimeSeries(GetTaskTimeSeriesRequest) returns (GetTaskTimeSeriesResponse) {
+    option (google.api.http) = {get: "/v1/reports/timeseries"};
+  }
+
+  rpc GetActivityReport(GetActivityReportRequest) returns (GetActivityReportResponse) {
+    option (google.api.http) = {get: "/v1/reports/activity"};
+  }
+}

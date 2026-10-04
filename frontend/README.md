@@ -24,7 +24,7 @@ make seed-demo       # tạo 1 profile + 4 status + rule + task mẫu như trong
 src/
 ├── main.tsx                    # Provider (redux) + MantineProvider + Notifications + Router
 ├── theme.ts                    # Mantine theme + color scheme manager + token trỏ CSS var
-├── App.tsx                     # routes: / (board), /calendar, /events, /backlog, /statuses + bootstrap fetchProfiles
+├── App.tsx                     # routes: / (board), /reports, /calendar, /events, /backlog, /statuses + bootstrap fetchProfiles
 ├── types.ts                    # type khớp proto
 ├── styles/
 │   ├── tokens.css              # token màu light/dark (--tm-*) + layout, đổi theo data-mantine-color-scheme
@@ -37,7 +37,7 @@ src/
 │   ├── useLanguage.ts          # hook đọc/đổi ngôn ngữ
 │   └── locales/{vi,en}.json    # resource dịch
 ├── context/                    # Redux Toolkit: store + slice tách theo page
-│   ├── store.ts                # configureStore (session, board, calendar, event, backlog, statusesPage)
+│   ├── store.ts                # configureStore (session, board, calendar, event, backlog, report, statusesPage)
 │   ├── hooks.ts                # useAppDispatch / useAppSelector có type
 │   ├── index.ts                # re-export store + hooks + use* của từng page
 │   ├── session/                # slice dùng chung: profiles, profileId, query
@@ -45,6 +45,7 @@ src/
 │   ├── calendar/               # slice CalendarPage: schedules theo khoảng thời gian + CRUD
 │   ├── event/                  # slice EventPage: events + CRUD
 │   ├── backlog/                # slice BacklogPage: backlogs + filter status/category + CRUD
+│   ├── report/                 # slice ReportPage: overview + breakdown + timeseries theo filter
 │   └── statuses/               # slice StatusesPage: statuses/transitions/tasks, seed
 ├── api/
 │   ├── client.ts               # fetch wrapper, ApiError, getErrorCode/getErrorMessage, asList/unwrap envelope
@@ -52,7 +53,8 @@ src/
 │   ├── task.ts                 # /v1/statuses, /v1/transitions, /v1/tasks
 │   ├── calendar.ts             # /v1/schedules
 │   ├── event.ts                # /v1/events
-│   └── backlog.ts              # /v1/backlogs
+│   ├── backlog.ts              # /v1/backlogs
+│   └── report.ts               # /v1/reports/overview, /status-breakdown, /timeseries
 ├── config/
 │   └── error_codes.json        # MIRROR bộ mã lỗi chuẩn (sinh bằng `make error-codes`, không sửa tay)
 ├── lib/
@@ -69,21 +71,24 @@ src/
 │   ├── calendar/               # ScheduleFormModal — modal CRUD lịch
 │   ├── event/                  # EventFormModal — modal CRUD sự kiện (có status)
 │   ├── backlog/                # BacklogFormModal — modal CRUD mục backlog
+│   ├── report/                 # ReportOverviewCards, StatusBreakdownChart, TaskTrendChart (line SVG),
+│   │                           # ActivityStats + DonutBreakdown (lịch/sự kiện/backlog)
 │   └── common/States.tsx       # ApiErrorAlert / CenteredPanel / LoadingBlock
 └── pages/                      # mỗi page = 1 thư mục
     ├── BoardPage/              # index.tsx + BoardPage.module.css
     ├── CalendarPage/           # FullCalendar (dayGrid/timeGrid) + modal CRUD lịch
     ├── EventPage/              # bảng sự kiện + filter status + modal CRUD
     ├── BacklogPage/            # bảng backlog + filter status + modal CRUD
+    ├── ReportPage/             # tổng quan + donut % theo status + line chart theo khoảng
     └── StatusesPage/           # index.tsx + StatusesPage.module.css
 ```
 
 ## State (Redux Toolkit)
 
-- Store gom 6 slice: `session` (dùng chung), `board` (BoardPage), `calendar` (CalendarPage),
-  `event` (EventPage), `backlog` (BacklogPage), `statusesPage` (StatusesPage).
+- Store gom 7 slice: `session` (dùng chung), `board` (BoardPage), `calendar` (CalendarPage),
+  `event` (EventPage), `backlog` (BacklogPage), `report` (ReportPage), `statusesPage` (StatusesPage).
 - Component dùng hook theo page: `useSession()`, `useBoard()`, `useCalendar()`, `useEvent()`,
-  `useBacklog()`, `useStatuses()`, `useSidebarCounts()`. Muốn truy cập thô thì dùng
+  `useBacklog()`, `useReport()`, `useStatuses()`, `useSidebarCounts()`. Muốn truy cập thô thì dùng
   `useAppSelector` / `useAppDispatch`.
 - Async qua `createAsyncThunk` (fetch + mutate rồi refetch); derived data memo hoá bằng
   `createSelector` (cardsByStatus, visibleTaskCount, statusById, taskById).
@@ -164,7 +169,7 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 ## Nối API
 
 - Dev: Vite proxy `/api/identity/*` → `:8081`, `/api/task/*` → `:8082`, `/api/calendar/*` → `:8083`,
-  `/api/event/*` → `:8085`, `/api/backlog/*` → `:8086` (bỏ prefix).
+  `/api/event/*` → `:8085`, `/api/backlog/*` → `:8086`, `/api/report/*` → `:8087` (bỏ prefix).
 - Prod (Docker): nginx proxy y hệt, xem `nginx.conf`. FE **luôn gọi same-origin** (`/api/...`
   trên chính port frontend) nên khi chạy sau Cloudflare Tunnel chỉ có một origin/port; xem
   `deployments/docker/README.md`. Vì vậy `VITE_*_API_URL` phải giữ dạng đường dẫn tương đối.
@@ -204,6 +209,10 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 | Tạo / sửa / xoá sự kiện | `POST /v1/events`, `PATCH /v1/events/{id}`, `DELETE /v1/events/{id}` |
 | Backlog (bảng + filter status, category read-only) | `GET /v1/backlogs?profile_id=...&status=...` |
 | Tạo / sửa / xoá mục backlog | `POST /v1/backlogs`, `PATCH /v1/backlogs/{id}`, `DELETE /v1/backlogs/{id}` |
+| Thẻ tổng quan báo cáo | `GET /v1/reports/overview?profile_id=...&from=...&to=...` |
+| Donut tỉ lệ % theo status | `GET /v1/reports/status-breakdown?profile_id=...&from=...&to=...` |
+| Line chart tạo mới/hoàn thành | `GET /v1/reports/timeseries?profile_id=...&interval=REPORT_INTERVAL_DAY` (hoặc `_WEEK`/`_MONTH`) |
+| Thống kê lịch, sự kiện & backlog | `GET /v1/reports/activity?profile_id=...&from=...&to=...` (sự kiện theo status, lịch trong kỳ/hôm nay, backlog theo status + category) |
 
 ## Chưa có trong base (đã có sẵn chỗ trên UI)
 
@@ -219,7 +228,7 @@ Sidebar đọc từ `components/layout/navigation.ts` (`NAV_SECTIONS`), chia 3 v
 
 | Vùng | Nhãn i18n | Nội dung dự kiến | Hiện tại |
 |---|---|---|---|
-| `dashboard` | `nav.groups.dashboard` | menu thống kê | trống (hiện gợi ý "sắp có") |
+| `dashboard` | `nav.groups.dashboard` | menu thống kê | **Báo cáo** (`/reports`) |
 | `planning` | `nav.groups.planning` | task, calendar, event, backlog | **Công việc của tôi** (`/`) + **Lịch** (`/calendar`) + **Sự kiện** (`/events`) + **Backlog** (`/backlog`) |
 | `config` | `nav.groups.config` | cấu hình (status…) | **Trạng thái & vòng đời** (`/statuses`) |
 
@@ -239,10 +248,12 @@ việc gom task + quan sát/phân tích:
   đọc/ghi `event.events` qua event service.
 - **Kế hoạch → Backlog** (`/backlog`) — email mail worker không phân loại được, đọc/ghi
   `backlog.backlogs` qua backlog service; filter theo status, sửa trạng thái/lý do.
+- **Tổng quan → Báo cáo** (`/reports`) — thẻ tổng quan, donut tỉ lệ % task theo status và line chart
+  tạo mới/hoàn thành theo khoảng thời gian (ngày/tuần/tháng); đọc `report` service (`/v1/reports/*`).
 - **Cấu hình → Trạng thái & vòng đời** (`/statuses`) — cấu hình cột cho board.
 
 Đã bỏ: các navlink doanh nghiệp (Department/Employee/Payroll/Schedule/Design/Project Manager/HR/
 Development), card **Upgrade PRO**, breadcrumb Dashboard/Project, nút **Invite**, cụm avatar nhóm.
 Dự kiến bổ sung sau (dùng lại dữ liệu task hiện có, chưa cần backend mới): **Hộp thư/Noti** (quá hạn,
-đến hạn, task chưa có trạng thái) và **Tổng quan/Insights** (thống kê theo trạng thái & độ ưu tiên)
-vào vùng **Tổng quan**.
+đến hạn, task chưa có trạng thái) và biểu đồ theo **độ ưu tiên** trong vùng **Tổng quan** (đã có báo
+cáo theo status + thời gian).

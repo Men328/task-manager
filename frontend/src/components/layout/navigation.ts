@@ -3,6 +3,7 @@ import {
   IconArrowsExchange,
   IconCalendarEvent,
   IconCalendarMonth,
+  IconChartHistogram,
   IconChecklist,
 } from '@tabler/icons-react';
 
@@ -25,7 +26,9 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     key: 'dashboard',
     labelKey: 'nav.groups.dashboard',
-    items: [],
+    items: [
+      { key: 'reports', labelKey: 'nav.reports', icon: IconChartHistogram, to: '/reports' },
+    ],
   },
   {
     key: 'planning',

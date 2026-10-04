@@ -11,6 +11,7 @@ import { BoardPage } from './pages/BoardPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { EventPage } from './pages/EventPage';
 import { LoginPage } from './pages/LoginPage';
+import { ReportPage } from './pages/ReportPage';
 import { StatusesPage } from './pages/StatusesPage';
 
 const CALLBACK_PATH = '/auth/callback';
@@ -44,6 +45,7 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<BoardPage />} />
+          <Route path="/reports" element={<ReportPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/events" element={<EventPage />} />
           <Route path="/backlog" element={<BacklogPage />} />

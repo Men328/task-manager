@@ -1,0 +1,263 @@
+.panel {
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-border);
+  border-radius: var(--tm-radius-panel);
+  box-shadow: var(--tm-shadow-card);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 10px;
+}
+
+.panelTitle {
+  color: var(--tm-text);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.panelDesc {
+  color: var(--tm-text-muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.panelBody {
+  flex: 1;
+  min-height: 0;
+  padding: 0 16px 16px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--tm-text-muted);
+  font-size: 12px;
+}
+
+.legendSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+
+.statCard {
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-border);
+  border-radius: var(--tm-radius-card);
+  box-shadow: var(--tm-shadow-card);
+  padding: 14px 15px;
+  height: 100%;
+}
+
+.statLabel {
+  color: var(--tm-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.statValue {
+  color: var(--tm-text);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-top: 6px;
+}
+
+.statHint {
+  color: var(--tm-text-faint);
+  font-size: 11.5px;
+  margin-top: 3px;
+}
+
+.donutWrap {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.donutCenterValue {
+  fill: var(--tm-text);
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.donutCenterLabel {
+  fill: var(--tm-text-muted);
+  font-size: 11px;
+}
+
+.breakdownList {
+  flex: 1;
+  min-width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.breakdownRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.breakdownName {
+  flex: 1;
+  min-width: 0;
+  color: var(--tm-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breakdownCount {
+  color: var(--tm-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdownPercent {
+  color: var(--tm-text);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  width: 52px;
+  text-align: right;
+}
+
+.empty {
+  color: var(--tm-text-muted);
+  font-size: 12.5px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.sectionTitle {
+  color: var(--tm-text);
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+
+.sectionDesc {
+  color: var(--tm-text-muted);
+  font-size: 12px;
+}
+
+.categoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.categoryRow {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.categoryHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.categoryName {
+  color: var(--tm-text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.categoryValue {
+  color: var(--tm-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.barTrack {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--tm-progress-track);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--tm-brand);
+}
+
+.chartWrap {
+  position: relative;
+  width: 100%;
+}
+
+.gridLine {
+  stroke: var(--tm-border);
+  stroke-width: 1;
+}
+
+.axisLabel {
+  fill: var(--tm-text-faint);
+  font-size: 10.5px;
+}
+
+.hoverLine {
+  stroke: var(--tm-border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-border-strong);
+  border-radius: 10px;
+  box-shadow: var(--tm-shadow-card-hover);
+  padding: 8px 10px;
+  min-width: 132px;
+  transform: translate(-50%, 0);
+}
+
+.tooltipTitle {
+  color: var(--tm-text);
+  font-size: 11.5px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--tm-text-muted);
+}
+
+.tooltipValue {
+  color: var(--tm-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

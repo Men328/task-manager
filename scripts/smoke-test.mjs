@@ -1,6 +1,6 @@
 /**
  * Smoke test end-to-end cho base: gọi thẳng HTTP gateway của identity + task +
- * calendar + event + backlog.
+ * calendar + event + backlog + report.
  * Chạy qua `make smoke` (script sẽ tự build & start service).
  *
  * Lưu ý mapping mã lỗi của grpc-gateway:
@@ -14,6 +14,7 @@ const TASK = process.env.TASK_URL ?? 'http://localhost:8082';
 const CALENDAR = process.env.CALENDAR_URL ?? 'http://localhost:8083';
 const EVENT = process.env.EVENT_URL ?? 'http://localhost:8085';
 const BACKLOG = process.env.BACKLOG_URL ?? 'http://localhost:8086';
+const REPORT = process.env.REPORT_URL ?? 'http://localhost:8087';
 
 async function req(method, url, body) {
   const res = await fetch(url, {
@@ -324,6 +325,62 @@ checkCode('GET /v1/backlogs/{id} không tồn tại -> 404 + BACKLOG_NOT_FOUND',
 check('DELETE /v1/backlogs/{id}', await req('DELETE', `${BACKLOG}/v1/backlogs/${backlogId}`), 200);
 checkCode('GET /v1/backlogs/{id} sau khi xoá -> 404 + BACKLOG_NOT_FOUND',
   await req('GET', `${BACKLOG}/v1/backlogs/${backlogId}`), 404, 'BACKLOG_NOT_FOUND');
+
+// ---------------------------------------------------------------- report
+check('POST /v1/tasks (report fixture)',
+  await req('POST', `${TASK}/v1/tasks`, { profile_id: profileId, title: 'Báo cáo fixture' }),
+  200);
+check('GET /v1/reports/overview (tổng quan + khoảng mặc định)',
+  await req('GET', `${REPORT}/v1/reports/overview?profile_id=${profileId}`), 200,
+  (r) => r.data.overview?.totalTasks >= 1 &&
+    r.data.overview?.completionRate >= 0 &&
+    typeof r.data.overview?.from === 'string' &&
+    typeof r.data.overview?.to === 'string');
+check('GET /v1/reports/status-breakdown (đủ status, tổng % = 100)',
+  await req('GET', `${REPORT}/v1/reports/status-breakdown?profile_id=${profileId}`), 200,
+  (r) => {
+    const items = r.data.items ?? [];
+    const count = items.reduce((sum, item) => sum + item.count, 0);
+    const percent = items.reduce((sum, item) => sum + item.percentage, 0);
+    return items.length === 4 && count === r.data.total && Math.abs(percent - 100) < 0.5;
+  });
+check('GET /v1/reports/timeseries (day, zero-fill đủ bucket)',
+  await req('GET', `${REPORT}/v1/reports/timeseries?profile_id=${profileId}&interval=REPORT_INTERVAL_DAY`), 200,
+  (r) => r.data.interval === 'REPORT_INTERVAL_DAY' &&
+    r.data.points?.length >= 30 &&
+    r.data.points.some((point) => point.created >= 1) &&
+    r.data.totalCreated >= 1);
+checkCode('GET /v1/reports/overview thiếu profile_id -> 400 + REPORT_PROFILE_ID_REQUIRED',
+  await req('GET', `${REPORT}/v1/reports/overview`), 400, 'REPORT_PROFILE_ID_REQUIRED');
+checkCode('GET /v1/reports/overview from > to -> 400 + REPORT_RANGE_INVALID',
+  await req('GET', `${REPORT}/v1/reports/overview?profile_id=${profileId}&from=2030-01-02T00:00:00Z&to=2030-01-01T00:00:00Z`),
+  400, 'REPORT_RANGE_INVALID');
+
+check('POST /v1/events (activity fixture)',
+  await req('POST', `${EVENT}/v1/events`, {
+    profile_id: profileId, title: 'Sự kiện thống kê', start_at: '2026-11-20T07:00:00Z',
+  }),
+  200);
+check('POST /v1/schedules (activity fixture)',
+  await req('POST', `${CALENDAR}/v1/schedules`, {
+    profile_id: profileId, title: 'Lịch thống kê', start_at: '2026-11-21T07:00:00Z',
+  }),
+  200);
+check('POST /v1/backlogs (activity fixture)',
+  await req('POST', `${BACKLOG}/v1/backlogs`, {
+    profile_id: profileId, title: 'Backlog thống kê', category: 'task',
+  }),
+  200);
+check('GET /v1/reports/activity (sự kiện + lịch + backlog)',
+  await req('GET', `${REPORT}/v1/reports/activity?profile_id=${profileId}&from=2026-01-01T00:00:00Z&to=2027-01-01T00:00:00Z`),
+  200,
+  (r) => r.data.events?.totalEvents >= 1 &&
+    r.data.events?.plannedEvents >= 1 &&
+    r.data.schedules?.totalSchedules >= 1 &&
+    r.data.backlogs?.totalBacklogs >= 1 &&
+    (r.data.backlogs?.byCategory ?? []).some((entry) => entry.category === 'task' && entry.count >= 1));
+checkCode('GET /v1/reports/activity thiếu profile_id -> 400 + REPORT_PROFILE_ID_REQUIRED',
+  await req('GET', `${REPORT}/v1/reports/activity`), 400, 'REPORT_PROFILE_ID_REQUIRED');
 
 console.log(failures === 0 ? '\nSMOKE: ALL PASS' : `\nSMOKE: ${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);
