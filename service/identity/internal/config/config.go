@@ -32,6 +32,10 @@ type Config struct {
 	SessionSecret string
 	SessionTTL    time.Duration
 	CookieSecure  bool
+
+	SoketiAppKey        string
+	SoketiAppSecret     string
+	SoketiChannelPrefix string
 }
 
 func Load() Config {
@@ -57,7 +61,15 @@ func Load() Config {
 		SessionSecret: os.Getenv("SESSION_SECRET"),
 		SessionTTL:    getduration("SESSION_TTL", 720*time.Hour),
 		CookieSecure:  getbool("COOKIE_SECURE", false),
+
+		SoketiAppKey:        os.Getenv("SOKETI_APP_KEY"),
+		SoketiAppSecret:     os.Getenv("SOKETI_APP_SECRET"),
+		SoketiChannelPrefix: getenv("SOKETI_CHANNEL_PREFIX", "noti-internal-"),
 	}
+}
+
+func (c Config) SoketiConfigured() bool {
+	return strings.TrimSpace(c.SoketiAppKey) != "" && strings.TrimSpace(c.SoketiAppSecret) != ""
 }
 
 func (c Config) GoogleOAuthConfigured() bool {

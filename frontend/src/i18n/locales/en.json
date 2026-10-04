@@ -36,6 +36,20 @@
     "theme": "Appearance",
     "signOut": "Sign out"
   },
+  "notice": {
+    "title": "Notifications",
+    "markAll": "Mark all read",
+    "empty": "No notifications yet",
+    "loadError": "Could not load notifications"
+  },
+  "taskDetail": {
+    "title": "Task details",
+    "description": "Description",
+    "noDescription": "No description",
+    "due": "Due",
+    "created": "Created",
+    "subtasks": "Subtasks"
+  },
   "theme": {
     "light": "Light",
     "dark": "Dark",

@@ -16,9 +16,10 @@ import { IconArchive, IconChevronRight, IconPencil, IconPlus } from '@tabler/ico
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
+import { getBacklog } from '../../api/backlog';
 import BacklogFormModal from '../../components/backlog/BacklogFormModal';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
-import { useBacklog, useSession } from '../../context';
+import { useBacklog, useNoticeFocus, useSession } from '../../context';
 import {
   BACKLOG_CATEGORY_LABEL_KEY,
   BACKLOG_STATUS_COLOR,
@@ -72,6 +73,11 @@ export function BacklogPage() {
     setModalOpened(false);
     setEditing(null);
   };
+
+  useNoticeFocus<Backlog>(
+    async (id) => backlogState.items.find((item) => item.id === id) ?? (await getBacklog(id).catch(() => null)),
+    (item) => openEdit(item),
+  );
 
   const handleDelete = async (item: Backlog) => {
     setDeleting(true);

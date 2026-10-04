@@ -20,7 +20,7 @@ make gen
 
 Luồng: `buf dep update` (tải `google/api/annotations.proto`) → `buf lint` → `buf generate` →
 `go mod tidy` cho **từng module** (`common`, `service/backlog`, `service/calendar`, `service/event`,
-`service/identity`, `service/mail-provider`, `service/report`, `service/task`).
+`service/identity`, `service/mail-provider`, `service/notification`, `service/report`, `service/task`).
 
 Output:
 
@@ -33,6 +33,8 @@ common/gen/go/identity/v1/profile.pb.gw.go
 common/gen/go/identity/v1/profile_grpc.pb.go
 common/gen/go/mail/v1/mail.pb.go
 common/gen/go/mail/v1/mail_grpc.pb.go
+common/gen/go/notification/v1/notice.pb.go
+common/gen/go/notification/v1/notice_grpc.pb.go
 common/gen/go/report/v1/report*.go
 common/gen/go/task/v1/{task,status,transition}*.go
 common/gen/openapi/task_manager.swagger.json
@@ -54,6 +56,7 @@ make run-event
 make run-backlog
 make run-report           # cần task service đang chạy (:9082)
 make run-mail-provider   # cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY để chạy đủ luồng
+make run-notification    # cần soketi + SESSION_SECRET để push/notice API
 
 # hoặc chạy riêng từng process
 make run-identity-grpc     # :9081
@@ -70,6 +73,7 @@ curl -s localhost:8085/healthz   # {"status":"ok","service":"event"}
 curl -s localhost:8086/healthz   # {"status":"ok","service":"backlog"}
 curl -s localhost:8087/healthz   # {"status":"ok","service":"report"}
 curl -s localhost:8084/healthz   # {"status":"ok","service":"mail-provider"}
+curl -s localhost:8088/healthz   # {"status":"ok","service":"notification"}
 ```
 
 `/healthz` chỉ trả 200 khi gateway gọi được gRPC health service của process gRPC tương ứng.
@@ -84,13 +88,14 @@ make web-dev
 Vite proxy `/api/identity/*` → `localhost:8081`, `/api/task/*` → `localhost:8082`,
 `/api/calendar/*` → `localhost:8083`, `/api/event/*` → `localhost:8085`,
 `/api/backlog/*` → `localhost:8086`, `/api/report/*` → `localhost:8087`,
-`/api/mail/*` → `localhost:8084`
+`/api/mail/*` → `localhost:8084`, `/api/notification/*` → `localhost:8088`,
+`/api/soketi/*` → `localhost:6001` (WebSocket, `ws: true`)
 (xem `frontend/vite.config.ts`).
 
 ## 5. Chạy bằng Docker
 
 ```bash
-make up        # build + start: postgres, migrate, rustfs, identity(-grpc), task(-grpc), calendar(-grpc), event(-grpc), backlog(-grpc), report(-grpc), mail-provider(-grpc), frontend
+make up        # build + start: postgres, migrate, rustfs, soketi, identity(-grpc), task(-grpc), calendar(-grpc), event(-grpc), backlog(-grpc), report(-grpc), notification(-grpc), mail-provider(-grpc), frontend
 make ps
 make logs
 make down
@@ -102,8 +107,8 @@ Hoặc trực tiếp:
 docker compose -f deployments/docker/docker-compose.yml up --build -d
 ```
 
-Thứ tự khởi động: `postgres (healthy)` → `migrate (exit 0)` → `rustfs (healthy)` →
-`*-grpc` → gateway `identity`/`task`/`calendar`/`event`/`backlog`/`report`/`mail-provider` (healthy) →
+Thứ tự khởi động: `postgres (healthy)` → `migrate (exit 0)` → `rustfs (healthy)` + `soketi (healthy)` →
+`*-grpc` → gateway `identity`/`task`/`calendar`/`event`/`backlog`/`report`/`notification`/`mail-provider` (healthy) →
 `frontend`. Mỗi service Go chạy 2 container: `<svc>-grpc` và `<svc>` (gateway).
 
 Dockerfile nằm trong từng service (`service/*/Dockerfile`, `frontend/Dockerfile`); build context là
@@ -131,10 +136,10 @@ Chi tiết + bảng ánh xạ với `design/db_schema.dbml`: `deployments/migrat
 make smoke
 ```
 
-Build 14 binary (gRPC + gateway của 7 service), start ở port mặc định, gọi thật toàn bộ luồng
+Build 16 binary (gRPC + gateway của 8 service), start ở port mặc định, gọi thật toàn bộ luồng
 (profile → status → transition rule → task cha/con → đổi status → ràng buộc xoá → CRUD lịch →
 sự kiện → backlog → báo cáo) rồi tắt.
-Yêu cầu port `8081-8087` và `9081-9087` đang trống.
+Yêu cầu port `8081-8088` và `9081-9088` đang trống.
 
 Khi service đã chạy sẵn thì chỉ chạy phần test:
 
@@ -210,7 +215,7 @@ go build all               # kiểm tra
 
 Rồi reload cửa sổ IDE để gopls load lại workspace.
 
-`go.work` và cả 9 module đang ở `go 1.25.0` — đây là mức tối thiểu mà dependency yêu cầu, nên
+`go.work` và cả 10 module đang ở `go 1.25.0` — đây là mức tối thiểu mà dependency yêu cầu, nên
 **Go >= 1.25 là chạy được**. Đừng chạy lại `go work init` (nó ghi version toolchain hiện tại vào `go.work`).
 
 ### `make vet` báo lỗi trong `.../pkg/mod/google.golang.org/protobuf@...`
@@ -248,10 +253,11 @@ Mỗi service đọc env với default như sau:
 `CALENDAR_GRPC_DIAL_ADDR` (`:9083`), `BACKLOG_GRPC_DIAL_ADDR` (`:9086`) rồi tổng hợp.
 `TASK_TIMEOUT` và `ACTIVITY_TIMEOUT` (mặc định `10s`) là timeout mỗi lần gọi nguồn dữ liệu.
 
-`DATABASE_URL` dùng cho `cmd/grpc` của identity, task, calendar, event, backlog **và** của
+`DATABASE_URL` dùng cho `cmd/grpc` của identity, task, calendar, event, backlog, notification **và** của
 mail-provider: có giá trị thì chạy repository Postgres (mail-provider lưu subscription vào
 `mail_provider.sessions` + `mail_provider.noti_indexes`; calendar lưu lịch vào `calendar.schedules`;
-event lưu sự kiện vào `event.events`; backlog lưu email chưa phân loại vào `backlog.backlogs`),
+event lưu sự kiện vào `event.events`; backlog lưu email chưa phân loại vào `backlog.backlogs`;
+notification lưu thông báo vào `notification.notices`),
 rỗng thì quay về in-memory stub (log cảnh báo). Các biến `GOOGLE_*`, `FRONTEND_BASE_URL`,
 `SESSION_*` chỉ gateway identity (`cmd/http`) dùng cho luồng đăng nhập Google.
 
@@ -259,7 +265,14 @@ rỗng thì quay về in-memory stub (log cảnh báo). Các biến `GOOGLE_*`, 
 tích quyền đọc mail. `mail-provider` có bộ biến riêng khá dài — `MAIL_*` (topic Pub/Sub, label, gia
 hạn watch, queue/worker), `DEEPSEEK_*` (phân loại email), `GMAIL_*`, `GOOGLE_CLIENT_ID/SECRET`
 (refresh token), `S3_*` (lưu email gốc + attachment lên object storage S3-compatible) và các
-`*_GRPC_DIAL_ADDR` tới task/calendar/event/backlog. Bảng đầy đủ: `service/mail-provider/README.md`.
+`*_GRPC_DIAL_ADDR` tới task/calendar/event/backlog **+ `NOTIFICATION_GRPC_DIAL_ADDR`** (mặc định
+`127.0.0.1:9088`) để đẩy notice. Bảng đầy đủ: `service/mail-provider/README.md`.
+
+`notification` đọc `SESSION_SECRET` để verify session JWT của identity và các biến `SOKETI_*`
+(`SOKETI_BASE_URL`, `SOKETI_APP_ID`, `SOKETI_APP_KEY`, `SOKETI_APP_SECRET`,
+`SOKETI_CHANNEL_PREFIX`, `SOKETI_TIMEOUT`) để publish. Gateway `identity` cần `SOKETI_APP_KEY` +
+`SOKETI_APP_SECRET` để ký uỷ quyền kênh (`POST /v1/auth/soketi`). Chi tiết:
+`service/notification/README.md`.
 ## Đăng nhập Google (local)
 
 ```bash

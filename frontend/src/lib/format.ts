@@ -20,6 +20,26 @@ export function formatShortDate(
   return date.toLocaleDateString(locale, { day: '2-digit', month: 'short' });
 }
 
+/** "12/09 14:30" theo locale — trả null nếu không parse được. */
+export function formatDateTime(
+  value: string | null | undefined,
+  locale = 'vi-VN',
+): string | null {
+  if (!hasText(value)) {
+    return null;
+  }
+  const date = new Date(value as string);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toLocaleString(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 /** Ngày quá hạn (so với hôm nay, bỏ qua giờ). */
 export function isOverdue(value: string | null | undefined): boolean {
   if (!hasText(value)) {

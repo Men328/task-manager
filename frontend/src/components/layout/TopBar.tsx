@@ -1,22 +1,21 @@
 import {
-  ActionIcon,
   Avatar,
   Burger,
   Group,
-  Indicator,
   Menu,
   Stack,
   Text,
   TextInput,
   UnstyledButton,
 } from '@mantine/core';
-import { IconBell, IconLogout, IconSearch } from '@tabler/icons-react';
+import { IconLogout, IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import { useSession } from '../../context';
 import { avatarColor, initials } from '../../lib/format';
 import { tokens } from '../../theme';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { NotificationMenu } from './NotificationMenu';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import classes from './TopBar.module.css';
 
@@ -60,17 +59,7 @@ export function TopBar({ navOpened, onToggleNav }: { navOpened: boolean; onToggl
         <ThemeSwitcher />
         <LanguageSwitcher />
 
-        <Indicator color="red" size={7} offset={4} withBorder disabled={false}>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size="lg"
-            radius="md"
-            aria-label={t('topbar.notifications')}
-          >
-            <IconBell size={18} style={{ color: tokens.textMuted }} />
-          </ActionIcon>
-        </Indicator>
+        <NotificationMenu />
 
         <Menu shadow="md" width={220} position="bottom-end" radius="md" withinPortal>
           <Menu.Target>

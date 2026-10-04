@@ -22,6 +22,11 @@ func warnAuthConfig(cfg config.Config) {
 			"frontend_base_url", cfg.FrontendBaseURL,
 		)
 	}
+	if cfg.SoketiConfigured() {
+		slog.Info("uỷ quyền kênh soketi đã sẵn sàng", "channel_prefix", cfg.SoketiChannelPrefix)
+	} else {
+		slog.Warn("thiếu SOKETI_APP_KEY/SOKETI_APP_SECRET: /v1/auth/soketi sẽ trả IDENTITY_AUTH_SOKETI_NOT_CONFIGURED")
+	}
 }
 
 func main() {
@@ -34,6 +39,7 @@ func main() {
 			fx.Annotate(newMailServiceClient, fx.ParamTags(`name:"mail"`)),
 			newSessionSigner,
 			newGoogleOAuth,
+			newSoketiAuth,
 			newAuthRoutes,
 			fx.Annotate(newServeMux, fx.ParamTags("", `name:"identity"`, "")),
 			newHTTPListener,

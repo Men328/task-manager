@@ -14,6 +14,7 @@ var (
 	ErrEventCreate    = errors.New("event creation failed")
 	ErrBacklogCreate  = errors.New("backlog creation failed")
 	ErrStorageFailed  = errors.New("object storage failed")
+	ErrNoticeCreate   = errors.New("notice creation failed")
 	ErrQueueFull      = errors.New("notification queue is full")
 	ErrUnauthorized   = errors.New("notification is not authenticated")
 	ErrInvalidPayload = errors.New("notification payload is invalid")

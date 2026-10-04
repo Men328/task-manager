@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 # Mỗi thư mục trong service/ (và common/) là 1 Go module riêng, quản lý bằng go.work.
 # Vì root không phải module nên `go build ./...` không dùng được -> loop từng module.
-MODULES := common service/backlog service/calendar service/event service/identity service/mail-provider service/report service/task tools/quality
+MODULES := common service/backlog service/calendar service/event service/identity service/mail-provider service/notification service/report service/task tools/quality
 
 GOBIN ?= $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(GOBIN):$(PATH)
@@ -21,6 +21,7 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
         run-event run-event-grpc run-event-http \
         run-backlog run-backlog-grpc run-backlog-http \
         run-mail-provider run-mail-provider-grpc run-mail-provider-http \
+        run-notification run-notification-grpc run-notification-http \
         run-report run-report-grpc run-report-http \
         quality-all quality-fmt quality-vet quality-arch
 
@@ -176,6 +177,15 @@ run-mail-provider-grpc: ## Chỉ chạy gRPC server mail-provider (:9084)
 
 run-mail-provider-http: ## Chỉ chạy HTTP gateway mail-provider (:8084)
 	cd service/mail-provider && go run ./cmd/http
+
+run-notification: ## Chạy notification local: gRPC :9088 + gateway :8088 (cần soketi)
+	bash scripts/run-service.sh notification
+
+run-notification-grpc: ## Chỉ chạy gRPC server notification (:9088)
+	cd service/notification && go run ./cmd/grpc
+
+run-notification-http: ## Chỉ chạy HTTP gateway notification (:8088)
+	cd service/notification && go run ./cmd/http
 
 run-report: ## Chạy report local: gRPC :9087 + gateway :8087 (cần task service)
 	bash scripts/run-service.sh report

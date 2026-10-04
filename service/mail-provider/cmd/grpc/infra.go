@@ -16,6 +16,7 @@ import (
 	backlogv1 "taskmanager/common/gen/go/backlog/v1"
 	calendarv1 "taskmanager/common/gen/go/calendar/v1"
 	eventv1 "taskmanager/common/gen/go/event/v1"
+	notificationv1 "taskmanager/common/gen/go/notification/v1"
 	taskv1 "taskmanager/common/gen/go/task/v1"
 	"taskmanager/service/mail-provider/internal/config"
 	"taskmanager/service/mail-provider/internal/model"
@@ -133,6 +134,10 @@ func newBacklogCreator(client backlogv1.BacklogServiceClient, cfg config.Config)
 	return repository.NewBacklogClient(client, cfg.BacklogTimeout)
 }
 
+func newNoticePublisher(client notificationv1.NoticeServiceClient, cfg config.Config) service.NoticePublisher {
+	return repository.NewNotificationClient(client, cfg.NotificationTimeout)
+}
+
 func newTaskConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
 	return dialGRPC(lc, cfg.TaskDialTarget(), "task")
 }
@@ -147,6 +152,10 @@ func newEventConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) 
 
 func newBacklogConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
 	return dialGRPC(lc, cfg.BacklogDialTarget(), "backlog")
+}
+
+func newNotificationConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
+	return dialGRPC(lc, cfg.NotificationDialTarget(), "notification")
 }
 
 func dialGRPC(lc fx.Lifecycle, target string, name string) (*grpc.ClientConn, error) {
@@ -176,6 +185,10 @@ func newEventServiceClient(conn *grpc.ClientConn) eventv1.EventServiceClient {
 
 func newBacklogServiceClient(conn *grpc.ClientConn) backlogv1.BacklogServiceClient {
 	return backlogv1.NewBacklogServiceClient(conn)
+}
+
+func newNotificationServiceClient(conn *grpc.ClientConn) notificationv1.NoticeServiceClient {
+	return notificationv1.NewNoticeServiceClient(conn)
 }
 
 func newNotificationSource(cfg config.Config) service.NotificationSource {

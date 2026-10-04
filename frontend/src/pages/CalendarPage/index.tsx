@@ -12,9 +12,10 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
+import { getSchedule } from '../../api/calendar';
 import ScheduleFormModal from '../../components/calendar/ScheduleFormModal';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
-import { useCalendar, useSession } from '../../context';
+import { useCalendar, useNoticeFocus, useSession } from '../../context';
 import scrollClasses from '../../styles/scroll.module.css';
 import { tokens } from '../../theme';
 import type { Schedule } from '../../types';
@@ -98,6 +99,16 @@ export function CalendarPage() {
       setModalOpened(true);
     }
   };
+
+  useNoticeFocus<Schedule>(
+    async (id) => calendar.schedules.find((item) => item.id === id) ?? (await getSchedule(id).catch(() => null)),
+    (schedule) => {
+      setEditing(schedule);
+      setDefaultStart(null);
+      setDefaultAllDay(false);
+      setModalOpened(true);
+    },
+  );
 
   const handleEventChange = async (arg: EventChangeArg) => {
     if (!arg.event.start) {

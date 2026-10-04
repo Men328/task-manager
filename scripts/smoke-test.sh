@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Smoke test end-to-end: build 7 service (mỗi service gồm gRPC server + gateway),
+# Smoke test end-to-end: build 8 service (mỗi service gồm gRPC server + gateway),
 # chạy ở port mặc định, gọi API thật, rồi tắt.
 # Yêu cầu: go, node >= 20 (dùng fetch), curl.
-# Port 8081-8087 và 9081-9087 phải đang trống.
+# Port 8081-8088 và 9081-9088 phải đang trống.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -27,6 +27,8 @@ go build -o "$BIN_DIR/mail-provider-grpc" ./service/mail-provider/cmd/grpc
 go build -o "$BIN_DIR/mail-provider-http" ./service/mail-provider/cmd/http
 go build -o "$BIN_DIR/report-grpc" ./service/report/cmd/grpc
 go build -o "$BIN_DIR/report-http" ./service/report/cmd/http
+go build -o "$BIN_DIR/notification-grpc" ./service/notification/cmd/grpc
+go build -o "$BIN_DIR/notification-http" ./service/notification/cmd/http
 
 log "start service"
 "$BIN_DIR/identity-grpc" >"$BIN_DIR/identity-grpc.log" 2>&1 &
@@ -57,6 +59,10 @@ MAIL_HTTP_PID=$!
 REPORT_GRPC_PID=$!
 "$BIN_DIR/report-http" >"$BIN_DIR/report-http.log" 2>&1 &
 REPORT_HTTP_PID=$!
+"$BIN_DIR/notification-grpc" >"$BIN_DIR/notification-grpc.log" 2>&1 &
+NOTIFICATION_GRPC_PID=$!
+"$BIN_DIR/notification-http" >"$BIN_DIR/notification-http.log" 2>&1 &
+NOTIFICATION_HTTP_PID=$!
 
 cleanup() {
   kill "$IDENTITY_HTTP_PID" "$IDENTITY_GRPC_PID" \
@@ -65,7 +71,8 @@ cleanup() {
     "$EVENT_HTTP_PID" "$EVENT_GRPC_PID" \
     "$BACKLOG_HTTP_PID" "$BACKLOG_GRPC_PID" \
     "$MAIL_HTTP_PID" "$MAIL_GRPC_PID" \
-    "$REPORT_HTTP_PID" "$REPORT_GRPC_PID" 2>/dev/null || true
+    "$REPORT_HTTP_PID" "$REPORT_GRPC_PID" \
+    "$NOTIFICATION_HTTP_PID" "$NOTIFICATION_GRPC_PID" 2>/dev/null || true
   wait 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
@@ -77,7 +84,8 @@ for _ in $(seq 1 60); do
     && curl -sf localhost:8085/healthz >/dev/null 2>&1 \
     && curl -sf localhost:8086/healthz >/dev/null 2>&1 \
     && curl -sf localhost:8087/healthz >/dev/null 2>&1 \
-    && curl -sf localhost:8084/healthz >/dev/null 2>&1; then
+    && curl -sf localhost:8084/healthz >/dev/null 2>&1 \
+    && curl -sf localhost:8088/healthz >/dev/null 2>&1; then
     break
   fi
   sleep 0.25
@@ -89,7 +97,8 @@ if ! curl -sf localhost:8081/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8085/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8086/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8087/healthz >/dev/null 2>&1 \
-  || ! curl -sf localhost:8084/healthz >/dev/null 2>&1; then
+  || ! curl -sf localhost:8084/healthz >/dev/null 2>&1 \
+  || ! curl -sf localhost:8088/healthz >/dev/null 2>&1; then
   echo "Service không khởi động được. Log:" >&2
   tail -20 \
     "$BIN_DIR/identity-grpc.log" "$BIN_DIR/identity-http.log" \
@@ -98,7 +107,8 @@ if ! curl -sf localhost:8081/healthz >/dev/null 2>&1 \
     "$BIN_DIR/event-grpc.log" "$BIN_DIR/event-http.log" \
     "$BIN_DIR/backlog-grpc.log" "$BIN_DIR/backlog-http.log" \
     "$BIN_DIR/mail-provider-grpc.log" "$BIN_DIR/mail-provider-http.log" \
-    "$BIN_DIR/report-grpc.log" "$BIN_DIR/report-http.log" >&2
+    "$BIN_DIR/report-grpc.log" "$BIN_DIR/report-http.log" \
+    "$BIN_DIR/notification-grpc.log" "$BIN_DIR/notification-http.log" >&2
   exit 1
 fi
 

@@ -27,6 +27,9 @@ export const BACKLOG_BASE_URL: string =
 export const REPORT_BASE_URL: string =
   (import.meta.env.VITE_REPORT_API_URL as string | undefined) ?? '/api/report';
 
+export const NOTIFICATION_BASE_URL: string =
+  (import.meta.env.VITE_NOTIFICATION_API_URL as string | undefined) ?? '/api/notification';
+
 /** Base URL used by the identity service calls. */
 export const identityApi = IDENTITY_BASE_URL;
 
@@ -44,6 +47,9 @@ export const backlogApi = BACKLOG_BASE_URL;
 
 /** Base URL used by the report service calls. */
 export const reportApi = REPORT_BASE_URL;
+
+/** Base URL used by the notification service calls. */
+export const notificationApi = NOTIFICATION_BASE_URL;
 
 export class ApiError extends Error {
   /** HTTP status code, or 0 when the request never reached the server. */

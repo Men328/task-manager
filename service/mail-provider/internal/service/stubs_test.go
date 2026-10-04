@@ -247,6 +247,21 @@ func (b *stubBacklogs) Create(_ context.Context, in model.BacklogInput) (model.B
 	return model.BacklogRef{ID: "backlog-1", Title: in.Title}, nil
 }
 
+type stubNotices struct {
+	created chan model.NoticeInput
+	err     error
+}
+
+func (n *stubNotices) Notify(_ context.Context, in model.NoticeInput) (model.NoticeRef, error) {
+	if n.created != nil {
+		n.created <- in
+	}
+	if n.err != nil {
+		return model.NoticeRef{}, n.err
+	}
+	return model.NoticeRef{ID: "notice-1", Title: in.Title}, nil
+}
+
 type stubStorage struct {
 	mu      sync.Mutex
 	objects map[string][]byte

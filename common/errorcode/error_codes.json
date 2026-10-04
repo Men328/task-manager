@@ -273,6 +273,33 @@
         "en": "Sign-in is currently unavailable. Please try again later."
       }
     },
+    "IDENTITY_AUTH_SOKETI_NOT_CONFIGURED": {
+      "owner": "identity",
+      "grpcCode": "Internal",
+      "httpStatus": 500,
+      "message": {
+        "vi": "Kênh thông báo thời gian thực chưa được cấu hình.",
+        "en": "The realtime notification channel is not configured."
+      }
+    },
+    "IDENTITY_AUTH_SOKETI_REQUEST_INVALID": {
+      "owner": "identity",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Yêu cầu uỷ quyền kênh thông báo không hợp lệ.",
+        "en": "The notification channel authorization request is invalid."
+      }
+    },
+    "IDENTITY_AUTH_SOKETI_CHANNEL_FORBIDDEN": {
+      "owner": "identity",
+      "grpcCode": "PermissionDenied",
+      "httpStatus": 403,
+      "message": {
+        "vi": "Bạn không có quyền nhận thông báo của người dùng khác.",
+        "en": "You are not allowed to subscribe to another user's notifications."
+      }
+    },
     "TASK_PROFILE_ID_REQUIRED": {
       "owner": "task",
       "grpcCode": "InvalidArgument",
@@ -622,6 +649,60 @@
       "message": {
         "vi": "Không lưu được tệp vào kho lưu trữ.",
         "en": "Could not store the file in object storage."
+      }
+    },
+    "MAIL_NOTICE_CREATE_FAILED": {
+      "owner": "mail",
+      "grpcCode": "Internal",
+      "httpStatus": 500,
+      "message": {
+        "vi": "Không đẩy được thông báo sang notification service.",
+        "en": "Could not push the notification to the notification service."
+      }
+    },
+    "NOTIFICATION_PROFILE_ID_REQUIRED": {
+      "owner": "notification",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã hồ sơ.",
+        "en": "Profile id is required."
+      }
+    },
+    "NOTIFICATION_TITLE_REQUIRED": {
+      "owner": "notification",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Tiêu đề thông báo là bắt buộc.",
+        "en": "Notice title is required."
+      }
+    },
+    "NOTIFICATION_TARGET_TYPE_INVALID": {
+      "owner": "notification",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Loại đối tượng của thông báo không hợp lệ.",
+        "en": "The notice target type is invalid."
+      }
+    },
+    "NOTIFICATION_TARGET_ID_REQUIRED": {
+      "owner": "notification",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã đối tượng mà thông báo trỏ tới.",
+        "en": "The notice target id is required."
+      }
+    },
+    "NOTIFICATION_NOT_FOUND": {
+      "owner": "notification",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy thông báo.",
+        "en": "Notice not found."
       }
     },
     "CALENDAR_PROFILE_ID_REQUIRED": {

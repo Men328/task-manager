@@ -10,15 +10,18 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
+import { getTask } from '../../api/task';
 import BoardHeader from '../../components/board/BoardHeader';
 import type { BoardView } from '../../components/board/BoardHeader';
 import KanbanBoard from '../../components/board/KanbanBoard';
 import TaskTable from '../../components/board/TaskTable';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
+import TaskDetailModal from '../../components/task/TaskDetailModal';
 import TaskFormModal from '../../components/task/TaskFormModal';
-import { useAppDispatch, useBoard, useSession } from '../../context';
+import { useAppDispatch, useBoard, useNoticeFocus, useSession } from '../../context';
 import { fetchBoard } from '../../context/board/boardSlice';
 import { tokens } from '../../theme';
+import type { Task } from '../../types';
 import classes from './BoardPage.module.css';
 
 export function BoardPage() {
@@ -31,12 +34,22 @@ export function BoardPage() {
   const [modalOpened, setModalOpened] = useState(false);
   const [presetStatusId, setPresetStatusId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [detailOpened, setDetailOpened] = useState(false);
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
 
   useEffect(() => {
     if (session.profileId) {
       void dispatch(fetchBoard({ profileId: session.profileId }));
     }
   }, [session.profileId, dispatch]);
+
+  useNoticeFocus<Task>(
+    async (id) => board.taskById.get(id) ?? (await getTask(id).catch(() => null)),
+    (task) => {
+      setDetailTask(task);
+      setDetailOpened(true);
+    },
+  );
 
   const loading = session.loading || board.loading;
   const error = session.error ?? board.error;
@@ -173,6 +186,12 @@ export function BoardPage() {
         opened={modalOpened}
         onClose={() => setModalOpened(false)}
         presetStatusId={presetStatusId}
+      />
+
+      <TaskDetailModal
+        opened={detailOpened}
+        onClose={() => setDetailOpened(false)}
+        task={detailTask}
       />
     </Flex>
   );

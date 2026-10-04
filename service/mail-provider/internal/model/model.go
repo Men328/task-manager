@@ -171,3 +171,32 @@ type BacklogRef struct {
 	ID    string
 	Title string
 }
+
+const (
+	NoticeTargetTask     = "task"
+	NoticeTargetSchedule = "schedule"
+	NoticeTargetEvent    = "event"
+	NoticeTargetBacklog  = "backlog"
+)
+
+const (
+	NoticeTypeTaskCreated     = "TASK_CREATED"
+	NoticeTypeScheduleCreated = "SCHEDULE_CREATED"
+	NoticeTypeEventCreated    = "EVENT_CREATED"
+	NoticeTypeBacklogCreated  = "BACKLOG_CREATED"
+)
+
+type NoticeInput struct {
+	ProfileID  string
+	Type       string
+	Title      string
+	Body       string
+	TargetType string
+	TargetID   string
+	Source     string
+}
+
+type NoticeRef struct {
+	ID    string
+	Title string
+}

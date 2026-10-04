@@ -42,6 +42,9 @@ const (
 	IdentityAuthTokenMissing           = "IDENTITY_AUTH_TOKEN_MISSING"
 	IdentityAuthTokenInvalid           = "IDENTITY_AUTH_TOKEN_INVALID"
 	IdentityAuthNotConfigured          = "IDENTITY_AUTH_NOT_CONFIGURED"
+	IdentityAuthSoketiNotConfigured    = "IDENTITY_AUTH_SOKETI_NOT_CONFIGURED"
+	IdentityAuthSoketiRequestInvalid   = "IDENTITY_AUTH_SOKETI_REQUEST_INVALID"
+	IdentityAuthSoketiChannelForbidden = "IDENTITY_AUTH_SOKETI_CHANNEL_FORBIDDEN"
 
 	TaskProfileIDRequired        = "TASK_PROFILE_ID_REQUIRED"
 	TaskTitleRequired            = "TASK_TITLE_REQUIRED"
@@ -83,6 +86,13 @@ const (
 	MailEventCreateFailed    = "MAIL_EVENT_CREATE_FAILED"
 	MailBacklogCreateFailed  = "MAIL_BACKLOG_CREATE_FAILED"
 	MailStorageFailed        = "MAIL_STORAGE_FAILED"
+	MailNoticeCreateFailed   = "MAIL_NOTICE_CREATE_FAILED"
+
+	NotificationProfileIDRequired = "NOTIFICATION_PROFILE_ID_REQUIRED"
+	NotificationTitleRequired     = "NOTIFICATION_TITLE_REQUIRED"
+	NotificationTargetTypeInvalid = "NOTIFICATION_TARGET_TYPE_INVALID"
+	NotificationTargetIDRequired  = "NOTIFICATION_TARGET_ID_REQUIRED"
+	NotificationNotFound          = "NOTIFICATION_NOT_FOUND"
 
 	CalendarProfileIDRequired = "CALENDAR_PROFILE_ID_REQUIRED"
 	CalendarTitleRequired     = "CALENDAR_TITLE_REQUIRED"

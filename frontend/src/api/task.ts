@@ -122,6 +122,15 @@ export async function listTasks(params: ListTasksParams): Promise<Task[]> {
   return asList<Task>(payload, 'tasks');
 }
 
+/** GET /v1/tasks/{id}?include_subtasks=true */
+export function getTask(id: string, includeSubtasks = true): Promise<Task> {
+  return request<Task>(
+    taskApi,
+    `${TASKS_PATH}/${encodeURIComponent(id)}${buildQuery({ include_subtasks: includeSubtasks })}`,
+    { method: 'GET' },
+  ).then((payload) => unwrap<Task>(payload, 'task'));
+}
+
 /** POST /v1/tasks */
 export function createTask(input: CreateTaskInput): Promise<Task> {
   return request<Task>(taskApi, TASKS_PATH, {

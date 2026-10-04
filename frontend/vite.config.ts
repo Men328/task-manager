@@ -51,6 +51,18 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/mail/, ''),
       },
+      '/api/notification': {
+        target: 'http://localhost:8088',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/notification/, ''),
+      },
+      // Soketi (Pusher protocol) giữ nguyên path /app/<key> sau khi bỏ prefix.
+      '/api/soketi': {
+        target: 'http://localhost:6001',
+        changeOrigin: true,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/api\/soketi/, ''),
+      },
     },
   },
   build: {

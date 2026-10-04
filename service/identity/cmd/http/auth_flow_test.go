@@ -143,7 +143,7 @@ func newTestAuthEnv(t *testing.T, fake *fakeGoogle) (*authRoutes, *repository.In
 	}
 	googleUserInfoURL = fake.server.URL + "/userinfo"
 
-	routes := newAuthRoutes(cfg, identityv1.NewProfileServiceClient(conn), &fakeMail{}, google, newSessionSigner(cfg))
+	routes := newAuthRoutes(cfg, identityv1.NewProfileServiceClient(conn), &fakeMail{}, google, newSessionSigner(cfg), newSoketiAuth(cfg, newSessionSigner(cfg)))
 	return routes, profiles
 }
 

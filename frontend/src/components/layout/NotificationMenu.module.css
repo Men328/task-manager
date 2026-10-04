@@ -1,0 +1,46 @@
+.header {
+  border-bottom: 1px solid var(--tm-border);
+}
+
+.indicator {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+.item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--tm-border);
+  text-align: left;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+.item:hover {
+  background: var(--tm-nav-active-bg);
+}
+
+.unread,
+.unread:hover {
+  background: var(--tm-brand-light);
+}
+
+.itemTitle {
+  line-height: 1.35;
+}
+
+.itemBody {
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--tm-brand);
+  flex: 0 0 auto;
+  margin-top: 5px;
+}

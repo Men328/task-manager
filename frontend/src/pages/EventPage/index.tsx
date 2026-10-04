@@ -16,9 +16,10 @@ import { IconCalendarEvent, IconChevronRight, IconPencil, IconPlus } from '@tabl
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
+import { getEvent } from '../../api/event';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
 import EventFormModal from '../../components/event/EventFormModal';
-import { useEvent, useSession } from '../../context';
+import { useEvent, useNoticeFocus, useSession } from '../../context';
 import { EVENT_STATUS_COLOR, EVENT_STATUS_LABEL_KEY } from '../../lib/tokens';
 import scrollClasses from '../../styles/scroll.module.css';
 import { tokens } from '../../theme';
@@ -77,6 +78,11 @@ export function EventPage() {
     setModalOpened(false);
     setEditing(null);
   };
+
+  useNoticeFocus<Event>(
+    async (id) => eventState.events.find((item) => item.id === id) ?? (await getEvent(id).catch(() => null)),
+    (item) => openEdit(item),
+  );
 
   const handleDelete = async (item: Event) => {
     setDeleting(true);
