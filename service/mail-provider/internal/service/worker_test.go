@@ -48,6 +48,22 @@ func newTestWorkerWith(
 	queue *Queue,
 	opts Options,
 ) Worker {
+	return newTestWorkerWithNotices(subs, gmail, analyzer, tasks, schedules, events, backlogs, &stubNotices{}, storage, queue, opts)
+}
+
+func newTestWorkerWithNotices(
+	subs *stubSubscriptions,
+	gmail *stubGmail,
+	analyzer MailAnalyzer,
+	tasks TaskCreator,
+	schedules ScheduleCreator,
+	events EventCreator,
+	backlogs BacklogCreator,
+	notices NoticePublisher,
+	storage BlobStore,
+	queue *Queue,
+	opts Options,
+) Worker {
 	return NewWorker(
 		subs,
 		gmail,
@@ -57,6 +73,7 @@ func newTestWorkerWith(
 		schedules,
 		events,
 		backlogs,
+		notices,
 		storage,
 		queue,
 		opts,
@@ -107,6 +124,69 @@ func TestWorkerCreatesTaskFromNotification(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("worker không tạo task")
+	}
+
+	waitForHistoryID(t, subs, "p1", "120")
+}
+
+func TestWorkerPushesNoticeAfterCreatingTask(t *testing.T) {
+	subs := newStubSubscriptions(model.Subscription{
+		ProfileID:            "p1",
+		Email:                "user@example.com",
+		AccessToken:          "access",
+		AccessTokenExpiresAt: time.Now().Add(time.Hour),
+		HistoryID:            "100",
+	})
+	gmail := &stubGmail{
+		messageIDs:      []string{"m1"},
+		latestHistoryID: "120",
+		messages: map[string]model.EmailMessage{
+			"m1": {ID: "m1", Subject: "Nộp báo cáo", Body: "Hạn thứ sáu"},
+		},
+	}
+	notices := &stubNotices{created: make(chan model.NoticeInput, 1)}
+	queue := NewQueue(4)
+	worker := newTestWorkerWithNotices(
+		subs,
+		gmail,
+		&stubAnalyzer{draft: model.MailDraft{
+			Category:    model.CategoryTask,
+			Actionable:  true,
+			Title:       "Nộp báo cáo",
+			Description: "Gửi báo cáo trước thứ sáu",
+		}},
+		&stubTasks{},
+		&stubSchedules{},
+		&stubEvents{},
+		&stubBacklogs{},
+		notices,
+		newStubStorage(),
+		queue,
+		testOptions(),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() { _ = worker.Run(ctx) }()
+
+	queue.Enqueue(model.Notification{ProfileID: "p1", Email: "user@example.com", HistoryID: "110", MessageID: "m1"})
+
+	select {
+	case input := <-notices.created:
+		if input.ProfileID != "p1" {
+			t.Fatalf("notice phải thuộc đúng profile, nhận %q", input.ProfileID)
+		}
+		if input.Type != model.NoticeTypeTaskCreated {
+			t.Fatalf("notice type = %q, muốn %q", input.Type, model.NoticeTypeTaskCreated)
+		}
+		if input.TargetType != model.NoticeTargetTask || input.TargetID != "task-1" {
+			t.Fatalf("notice trỏ sai đối tượng: %+v", input)
+		}
+		if input.Source != "m1" {
+			t.Fatalf("notice phải ghi nguồn message, nhận %q", input.Source)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("worker không đẩy notice")
 	}
 
 	waitForHistoryID(t, subs, "p1", "120")

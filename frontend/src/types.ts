@@ -108,6 +108,40 @@ export interface Task {
   subtasks?: Task[];
 }
 
+/** notification service: NOTIFICATION.notices — đối tượng notice trỏ tới. */
+export type NoticeTargetType = 'task' | 'schedule' | 'event' | 'backlog';
+
+/**
+ * notification service: NOTIFICATION.notices
+ *
+ * HTTP list trả enum `targetType` dạng tên proto (`NOTICE_TARGET_TYPE_TASK`),
+ * còn payload soketi trả dạng ngắn (`task`); dùng `normalizeTargetType` để quy về
+ * một dạng trước khi so sánh.
+ */
+export interface Notice {
+  id: string;
+  profileId: string;
+  type: string;
+  title: string;
+  body?: string | null;
+  targetType: string;
+  targetId: string;
+  source?: string | null;
+  isRead: boolean;
+  createdAt?: string | null;
+  readAt?: string | null;
+}
+
+const NOTICE_TARGET_TYPES: NoticeTargetType[] = ['task', 'schedule', 'event', 'backlog'];
+
+export function normalizeTargetType(value: string | null | undefined): NoticeTargetType | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const short = value.trim().toLowerCase().replace(/^notice_target_type_/, '');
+  return (NOTICE_TARGET_TYPES as string[]).includes(short) ? (short as NoticeTargetType) : null;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Request payloads                                                           */
 /* -------------------------------------------------------------------------- */

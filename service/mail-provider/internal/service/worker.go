@@ -39,6 +39,7 @@ type notificationWorker struct {
 	schedules ScheduleCreator
 	events    EventCreator
 	backlogs  BacklogCreator
+	notices   NoticePublisher
 	storage   BlobStore
 	queue     *Queue
 	opts      Options
@@ -53,6 +54,7 @@ func NewWorker(
 	schedules ScheduleCreator,
 	events EventCreator,
 	backlogs BacklogCreator,
+	notices NoticePublisher,
 	storage BlobStore,
 	queue *Queue,
 	opts Options,
@@ -66,6 +68,7 @@ func NewWorker(
 		schedules: schedules,
 		events:    events,
 		backlogs:  backlogs,
+		notices:   notices,
 		storage:   storage,
 		queue:     queue,
 		opts:      opts.withDefaults(),
@@ -209,6 +212,7 @@ func (w *notificationWorker) createTask(ctx context.Context, sub model.Subscript
 		return
 	}
 	slog.Info("đã tạo task từ email", "profile_id", sub.ProfileID, "message_id", message.ID, "task_id", created.ID)
+	w.notify(ctx, sub, model.NoticeTypeTaskCreated, model.NoticeTargetTask, created.ID, created.Title, draft.Description, message.ID)
 }
 
 func (w *notificationWorker) createSchedule(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, start time.Time) {
@@ -226,6 +230,7 @@ func (w *notificationWorker) createSchedule(ctx context.Context, sub model.Subsc
 		return
 	}
 	slog.Info("đã tạo lịch từ email", "profile_id", sub.ProfileID, "message_id", message.ID, "schedule_id", created.ID)
+	w.notify(ctx, sub, model.NoticeTypeScheduleCreated, model.NoticeTargetSchedule, created.ID, created.Title, draft.Description, message.ID)
 }
 
 func (w *notificationWorker) createEvent(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, start time.Time) {
@@ -244,6 +249,7 @@ func (w *notificationWorker) createEvent(ctx context.Context, sub model.Subscrip
 		return
 	}
 	slog.Info("đã tạo sự kiện từ email", "profile_id", sub.ProfileID, "message_id", message.ID, "event_id", created.ID)
+	w.notify(ctx, sub, model.NoticeTypeEventCreated, model.NoticeTargetEvent, created.ID, created.Title, draft.Description, message.ID)
 }
 
 func (w *notificationWorker) saveBacklog(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, objectKey string, reason string) {
@@ -267,6 +273,37 @@ func (w *notificationWorker) saveBacklog(ctx context.Context, sub model.Subscrip
 		"category", draft.Category,
 		"reason", reason,
 		"backlog_id", created.ID,
+	)
+	w.notify(ctx, sub, model.NoticeTypeBacklogCreated, model.NoticeTargetBacklog, created.ID, created.Title, draft.Description, message.ID)
+}
+
+func (w *notificationWorker) notify(ctx context.Context, sub model.Subscription, noticeType string, targetType string, targetID string, title string, body string, source string) {
+	if w.notices == nil {
+		return
+	}
+
+	if _, err := w.notices.Notify(ctx, model.NoticeInput{
+		ProfileID:  sub.ProfileID,
+		Type:       noticeType,
+		Title:      title,
+		Body:       body,
+		TargetType: targetType,
+		TargetID:   targetID,
+		Source:     source,
+	}); err != nil {
+		slog.Error("đẩy thông báo sang notification service thất bại",
+			"profile_id", sub.ProfileID,
+			"target_type", targetType,
+			"target_id", targetID,
+			"error", err,
+		)
+		return
+	}
+
+	slog.Info("đã đẩy thông báo sang notification service",
+		"profile_id", sub.ProfileID,
+		"target_type", targetType,
+		"target_id", targetID,
 	)
 }
 

@@ -9,7 +9,8 @@ deployments/migrations/
 ├── 000005_init_mail_provider.up.sql / .down.sql # schema mail_provider: SESSIONS, NOTI_INDEXES
 ├── 000006_init_calendar.up.sql   / .down.sql   # schema calendar: SCHEDULES
 ├── 000007_init_event.up.sql      / .down.sql   # schema event: EVENTS
-└── 000008_init_backlog.up.sql    / .down.sql   # schema backlog: BACKLOGS
+├── 000008_init_backlog.up.sql    / .down.sql   # schema backlog: BACKLOGS
+└── 000009_init_notification.up.sql / .down.sql # schema notification: NOTICES
 ```
 
 > Migration `000003`/`000004` (workspace) đã bị xoá cùng tính năng workspace. Repo không còn
@@ -43,6 +44,7 @@ deployments/migrations/
 | `calendar.SCHEDULES` | `calendar.schedules` |
 | `event.EVENTS` | `event.events` |
 | `backlog.BACKLOGS` | `backlog.backlogs` |
+| `notification.NOTICES` | `notification.notices` |
 | `mail_provider.SESSIONS` | `mail_provider.sessions` |
 | `mail_provider.NOTI_INDEXES` | `mail_provider.noti_indexes` |
 
@@ -87,6 +89,9 @@ Nguồn thiết kế: `design/db_schema.dbml` (dbdiagram.io). Các ràng buộc 
 | `event`: `status` chỉ nhận giá trị đã biết | `CHECK ck_event_events_status (status IN ('PLANNED','CONFIRMED','CANCELLED'))` |
 | `backlog`: `title` không rỗng | `CHECK ck_backlog_backlogs_title_not_blank (btrim(title) <> '')` |
 | `backlog`: `status` chỉ nhận giá trị đã biết | `CHECK ck_backlog_backlogs_status (status IN ('NEW','TRIAGED','ARCHIVED'))` |
+| `notification`: `title` không rỗng | `CHECK ck_notification_notices_title_not_blank (btrim(title) <> '')` |
+| `notification`: `target_type` chỉ nhận giá trị đã biết | `CHECK ck_notification_notices_target_type (target_type IN ('task','schedule','event','backlog'))` |
+| `notification`: notice chưa đọc thì `read_at` phải NULL | `CHECK ck_notification_notices_read_at (is_read OR read_at IS NULL)` |
 | `mail_provider`: hộp thư đã ngắt kết nối không chặn hộp thư mới | partial unique index `uq_mail_provider_sessions_email ... (lower(email)) WHERE revoked_at IS NULL` |
 | `mail_provider`: `history_id` là uint64 opaque, không dùng `bigint` | `varchar(32)` + `CHECK ck_mail_provider_noti_indexes_history_id_digits (history_id IS NULL OR history_id ~ '^[0-9]+$')` |
 | `mail_provider`: 1 profile 1 kết nối / 1 checkpoint | `UNIQUE (profile_id, provider)` và `UNIQUE (profile_id)` |

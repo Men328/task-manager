@@ -32,6 +32,7 @@ type authRoutes struct {
 	mail        mailv1.MailServiceClient
 	google      *googleOAuth
 	signer      *sessionSigner
+	soketi      *soketiAuth
 	frontendURL string
 }
 
@@ -41,12 +42,14 @@ func newAuthRoutes(
 	mail mailv1.MailServiceClient,
 	google *googleOAuth,
 	signer *sessionSigner,
+	soketi *soketiAuth,
 ) *authRoutes {
 	return &authRoutes{
 		profiles:    profiles,
 		mail:        mail,
 		google:      google,
 		signer:      signer,
+		soketi:      soketi,
 		frontendURL: cfg.FrontendBaseURL,
 	}
 }
@@ -61,16 +64,23 @@ func newMailServiceClient(conn *grpc.ClientConn) mailv1.MailServiceClient {
 
 func (a *authRoutes) register(mux *runtime.ServeMux) error {
 	routes := []struct {
+		method  string
 		path    string
 		handler runtime.HandlerFunc
 	}{
-		{path: "/v1/auth/google/login", handler: a.handleGoogleLogin},
-		{path: "/v1/auth/google/callback", handler: a.handleGoogleCallback},
-		{path: "/v1/auth/me", handler: a.handleMe},
+		{method: http.MethodGet, path: "/v1/auth/google/login", handler: a.handleGoogleLogin},
+		{method: http.MethodGet, path: "/v1/auth/google/callback", handler: a.handleGoogleCallback},
+		{method: http.MethodGet, path: "/v1/auth/me", handler: a.handleMe},
 	}
 
 	for _, route := range routes {
-		if err := mux.HandlePath(http.MethodGet, route.path, route.handler); err != nil {
+		if err := mux.HandlePath(route.method, route.path, route.handler); err != nil {
+			return err
+		}
+	}
+
+	if a.soketi != nil {
+		if err := mux.HandlePath(http.MethodPost, "/v1/auth/soketi", a.soketi.handle); err != nil {
 			return err
 		}
 	}

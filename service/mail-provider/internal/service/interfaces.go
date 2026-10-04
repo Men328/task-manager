@@ -55,6 +55,10 @@ type BacklogCreator interface {
 	Create(ctx context.Context, in model.BacklogInput) (model.BacklogRef, error)
 }
 
+type NoticePublisher interface {
+	Notify(ctx context.Context, in model.NoticeInput) (model.NoticeRef, error)
+}
+
 type BlobStore interface {
 	Put(ctx context.Context, key string, contentType string, data []byte) (string, error)
 }

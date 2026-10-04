@@ -146,6 +146,11 @@ dữ liệu vẫn nằm ở backlog kèm `reason`, `source` (message id) và `ob
 Bỏ `MAIL_RULE_FALLBACK_ENABLED` đi kèm `DEEPSEEK_API_KEY` rỗng thì email rơi hết vào backlog với
 reason `classifier_disabled`.
 
+Sau khi tạo **thành công** task/lịch/sự kiện/backlog, worker gọi thêm
+`notification service` (`CreateNotice`, gRPC nội bộ qua `NOTIFICATION_GRPC_DIAL_ADDR`) để lưu thông báo
+và push realtime qua soketi. Lỗi ở bước này chỉ được log, **không** làm hỏng luồng tạo đối tượng và
+không khiến email bị xử lý lại.
+
 ### 4. Lưu trữ object storage (S3)
 
 Email gốc được lưu trước khi dispatch, object key:
@@ -203,6 +208,8 @@ Giới hạn: `MAIL_MAX_ATTACHMENTS` tệp/email và `MAIL_MAX_ATTACHMENT_BYTES`
 | `MAIL_EVENT_TIMEOUT` | `15s` | timeout gọi event service |
 | `BACKLOG_GRPC_DIAL_ADDR` | rỗng → `127.0.0.1:9086` | backlog service |
 | `MAIL_BACKLOG_TIMEOUT` | `15s` | timeout gọi backlog service |
+| `NOTIFICATION_GRPC_DIAL_ADDR` | rỗng → `127.0.0.1:9088` | notification service (đẩy notice) |
+| `MAIL_NOTIFICATION_TIMEOUT` | `15s` | timeout gọi notification service |
 | `S3_ENDPOINT` | rỗng | `host:port` server S3; rỗng ⇒ tắt archive |
 | `S3_ACCESS_KEY` / `S3_SECRET_KEY` | rỗng | credential S3 |
 | `S3_BUCKET` | `task-manager` | bucket chứa email gốc |

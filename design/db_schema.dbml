@@ -441,6 +441,48 @@ Table backlog.backlogs {
 }
 
 // =============================================================================
+// NOTIFICATION SERVICE
+// =============================================================================
+// Thông báo của user. mail-provider tạo notice sau khi phân loại email thành
+// công; notification service lưu rồi push qua soketi vào kênh private của user
+// (`private-noti-internal-<profile_id>`). UI hiển thị số chưa đọc và đánh dấu
+// đã đọc khi mở đối tượng (hoặc đánh dấu tất cả bằng id = '*').
+
+Table notification.notices {
+  id          uuid         [pk, default: `gen_random_uuid()`]
+  profile_id  uuid         [not null]
+  type        varchar(64)  [not null, note: 'TASK_CREATED | SCHEDULE_CREATED | EVENT_CREATED | BACKLOG_CREATED']
+  title       varchar(500) [not null]
+  body        text
+  target_type varchar(32)  [not null, note: 'task | schedule | event | backlog']
+  target_id   uuid         [not null, note: 'Id đối tượng nguồn để UI mở đúng trang']
+  source      varchar(255) [note: 'Gmail message id nguồn (nếu có)']
+  is_read     boolean      [not null, default: false]
+  read_at     timestamptz  [note: 'Thời điểm đánh dấu đã đọc; NULL khi chưa đọc']
+  created_at  timestamptz  [not null, default: `now()`]
+  updated_at  timestamptz  [not null, default: `now()`]
+
+  Note: '''
+  Ràng buộc cần enforce thêm ở tầng DB (PostgreSQL):
+    CONSTRAINT ck_notification_notices_title_not_blank CHECK (btrim(title) <> '');
+    CONSTRAINT ck_notification_notices_target_type
+      CHECK (target_type IN ('task', 'schedule', 'event', 'backlog'));
+    CONSTRAINT ck_notification_notices_read_at CHECK (is_read OR read_at IS NULL);
+
+  Truy vấn chính: đếm/list notice CHƯA đọc của 1 profile
+    -> partial index (profile_id, created_at DESC) WHERE is_read = false.
+  Danh sách notice mới nhất (mọi trạng thái) -> index (profile_id, created_at DESC).
+  Mọi thao tác đọc/đánh dấu đều scope theo profile_id để chỉ tác động notice của
+  chính user đang sở hữu.
+  '''
+
+  indexes {
+    (profile_id, created_at) [note: 'partial index WHERE is_read = false cho truy vấn chưa đọc']
+    (target_type, target_id)
+  }
+}
+
+// =============================================================================
 // RELATIONSHIPS
 // =============================================================================
 
@@ -481,6 +523,9 @@ Ref: event.events.profile_id > identity.PROFILES.id [delete: cascade]
 // --- backlog: mục backlog thuộc 1 profile ---
 Ref: backlog.backlogs.profile_id > identity.PROFILES.id [delete: cascade]
 
+// --- notification: mỗi notice thuộc 1 profile ---
+Ref: notification.notices.profile_id > identity.PROFILES.id [delete: cascade]
+
 // =============================================================================
 // TABLE GROUPS (chỉ để hiển thị đẹp trên dbdiagram, không ảnh hưởng DDL)
 // =============================================================================
@@ -511,6 +556,10 @@ TableGroup backlog_service {
 TableGroup mail_provider_service {
   mail_provider.SESSIONS
   mail_provider.NOTI_INDEXES
+}
+
+TableGroup notification_service {
+  notification.notices
 }
 
 // =============================================================================

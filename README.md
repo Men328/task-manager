@@ -24,6 +24,7 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 │   ├── event/                  # sự kiện cá nhân (event)    (gRPC :9085 / HTTP :8085)
 │   ├── backlog/                # email không phân loại được (gRPC :9086 / HTTP :8086)
 │   ├── report/                 # báo cáo task/lịch/sự kiện/backlog (gRPC :9087 / HTTP :8087)
+│   ├── notification/           # thông báo user + push realtime qua soketi (gRPC :9088 / HTTP :8088)
 │   └── mail-provider/          # Gmail notice -> phân loại -> task/schedule/event/backlog + S3 (gRPC :9084 / HTTP :8084)
 ├── frontend/                   # React + TSX + Mantine + Vite (+ Dockerfile, nginx.conf)
 ├── deployments/                # hạ tầng: docker/ (compose) + migrations/ (SQL)
@@ -44,8 +45,9 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 | `taskmanager/service/backlog` | `service/backlog/` |
 | `taskmanager/service/report` | `service/report/` |
 | `taskmanager/service/mail-provider` | `service/mail-provider/` |
+| `taskmanager/service/notification` | `service/notification/` |
 
-- Root `go.work` gom 9 module lại để phát triển local.
+- Root `go.work` gom 10 module lại để phát triển local.
 - Service dùng code chung qua module `common`:
   `require taskmanager/common v0.0.0-...` + `replace taskmanager/common => ../../common`.
   Nhờ `replace`, service build được **cả khi không có `go.work`** (đúng cách Dockerfile đang build).
@@ -76,7 +78,8 @@ make run-event      # terminal 4  -> :8085 / :9085
 make run-backlog    # terminal 5  -> :8086 / :9086
 make run-report     # terminal 6  -> :8087 / :9087 (cần task service)
 make run-mail-provider  # terminal 7 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY)
-make web-install && make web-dev    # terminal 8 -> :5173
+make run-notification   # terminal 8 -> :8088 / :9088 (cần soketi + SESSION_SECRET)
+make web-install && make web-dev    # terminal 9 -> :5173
 make seed-demo      # (tuỳ chọn) seed dữ liệu demo: task/board + lịch + sự kiện + backlog
 ```
 
@@ -192,7 +195,7 @@ HTTP status / URL / text kỹ thuật lên notification.
 ## Quickstart (Docker)
 
 ```bash
-make up        # postgres + migrate + rustfs + identity + task + calendar + event + backlog + report + mail-provider + frontend
+make up        # postgres + migrate + rustfs + soketi + identity + task + calendar + event + backlog + report + notification + mail-provider + frontend
 make up-core   # như trên nhưng KHÔNG kèm cloudflared (tắt tunnel)
 make up-tunnel # kèm cloudflared (Cloudflare Tunnel; cần token trong .env)
 make ps
@@ -217,6 +220,8 @@ của Cloudflare.
 | backlog | nội bộ `backlog:8086` (`/healthz`) |
 | report | nội bộ `report:8087` (`/healthz`) |
 | mail-provider | nội bộ `mail-provider:8084` (`/healthz`) + webhook `/api/mail/v1/notifications` |
+| notification | nội bộ `notification:8088` (`/healthz`); API notice qua `/api/notification` |
+| soketi | nội bộ `soketi:6001` (WebSocket; browser vào qua `/api/soketi`), debug host `127.0.0.1:6001` |
 | postgres | nội bộ `postgres:5432` |
 | rustfs | API nội bộ `rustfs:9000`, console `http://localhost:9001` |
 | cloudflared | profile `tunnel` — `make tunnel-logs` |
@@ -281,7 +286,7 @@ tầng phải flat, `service/interfaces.go` bắt buộc, không comment trong c
 (ví dụ do chạy `go work init` bằng Go mới hơn). Sửa:
 
 ```bash
-go work edit -go=1.25.0    # go.work + 9 go.mod đang ở 1.25.0 -> Go >= 1.25 là chạy được
+go work edit -go=1.25.0    # go.work + 10 go.mod đang ở 1.25.0 -> Go >= 1.25 là chạy được
 ```
 
 rồi reload IDE để gopls load lại. **`make vet`** dùng `scripts/vet.sh` để bỏ qua cảnh báo vet phát sinh
@@ -289,7 +294,7 @@ trong source của dependency (Go 1.26 hay gặp với protobuf).
 
 ## Trạng thái hiện tại
 
-Các service Go có dữ liệu riêng (identity, task, calendar, event, backlog, mail-provider) đều có
+Các service Go có dữ liệu riêng (identity, task, calendar, event, backlog, notification, mail-provider) đều có
 **repository PostgreSQL** (`postgres_*_repository.go`) + fallback **in-memory stub** khi không set
 `DATABASE_URL`. Business logic nằm ở `internal/service` (DI qua interface), transport gRPC ở
 `internal/handler`, validate/mapping ở `internal/dependency`; `cmd/grpc/infra.go` chọn
@@ -314,3 +319,12 @@ NEW/TRIAGED/ARCHIVED) và phục vụ trang `/backlog`; là đích đến của 
 `mail_provider.noti_indexes`: refresh/access token, checkpoint `historyId`, hạn watch), **object
 storage S3-compatible (RustFS)** cho email gốc + attachment, và gọi ra ngoài (Gmail, DeepSeek) cũng như sang
 `task`/`calendar`/`event`/`backlog` qua gRPC.
+
+`notification` giữ **thông báo của user** ở `notification.notices` và đẩy realtime qua **soketi**
+(WebSocket, giao thức Pusher). Sau khi mail worker tạo task/lịch/sự kiện/backlog thành công, nó gọi
+`CreateNotice` (gRPC nội bộ) sang notification service; service lưu notice rồi publish vào kênh
+private `private-noti-internal-<profile_id>`. Gateway notification xác thực session JWT của identity
+và luôn scope theo `profile_id` trong token, nên user chỉ đọc/đánh dấu được notice của chính mình.
+UI hiển thị badge số chưa đọc trên icon thông báo, cập nhật mỗi khi nhận event soketi (gọi API đếm),
+đánh dấu đã đọc khi mở đối tượng hoặc đánh dấu tất cả (`ids: ["*"]`). Uỷ quyền subscribe kênh do
+identity cấp tại `POST /v1/auth/soketi`. Chi tiết: `service/notification/README.md`.

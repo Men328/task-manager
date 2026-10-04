@@ -18,6 +18,25 @@ Muốn có dữ liệu ngay để xem UI:
 make seed-demo       # tạo 1 profile + 4 status + rule + task mẫu như trong design
 ```
 
+## Thông báo realtime (soketi)
+
+- Topbar có `NotificationMenu` (icon chuông + badge số chưa đọc). `useNotices()` mở kết nối
+  **soketi** (Pusher protocol) tới kênh private `private-noti-internal-<profile_id>`; uỷ quyền lấy từ
+  identity qua `POST /v1/auth/soketi` (`authEndpoint`, kèm `Authorization: Bearer <session token>`).
+- Bấm icon chuông → `NotificationMenu` mở popover danh sách notice (`GET /v1/notices`) + nút
+  **Đã đọc tất cả**. Mỗi event `notice.created` → gọi `GET /v1/notices/unread-count` để cập nhật badge
+  và refresh danh sách.
+- Click 1 notice → gọi `POST /v1/notices/read` với id đó, rồi điều hướng tới trang đối tượng kèm
+  `?focus=<target_id>` (`task` → `/`, `schedule` → `/calendar`, `event` → `/events`,
+  `backlog` → `/backlog`). Hook `useNoticeFocus()` ở trang đích tìm đối tượng (trong state, hoặc
+  gọi `GET` theo id nếu chưa có trong khoảng đang xem) rồi **mở chi tiết**: task → `TaskDetailModal`,
+  schedule/event/backlog → modal sửa tương ứng. Id được xoá khỏi URL sau khi mở.
+- Nút **Đã đọc tất cả** gửi `{ "ids": ["*"] }`. Sau **cả hai** luồng đánh dấu đã đọc, FE gọi lại
+  `GET /v1/notices/unread-count` để đồng bộ badge với server.
+- Kết nối same-origin: dev dùng Vite proxy `/api/soketi` (ws), Docker dùng nginx. Cấu hình build:
+  `VITE_SOKETI_APP_KEY`, `VITE_SOKETI_WS_PATH` (mặc định `/api/soketi`), `VITE_SOKETI_CLUSTER`;
+  API notice qua `VITE_NOTIFICATION_API_URL` (mặc định `/api/notification`).
+
 ## Cấu trúc
 
 ```
@@ -46,6 +65,7 @@ src/
 │   ├── event/                  # slice EventPage: events + CRUD
 │   ├── backlog/                # slice BacklogPage: backlogs + filter status/category + CRUD
 │   ├── report/                 # slice ReportPage: overview + breakdown + timeseries theo filter
+│   ├── notification/           # slice notice dùng chung: list + unread count + mark read
 │   └── statuses/               # slice StatusesPage: statuses/transitions/tasks, seed
 ├── api/
 │   ├── client.ts               # fetch wrapper, ApiError, getErrorCode/getErrorMessage, asList/unwrap envelope
@@ -54,6 +74,7 @@ src/
 │   ├── calendar.ts             # /v1/schedules
 │   ├── event.ts                # /v1/events
 │   ├── backlog.ts              # /v1/backlogs
+│   ├── notification.ts         # /v1/notices, /v1/notices/unread-count, /v1/notices/read
 │   └── report.ts               # /v1/reports/overview, /status-breakdown, /timeseries
 ├── config/
 │   └── error_codes.json        # MIRROR bộ mã lỗi chuẩn (sinh bằng `make error-codes`, không sửa tay)
@@ -61,10 +82,11 @@ src/
 │   ├── errorCatalog.ts         # đọc bộ mã lỗi + map mã -> message theo ngôn ngữ
 │   ├── tokens.ts               # nhãn priority, màu status fallback, sort order
 │   ├── session.ts              # token ở localStorage (key tm-session-token)
+│   ├── soketi.ts               # Pusher client: kênh private + authEndpoint identity
 │   └── format.ts               # format ngày, initials, progress suy ra từ subtask
 ├── components/                 # mỗi component có <Name>.module.css đi kèm
 │   ├── layout/                 # AppLayout (shell), TopBar, Sidebar, navigation.ts (3 vùng menubar),
-│   │                           # ThemeSwitcher, LanguageSwitcher
+│   │                           # NotificationMenu (bell + badge + mark all), ThemeSwitcher, LanguageSwitcher
 │   ├── board/                  # BoardHeader, KanbanBoard, KanbanColumn, TaskCard,
 │   │                           # TaskTable, PriorityBadge, TaskProgress
 │   ├── task/TaskFormModal.tsx  # modal tạo task
@@ -169,7 +191,8 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 ## Nối API
 
 - Dev: Vite proxy `/api/identity/*` → `:8081`, `/api/task/*` → `:8082`, `/api/calendar/*` → `:8083`,
-  `/api/event/*` → `:8085`, `/api/backlog/*` → `:8086`, `/api/report/*` → `:8087` (bỏ prefix).
+  `/api/event/*` → `:8085`, `/api/backlog/*` → `:8086`, `/api/report/*` → `:8087`,
+  `/api/notification/*` → `:8088`, `/api/soketi/*` → `:6001` (WebSocket, bỏ prefix).
 - Prod (Docker): nginx proxy y hệt, xem `nginx.conf`. FE **luôn gọi same-origin** (`/api/...`
   trên chính port frontend) nên khi chạy sau Cloudflare Tunnel chỉ có một origin/port; xem
   `deployments/docker/README.md`. Vì vậy `VITE_*_API_URL` phải giữ dạng đường dẫn tương đối.

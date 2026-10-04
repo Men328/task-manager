@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package notification.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/notification/v1;notificationv1";
+
+// Đối tượng được notice trỏ tới; UI dùng để mở đúng trang khi người dùng click.
+enum NoticeTargetType {
+  NOTICE_TARGET_TYPE_UNSPECIFIED = 0;
+  NOTICE_TARGET_TYPE_TASK = 1;
+  NOTICE_TARGET_TYPE_SCHEDULE = 2;
+  NOTICE_TARGET_TYPE_EVENT = 3;
+  NOTICE_TARGET_TYPE_BACKLOG = 4;
+}
+
+// Thông báo của một profile.
+// Mapping DB: notification.notices
+message Notice {
+  string id = 1;
+  string profile_id = 2;
+  // Nhãn nghiệp vụ: TASK_CREATED | SCHEDULE_CREATED | EVENT_CREATED | BACKLOG_CREATED.
+  string type = 3;
+  string title = 4;
+  string body = 5;
+  NoticeTargetType target_type = 6;
+  string target_id = 7;
+  bool is_read = 8;
+  // Id email nguồn (Gmail message id) để truy vết.
+  string source = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp read_at = 11;
+}
+
+// CreateNotice là RPC nội bộ cho các service khác (mail-provider) đẩy thông báo
+// sang. Cố ý KHÔNG khai báo google.api.http: không expose ra Internet.
+message CreateNoticeRequest {
+  string profile_id = 1;
+  string type = 2;
+  string title = 3;
+  string body = 4;
+  NoticeTargetType target_type = 5;
+  string target_id = 6;
+  string source = 7;
+}
+
+message CreateNoticeResponse {
+  Notice notice = 1;
+}
+
+message ListNoticesRequest {
+  string profile_id = 1;
+  int32 limit = 2;
+  bool unread_only = 3;
+}
+
+message ListNoticesResponse {
+  repeated Notice notices = 1;
+}
+
+message CountUnreadNoticesRequest {
+  string profile_id = 1;
+}
+
+message CountUnreadNoticesResponse {
+  int32 count = 1;
+}
+
+// ids = ["*"] nghĩa là đánh dấu đã đọc TẤT CẢ notice của profile.
+message MarkNoticesReadRequest {
+  string profile_id = 1;
+  repeated string ids = 2;
+}
+
+message MarkNoticesReadResponse {
+  int32 marked = 1;
+}
+
+service NoticeService {
+  rpc CreateNotice(CreateNoticeRequest) returns (CreateNoticeResponse);
+
+  rpc ListNotices(ListNoticesRequest) returns (ListNoticesResponse);
+
+  rpc CountUnreadNotices(CountUnreadNoticesRequest) returns (CountUnreadNoticesResponse);
+
+  rpc MarkNoticesRead(MarkNoticesReadRequest) returns (MarkNoticesReadResponse);
+}

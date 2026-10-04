@@ -62,6 +62,9 @@ type Config struct {
 	BacklogGRPCDialAddr string
 	BacklogTimeout      time.Duration
 
+	NotificationGRPCDialAddr string
+	NotificationTimeout      time.Duration
+
 	S3Endpoint          string
 	S3AccessKey         string
 	S3SecretKey         string
@@ -128,6 +131,9 @@ func Load() Config {
 
 		BacklogGRPCDialAddr: getenv("BACKLOG_GRPC_DIAL_ADDR", ""),
 		BacklogTimeout:      getduration("MAIL_BACKLOG_TIMEOUT", 15*time.Second),
+
+		NotificationGRPCDialAddr: getenv("NOTIFICATION_GRPC_DIAL_ADDR", ""),
+		NotificationTimeout:      getduration("MAIL_NOTIFICATION_TIMEOUT", 15*time.Second),
 
 		S3Endpoint:          firstEnv("S3_ENDPOINT", "MINIO_ENDPOINT"),
 		S3AccessKey:         firstEnv("S3_ACCESS_KEY", "MINIO_ACCESS_KEY"),
@@ -199,6 +205,10 @@ func (c Config) EventDialTarget() string {
 
 func (c Config) BacklogDialTarget() string {
 	return dialTarget(c.BacklogGRPCDialAddr, ":9086")
+}
+
+func (c Config) NotificationDialTarget() string {
+	return dialTarget(c.NotificationGRPCDialAddr, ":9088")
 }
 
 func (c Config) StorageConfigured() bool {

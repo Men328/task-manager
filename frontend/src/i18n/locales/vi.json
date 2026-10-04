@@ -36,6 +36,20 @@
     "theme": "Giao diện",
     "signOut": "Đăng xuất"
   },
+  "notice": {
+    "title": "Thông báo",
+    "markAll": "Đã đọc tất cả",
+    "empty": "Chưa có thông báo",
+    "loadError": "Không tải được thông báo"
+  },
+  "taskDetail": {
+    "title": "Chi tiết công việc",
+    "description": "Mô tả",
+    "noDescription": "Không có mô tả",
+    "due": "Hạn",
+    "created": "Ngày tạo",
+    "subtasks": "Công việc con"
+  },
   "theme": {
     "light": "Sáng",
     "dark": "Tối",

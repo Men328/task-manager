@@ -85,6 +85,30 @@ services:
       retries: 12
     restart: unless-stopped
 
+  # ----------------------------------------------------------------- soketi
+  # WebSocket server tương thích giao thức Pusher. notification service publish
+  # notice vào kênh private `private-noti-internal-<profile_id>`; browser subscribe
+  # qua nginx (`/api/soketi/`) và xin chữ ký uỷ quyền ở identity (`/v1/auth/soketi`).
+  # Chỉ bind 127.0.0.1 để debug local; traffic thật đi qua nginx của frontend.
+  soketi:
+    image: ${SOKETI_IMAGE:-quay.io/soketi/soketi:1.6-16-alpine}
+    container_name: tm-soketi
+    environment:
+      SOKETI_DEFAULT_APP_ID: ${SOKETI_APP_ID:-task-manager}
+      SOKETI_DEFAULT_APP_KEY: ${SOKETI_APP_KEY:-task-manager}
+      SOKETI_DEFAULT_APP_SECRET: ${SOKETI_APP_SECRET:-task-manager-secret}
+      SOKETI_DEFAULT_APP_ENABLE_CLIENT_MESSAGES: "false"
+      SOKETI_DEFAULT_APP_MAX_CONNECTIONS: "-1"
+      SOKETI_METRICS_SERVER_PORT: "9601"
+    ports:
+      - "127.0.0.1:${SOKETI_PORT:-6001}:6001"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9601/usage"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
   # --------------------------------------------------------------- identity
   identity-grpc:
     build:
@@ -134,11 +158,18 @@ services:
       # Gateway identity gọi mail-provider để đăng ký watch Gmail khi user tích
       # quyền đọc mail ở màn đăng nhập.
       MAIL_GRPC_DIAL_ADDR: "mail-provider-grpc:9084"
+      # Uỷ quyền subscribe kênh private soketi (`POST /v1/auth/soketi`).
+      # App key/secret phải khớp cấu hình service soketi.
+      SOKETI_APP_KEY: ${SOKETI_APP_KEY:-task-manager}
+      SOKETI_APP_SECRET: ${SOKETI_APP_SECRET:-task-manager-secret}
+      SOKETI_CHANNEL_PREFIX: ${SOKETI_CHANNEL_PREFIX:-noti-internal-}
     depends_on:
       identity-grpc:
         condition: service_started
       mail-provider-grpc:
         condition: service_started
+      soketi:
+        condition: service_healthy
     healthcheck:
       # /healthz chỉ 200 khi gateway gọi được gRPC health service.
       test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
@@ -380,6 +411,9 @@ services:
       CALENDAR_GRPC_DIAL_ADDR: "calendar-grpc:9083"
       EVENT_GRPC_DIAL_ADDR: "event-grpc:9085"
       BACKLOG_GRPC_DIAL_ADDR: "backlog-grpc:9086"
+      # Sau khi tạo đối tượng thành công, worker đẩy notice sang notification
+      # service để nó push qua soketi cho user.
+      NOTIFICATION_GRPC_DIAL_ADDR: "notification-grpc:9088"
       # Object storage S3 (RustFS): lưu email gốc + attachment.
       # Bỏ trống S3_ENDPOINT để tắt archive.
       S3_ENDPOINT: ${S3_ENDPOINT:-rustfs:9000}
@@ -436,6 +470,8 @@ services:
         condition: service_started
       backlog-grpc:
         condition: service_started
+      notification-grpc:
+        condition: service_started
       rustfs:
         condition: service_healthy
     restart: unless-stopped
@@ -468,6 +504,59 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ---------------------------------------------------------- notification
+  # Lưu notice của user (notification.notices) và push qua soketi. mail-provider
+  # gọi CreateNotice (gRPC nội bộ) sau khi tạo task/lịch/sự kiện/backlog thành công.
+  notification-grpc:
+    build:
+      context: ../..
+      dockerfile: service/notification/Dockerfile
+    container_name: tm-notification-grpc
+    entrypoint: ["/usr/local/bin/grpc"]
+    environment:
+      SERVICE_NAME: notification
+      GRPC_ADDR: ":9088"
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+      # Publish notice qua REST API của soketi (giao thức Pusher).
+      SOKETI_BASE_URL: ${SOKETI_BASE_URL:-http://soketi:6001}
+      SOKETI_APP_ID: ${SOKETI_APP_ID:-task-manager}
+      SOKETI_APP_KEY: ${SOKETI_APP_KEY:-task-manager}
+      SOKETI_APP_SECRET: ${SOKETI_APP_SECRET:-task-manager-secret}
+      SOKETI_CHANNEL_PREFIX: ${SOKETI_CHANNEL_PREFIX:-noti-internal-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      soketi:
+        condition: service_healthy
+    restart: unless-stopped
+
+  notification:
+    build:
+      context: ../..
+      dockerfile: service/notification/Dockerfile
+    container_name: tm-notification
+    entrypoint: ["/usr/local/bin/http"]
+    environment:
+      SERVICE_NAME: notification
+      HTTP_ADDR: ":8088"
+      GRPC_DIAL_ADDR: "notification-grpc:9088"
+      LOG_LEVEL: info
+      # Gateway xác thực session JWT (HS256) do identity phát hành.
+      SESSION_SECRET: ${SESSION_SECRET:-}
+    depends_on:
+      notification-grpc:
+        condition: service_started
+    healthcheck:
+      # /healthz chỉ 200 khi gateway gọi được gRPC health service.
+      test: ["CMD", "wget", "-qO-", "http://localhost:8088/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   # -------------------------------------------------------------- frontend
   # Entrypoint duy nhất: nginx serve SPA + proxy /api/<svc>/ sang các gateway.
   # Chỉ bind 127.0.0.1 để không lộ thẳng ra host; cloudflared đi vào qua
@@ -476,6 +565,12 @@ services:
     build:
       context: ../..
       dockerfile: frontend/Dockerfile
+      args:
+        # App key/ws path được nhúng vào bundle lúc build (xem frontend/Dockerfile).
+        VITE_SOKETI_APP_KEY: ${SOKETI_APP_KEY:-task-manager}
+        VITE_SOKETI_WS_PATH: ${SOKETI_WS_PATH:-/api/soketi}
+        VITE_SOKETI_CLUSTER: ${SOKETI_CLUSTER:-mt1}
+        VITE_NOTIFICATION_API_URL: ${VITE_NOTIFICATION_API_URL:-/api/notification}
     container_name: tm-frontend
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
@@ -493,6 +588,10 @@ services:
       report:
         condition: service_healthy
       mail-provider:
+        condition: service_healthy
+      notification:
+        condition: service_healthy
+      soketi:
         condition: service_healthy
     healthcheck:
       # /healthz do nginx trả trực tiếp (xem frontend/nginx.conf).
