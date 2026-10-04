@@ -2,10 +2,11 @@
 
 | File | Việc |
 |---|---|
-| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + rustfs + soketi + identity(-grpc) + task(-grpc) + calendar(-grpc) + event(-grpc) + backlog(-grpc) + report(-grpc) + notification(-grpc) + mail-provider(-grpc) + frontend + cloudflared (profile `tunnel`) |
+| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + rustfs + soketi + identity(-grpc) + task(-grpc) + calendar(-grpc) + event(-grpc) + backlog(-grpc) + attachment(-grpc) + report(-grpc) + notification(-grpc) + mail-provider(-grpc) + frontend + cloudflared (profile `tunnel`) |
 
 Dockerfile nằm **trong từng service** (`service/identity/Dockerfile`, `service/task/Dockerfile`,
 `service/calendar/Dockerfile`, `service/event/Dockerfile`, `service/backlog/Dockerfile`,
+`service/attachment/Dockerfile`,
 `service/report/Dockerfile`, `service/notification/Dockerfile`, `service/mail-provider/Dockerfile`,
 `frontend/Dockerfile`) để mỗi
 service tự đóng gói. Compose trỏ tới chúng với build context là **root repo**, vì mỗi service cần
@@ -51,6 +52,8 @@ trong network Docker nội bộ và được các container gọi nhau bằng t�
 | event-grpc | tm-event-grpc | nội bộ `event-grpc:9085` | không publish ra host |
 | backlog (gateway) | tm-backlog | nội bộ `backlog:8086` | không publish ra host |
 | backlog-grpc | tm-backlog-grpc | nội bộ `backlog-grpc:9086` | không publish ra host |
+| attachment (gateway) | tm-attachment | nội bộ `attachment:8089` | API `/api/attachment`; upload multipart + download nhị phân |
+| attachment-grpc | tm-attachment-grpc | nội bộ `attachment-grpc:9089` | tệp ở `attachment.attachments`; giới hạn `ATTACHMENT_MAX_BYTES` |
 | report (gateway) | tm-report | nội bộ `report:8087` | không publish ra host |
 | report-grpc | tm-report-grpc | nội bộ `report-grpc:9087` | dial `task-grpc`/`calendar-grpc`/`event-grpc`/`backlog-grpc`, không có DB riêng |
 | mail-provider (gateway) | tm-mail-provider | nội bộ `mail-provider:8084` | webhook `/api/mail/v1/notifications` |
@@ -153,8 +156,8 @@ Lưu ý `make up-core` chỉ **không khởi động** cloudflared — nếu nó
 ```
 postgres (healthy) -> migrate (chạy xong, exit 0)
   -> rustfs (healthy) + soketi (healthy)
-  -> identity(-grpc)/task(-grpc)/calendar(-grpc)/event(-grpc)/backlog(-grpc)/report(-grpc)/notification(-grpc)/mail-provider(-grpc)
-  -> gateway identity/task/calendar/event/backlog/report/notification/mail-provider (healthy, /healthz chỉ 200 khi gọi được gRPC health)
+  -> identity(-grpc)/task(-grpc)/calendar(-grpc)/event(-grpc)/backlog(-grpc)/attachment(-grpc)/report(-grpc)/notification(-grpc)/mail-provider(-grpc)
+  -> gateway identity/task/calendar/event/backlog/attachment/report/notification/mail-provider (healthy, /healthz chỉ 200 khi gọi được gRPC health)
   -> frontend (healthy, /healthz do nginx trả)
   -> cloudflared (profile tunnel)
 ```
@@ -170,9 +173,13 @@ make migrate-down      # rollback 1 bước
 
 ## Ghi chú
 
-- `identity-grpc`, `task-grpc`, `calendar-grpc`, `event-grpc`, `backlog-grpc`, `notification-grpc` và `mail-provider-grpc`
+- `identity-grpc`, `task-grpc`, `calendar-grpc`, `event-grpc`, `backlog-grpc`, `attachment-grpc`, `notification-grpc` và `mail-provider-grpc`
   nối Postgres qua `DATABASE_URL` (đã bật sẵn trong compose). Bỏ trống biến này thì service tự quay
   về repository in-memory stub và log cảnh báo.
+- `attachment-grpc` lưu **metadata** ở `attachment.attachments` (Postgres) và **nội dung tệp** trên
+  RustFS (S3-compatible, dùng chung bucket với mail-provider qua `S3_*`). Gateway có route multipart
+  `POST /v1/attachments/upload` và download nhị phân `GET /v1/attachments/{id}/download`; giới hạn kích
+  thước qua `ATTACHMENT_MAX_BYTES` (mặc định 10 MiB, nginx cho phép body tới 32 MiB).
 - `report-grpc` **không có DB riêng**: nó dial `task-grpc`/`calendar-grpc`/`event-grpc`/`backlog-grpc`
   qua các biến `*_GRPC_DIAL_ADDR` và tổng hợp báo cáo (task, lịch, sự kiện, backlog).
 - `mail-provider-grpc` dial `task-grpc`/`calendar-grpc`/`event-grpc`/`backlog-grpc` qua các biến

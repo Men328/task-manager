@@ -56,6 +56,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/notification/, ''),
       },
+      '/api/attachment': {
+        target: 'http://localhost:8089',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/attachment/, ''),
+      },
       // Soketi (Pusher protocol) giữ nguyên path /app/<key> sau khi bỏ prefix.
       '/api/soketi': {
         target: 'http://localhost:6001',

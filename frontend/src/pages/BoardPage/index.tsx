@@ -43,12 +43,14 @@ export function BoardPage() {
     }
   }, [session.profileId, dispatch]);
 
+  const openTaskDetail = (task: Task) => {
+    setDetailTask(task);
+    setDetailOpened(true);
+  };
+
   useNoticeFocus<Task>(
     async (id) => board.taskById.get(id) ?? (await getTask(id).catch(() => null)),
-    (task) => {
-      setDetailTask(task);
-      setDetailOpened(true);
-    },
+    openTaskDetail,
   );
 
   const loading = session.loading || board.loading;
@@ -167,9 +169,9 @@ export function BoardPage() {
         ) : null}
 
         {ready && view === 'kanban' ? (
-          <KanbanBoard onAddTask={openNewTask} onMoveTask={handleMove} />
+          <KanbanBoard onAddTask={openNewTask} onMoveTask={handleMove} onOpenTask={openTaskDetail} />
         ) : null}
-        {ready && view === 'table' ? <TaskTable /> : null}
+        {ready && view === 'table' ? <TaskTable onOpenTask={openTaskDetail} /> : null}
         {ready && (view === 'list' || view === 'timeline') ? (
           <CenteredPanel
             title={view === 'list' ? t('boardPage.listView') : t('boardPage.timelineView')}

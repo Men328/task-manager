@@ -15,6 +15,7 @@ import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
+import AttachmentSection from '../attachment/AttachmentSection';
 import { useEvent } from '../../context';
 import type { NewEventInput } from '../../context/event/useEvent';
 import { EVENT_STATUS_LABEL_KEY } from '../../lib/tokens';
@@ -244,6 +245,8 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
             {t('eventForm.sourceLabel')}: {event.source}
           </Text>
         ) : null}
+
+        {event?.id ? <AttachmentSection ownerType="event" ownerId={event.id} /> : null}
 
         {confirmingDelete ? (
           <Stack gap={6}>

@@ -75,6 +75,7 @@ src/
 │   ├── event.ts                # /v1/events
 │   ├── backlog.ts              # /v1/backlogs
 │   ├── notification.ts         # /v1/notices, /v1/notices/unread-count, /v1/notices/read
+│   ├── attachment.ts           # /v1/attachments (list/get/delete + upload multipart + download URL)
 │   └── report.ts               # /v1/reports/overview, /status-breakdown, /timeseries
 ├── config/
 │   └── error_codes.json        # MIRROR bộ mã lỗi chuẩn (sinh bằng `make error-codes`, không sửa tay)
@@ -85,11 +86,13 @@ src/
 │   ├── soketi.ts               # Pusher client: kênh private + authEndpoint identity
 │   └── format.ts               # format ngày, initials, progress suy ra từ subtask
 ├── components/                 # mỗi component có <Name>.module.css đi kèm
-│   ├── layout/                 # AppLayout (shell), TopBar, Sidebar, navigation.ts (3 vùng menubar),
+│   ├── layout/                 # AppLayout (shell), TopBar, Sidebar, Logo (brand mark), navigation.ts,
 │   │                           # NotificationMenu (bell + badge + mark all), ThemeSwitcher, LanguageSwitcher
 │   ├── board/                  # BoardHeader, KanbanBoard, KanbanColumn, TaskCard,
 │   │                           # TaskTable, PriorityBadge, TaskProgress
 │   ├── task/TaskFormModal.tsx  # modal tạo task
+│   ├── task/TaskDetailModal.tsx # modal xem chi tiết task (mở khi click card/dòng hoặc từ notice)
+│   ├── attachment/             # AttachmentSection — upload/list/download/xoá tệp dùng chung
 │   ├── calendar/               # ScheduleFormModal — modal CRUD lịch
 │   ├── event/                  # EventFormModal — modal CRUD sự kiện (có status)
 │   ├── backlog/                # BacklogFormModal — modal CRUD mục backlog
@@ -125,6 +128,23 @@ src/
   nguyên; với `c` truyền `tokens.*` (ví dụ `c={tokens.text}`) nên tự đổi theo theme. Icon Tabler dùng
   `style={{ color: tokens.* }}` (không dùng prop `color`) để `currentColor` ăn theo CSS var.
 - Vài giá trị động (màu status từ API, % progress) set qua inline style tối thiểu.
+
+## Thương hiệu / Logo
+
+Logo là **thẻ công việc xếp lớp + dấu tick gradient** (indigo `#4353e8` → tím `#7c3aed`), thể hiện
+đúng nghiệp vụ: danh sách task và task đã hoàn thành.
+
+- `src/components/layout/Logo.tsx` — mark dạng React SVG (tự sinh `id` gradient bằng `useId` để nhiều
+  instance trên cùng trang không đè nhau). Dùng ở sidebar (`size={30}`) và trang đăng nhập (`size={54}`).
+- `public/logo-mark.svg` — mark vuông 64×64 (dùng ngoài UI, PWA…).
+- Favicon tab: `public/favicon.svg` (chính, bo góc) + fallback cho trình duyệt không hỗ trợ SVG:
+  `public/favicon-32.png`, `public/favicon-16.png`, `public/favicon.ico`, `public/apple-touch-icon.png`
+  (192/512: `public/icon-192.png`, `public/icon-512.png`). Khai báo trong `index.html` qua các thẻ
+  `<link rel="icon">` / `<link rel="apple-touch-icon">`; `theme-color` = `#4353e8`.
+- `public/logo.svg` / `public/logo-dark.svg` — lockup ngang mark + chữ "Task Manager" (bản sáng/tối).
+- Màu gradient trùng token `--tm-brand-gradient-from` / `--tm-brand-gradient-to` trong `styles/tokens.css`.
+- Lưu ý: file trong `public/` phải đọc được bởi user `nginx` (mode `644`). File mode `600` sẽ bị
+  nginx trả **403** và favicon không hiện trên tab.
 
 ## Đa ngôn ngữ (i18n)
 
@@ -191,7 +211,8 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 ## Nối API
 
 - Dev: Vite proxy `/api/identity/*` → `:8081`, `/api/task/*` → `:8082`, `/api/calendar/*` → `:8083`,
-  `/api/event/*` → `:8085`, `/api/backlog/*` → `:8086`, `/api/report/*` → `:8087`,
+  `/api/event/*` → `:8085`, `/api/backlog/*` → `:8086`, `/api/attachment/*` → `:8089`,
+  `/api/report/*` → `:8087`,
   `/api/notification/*` → `:8088`, `/api/soketi/*` → `:6001` (WebSocket, bỏ prefix).
 - Prod (Docker): nginx proxy y hệt, xem `nginx.conf`. FE **luôn gọi same-origin** (`/api/...`
   trên chính port frontend) nên khi chạy sau Cloudflare Tunnel chỉ có một origin/port; xem
@@ -232,6 +253,10 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 | Tạo / sửa / xoá sự kiện | `POST /v1/events`, `PATCH /v1/events/{id}`, `DELETE /v1/events/{id}` |
 | Backlog (bảng + filter status, category read-only) | `GET /v1/backlogs?profile_id=...&status=...` |
 | Tạo / sửa / xoá mục backlog | `POST /v1/backlogs`, `PATCH /v1/backlogs/{id}`, `DELETE /v1/backlogs/{id}` |
+| Xem chi tiết task | click card Kanban / dòng Table (hoặc notice `?focus=`) → `GET /v1/tasks/{id}?include_subtasks=true` nếu chưa có trong state |
+| Danh sách tệp đính kèm | `GET /v1/attachments?owner_type=...&owner_id=...` |
+| Upload tệp đính kèm | `POST /v1/attachments/upload` (multipart: `profile_id`, `owner_type`, `owner_id`, `file`) |
+| Tải / xoá tệp đính kèm | `GET /v1/attachments/{id}/download` (nhị phân), `DELETE /v1/attachments/{id}` |
 | Thẻ tổng quan báo cáo | `GET /v1/reports/overview?profile_id=...&from=...&to=...` |
 | Donut tỉ lệ % theo status | `GET /v1/reports/status-breakdown?profile_id=...&from=...&to=...` |
 | Line chart tạo mới/hoàn thành | `GET /v1/reports/timeseries?profile_id=...&interval=REPORT_INTERVAL_DAY` (hoặc `_WEEK`/`_MONTH`) |
@@ -239,10 +264,9 @@ Màu badge priority đọc token `--tm-priority-*` trong `PriorityBadge.module.c
 
 ## Chưa có trong base (đã có sẵn chỗ trên UI)
 
-- Tab **List** / **Timeline** và chuông thông báo: chỉ hiển thị theo design, bấm vào có tooltip
-  "Chưa có trong base".
-- Chưa có field **category/tag**, comment, attachment → card dùng progress từ subtask và due date thay cho
-  các con số ảo trong design.
+- Tab **List** / **Timeline**: chỉ hiển thị theo design, bấm vào có tooltip "Chưa có trong base".
+- Chưa có field **category/tag**, comment → card dùng progress từ subtask và due date thay cho các con
+  số ảo trong design. Tệp đính kèm đã có (xem `AttachmentSection`).
 - Chưa có form sửa status/rule (trang Statuses hiện read-only).
 
 ## Menubar (sidebar) — 3 vùng

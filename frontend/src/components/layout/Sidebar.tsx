@@ -1,11 +1,11 @@
-import { Box, Group, Stack, Text, ThemeIcon, UnstyledButton } from '@mantine/core';
-import { IconSparkles } from '@tabler/icons-react';
+import { Box, Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import scrollClasses from '../../styles/scroll.module.css';
 import { tokens } from '../../theme';
 import { NAV_SECTIONS, type NavItem } from './navigation';
+import Logo from './Logo';
 import classes from './Sidebar.module.css';
 
 function SectionLabel({ children }: { children: string }) {
@@ -68,14 +68,7 @@ function BrandHeader() {
 
   return (
     <Group gap={10} wrap="nowrap" px={4} pt={4}>
-      <ThemeIcon
-        size={30}
-        radius={9}
-        variant="gradient"
-        gradient={{ from: tokens.brandFrom, to: tokens.brandTo, deg: 140 }}
-      >
-        <IconSparkles size={17} />
-      </ThemeIcon>
+      <Logo size={30} />
       <Text fz={14} fw={700} c={tokens.text} className={classes.brandTitle}>
         {t('sidebar.brand')}
       </Text>

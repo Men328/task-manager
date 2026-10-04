@@ -20,6 +20,7 @@ interface KanbanColumnProps {
   onDragEnd: () => void;
   onDrop: (taskId: string, statusId: string) => void;
   onAddTask: (statusId: string) => void;
+  onOpenTask?: (task: Task) => void;
 }
 
 export function KanbanColumn({
@@ -31,6 +32,7 @@ export function KanbanColumn({
   onDragEnd,
   onDrop,
   onAddTask,
+  onOpenTask,
 }: KanbanColumnProps) {
   const { t } = useTranslation();
   const [isOver, setIsOver] = useState(false);
@@ -126,6 +128,7 @@ export function KanbanColumn({
               dragging={draggingTaskId === task.id}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
+              onOpen={onOpenTask}
             />
           ))}
 

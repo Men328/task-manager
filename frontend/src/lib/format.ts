@@ -95,3 +95,22 @@ export function derivedProgress(
   const done = subtasks.filter((sub) => isDone(sub.statusId)).length;
   return Math.round((done / subtasks.length) * 100);
 }
+
+/** "1.2 MB" — kích thước tệp đính kèm. */
+export function formatBytes(value: number | string | null | undefined): string {
+  const amount = typeof value === 'string' ? Number(value) : value;
+  if (amount === null || amount === undefined || Number.isNaN(amount) || amount < 0) {
+    return '—';
+  }
+  if (amount < 1024) {
+    return `${amount} B`;
+  }
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let size = amount / 1024;
+  let unit = 0;
+  while (size >= 1024 && unit < units.length - 1) {
+    size /= 1024;
+    unit += 1;
+  }
+  return `${size.toFixed(size >= 10 ? 0 : 1)} ${units[unit]}`;
+}

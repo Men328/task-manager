@@ -46,9 +46,27 @@
     "title": "Task details",
     "description": "Description",
     "noDescription": "No description",
+    "status": "Status",
+    "start": "Start",
     "due": "Due",
     "created": "Created",
+    "progress": "Progress",
+    "parent": "Parent task",
     "subtasks": "Subtasks"
+  },
+  "attachment": {
+    "title": "Attachments",
+    "upload": "Upload file",
+    "loading": "Loading files...",
+    "empty": "No attachments yet.",
+    "download": "Download",
+    "downloadAria": "Download {{name}}",
+    "removeAria": "Remove {{name}}",
+    "uploaded": "File uploaded",
+    "uploadFailed": "Could not upload file",
+    "removed": "Attachment removed",
+    "removeFailed": "Could not remove attachment",
+    "needProfile": "No profile available to attach files."
   },
   "theme": {
     "light": "Light",

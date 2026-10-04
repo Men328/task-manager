@@ -14,6 +14,7 @@ import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
+import AttachmentSection from '../attachment/AttachmentSection';
 import { useCalendar } from '../../context';
 import type { NewScheduleInput } from '../../context/calendar/useCalendar';
 import type { Schedule } from '../../types';
@@ -251,6 +252,10 @@ export function ScheduleFormModal({
           onChange={setColor}
           swatches={['#4353e8', '#12b886', '#f59f00', '#e8590c', '#c026d3', '#0c8599']}
         />
+
+        {schedule?.id ? (
+          <AttachmentSection ownerType="schedule" ownerId={schedule.id} />
+        ) : null}
 
         {confirmingDelete ? (
           <Stack gap={6}>
