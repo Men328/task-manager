@@ -1,10 +1,11 @@
-import { Alert, Box, Button, Checkbox, Stack, Text, ThemeIcon } from '@mantine/core';
-import { IconAlertTriangle, IconChecklist } from '@tabler/icons-react';
+import { Alert, Box, Button, Checkbox, Stack, Text } from '@mantine/core';
+import { IconAlertTriangle } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { googleLoginUrl } from '../../api/identity';
+import Logo from '../../components/layout/Logo';
 import { useSession } from '../../context';
 import { messageForCode } from '../../lib/errorCatalog';
 import { tokens } from '../../theme';
@@ -56,9 +57,7 @@ export function LoginPage() {
     <Box className={classes.root}>
       <Box className={classes.card}>
         <Stack gap="lg" align="center">
-          <ThemeIcon size={54} radius={16} variant="gradient" gradient={{ from: tokens.brandFrom, to: tokens.brandTo, deg: 140 }}>
-            <IconChecklist size={28} />
-          </ThemeIcon>
+          <Logo size={54} />
 
           <Stack gap={6} align="center">
             <Text fz={22} fw={700} c={tokens.text} ta="center">

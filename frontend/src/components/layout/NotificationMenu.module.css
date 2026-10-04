@@ -22,11 +22,6 @@
   background: var(--tm-nav-active-bg);
 }
 
-.unread,
-.unread:hover {
-  background: var(--tm-brand-light);
-}
-
 .itemTitle {
   line-height: 1.35;
 }
@@ -37,10 +32,10 @@
 }
 
 .dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  background: var(--tm-brand);
+  background: var(--tm-notice-unread, #2f80ed);
   flex: 0 0 auto;
   margin-top: 5px;
 }

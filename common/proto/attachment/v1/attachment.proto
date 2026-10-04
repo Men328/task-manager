@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package attachment.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/attachment/v1;attachmentv1";
+
+// Tệp đính kèm gắn với một đối tượng nghiệp vụ qua (owner_type, owner_id).
+// owner_type nằm trong tập: task | schedule | event | backlog.
+// Mapping DB: attachment.attachments
+message Attachment {
+  string id = 1;
+  string profile_id = 2;
+  // task | schedule | event | backlog
+  string owner_type = 3;
+  // Id (uuid) của đối tượng được đính kèm.
+  string owner_id = 4;
+  string file_name = 5;
+  string content_type = 6;
+  int64 size = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message UploadAttachmentRequest {
+  string profile_id = 1;
+  string owner_type = 2;
+  string owner_id = 3;
+  string file_name = 4;
+  string content_type = 5;
+  bytes content = 6;
+}
+
+message UploadAttachmentResponse {
+  Attachment attachment = 1;
+}
+
+message ListAttachmentsRequest {
+  string profile_id = 1;
+  // Bỏ trống = không lọc theo đối tượng.
+  string owner_type = 2;
+  string owner_id = 3;
+}
+
+message ListAttachmentsResponse {
+  repeated Attachment attachments = 1;
+}
+
+message GetAttachmentRequest {
+  string id = 1;
+}
+
+// Dùng cho luồng tải xuống: trả metadata kèm nội dung nhị phân.
+message GetAttachmentResponse {
+  Attachment attachment = 1;
+  bytes content = 2;
+}
+
+message DeleteAttachmentRequest {
+  string id = 1;
+}
+
+message DeleteAttachmentResponse {}
+
+service AttachmentService {
+  // Upload qua JSON (content base64). UI dùng route multipart /v1/attachments/upload.
+  rpc UploadAttachment(UploadAttachmentRequest) returns (UploadAttachmentResponse) {
+    option (google.api.http) = {
+      post: "/v1/attachments"
+      body: "*"
+    };
+  }
+
+  rpc ListAttachments(ListAttachmentsRequest) returns (ListAttachmentsResponse) {
+    option (google.api.http) = {get: "/v1/attachments"};
+  }
+
+  rpc GetAttachment(GetAttachmentRequest) returns (GetAttachmentResponse) {
+    option (google.api.http) = {get: "/v1/attachments/{id}"};
+  }
+
+  rpc DeleteAttachment(DeleteAttachmentRequest) returns (DeleteAttachmentResponse) {
+    option (google.api.http) = {delete: "/v1/attachments/{id}"};
+  }
+}

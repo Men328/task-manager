@@ -25,7 +25,11 @@ import TaskProgress from './TaskProgress';
 import classes from './TaskTable.module.css';
 
 /** View dạng bảng — có đầy đủ CRUD (kanban chỉ kéo thả + tạo). */
-export function TaskTable() {
+interface TaskTableProps {
+  onOpenTask?: (task: Task) => void;
+}
+
+export function TaskTable({ onOpenTask }: TaskTableProps) {
   const { t, i18n } = useTranslation();
   const { tasks, statusById, statuses, isStatusDone, taskById, removeTask } = useBoard();
   const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
@@ -88,7 +92,11 @@ export function TaskTable() {
                 const progress = derivedProgress(task.subtasks, isStatusDone);
 
                 return (
-                  <Table.Tr key={task.id}>
+                  <Table.Tr
+                    key={task.id}
+                    className={onOpenTask ? classes.clickableRow : undefined}
+                    onClick={() => onOpenTask?.(task)}
+                  >
                     <Table.Td>
                       <Text fz={13.5} fw={600} c={tokens.text}>
                         {task.title}
@@ -140,7 +148,10 @@ export function TaskTable() {
                           variant="subtle"
                           color="red"
                           size="sm"
-                          onClick={() => setPendingDelete(task)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setPendingDelete(task);
+                          }}
                           aria-label={t('taskTable.removeAria', { title: task.title })}
                         >
                           <IconTrash size={15} />

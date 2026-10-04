@@ -15,6 +15,7 @@ import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
+import AttachmentSection from '../attachment/AttachmentSection';
 import { useBacklog } from '../../context';
 import {
   BACKLOG_CATEGORY_LABEL_KEY,
@@ -170,6 +171,8 @@ export function BacklogFormModal({ opened, onClose, item, onDelete, deleting }: 
             <Code>{item.objectKey}</Code>
           </Stack>
         ) : null}
+
+        {item?.id ? <AttachmentSection ownerType="backlog" ownerId={item.id} /> : null}
 
         {confirmingDelete ? (
           <Stack gap={6}>

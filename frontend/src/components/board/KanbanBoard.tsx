@@ -3,15 +3,17 @@ import { Box, Group } from '@mantine/core';
 
 import { useBoard } from '../../context';
 import scrollClasses from '../../styles/scroll.module.css';
+import type { Task } from '../../types';
 import KanbanColumn from './KanbanColumn';
 import classes from './KanbanBoard.module.css';
 
 interface KanbanBoardProps {
   onAddTask: (statusId: string) => void;
   onMoveTask: (taskId: string, statusId: string) => void;
+  onOpenTask?: (task: Task) => void;
 }
 
-export function KanbanBoard({ onAddTask, onMoveTask }: KanbanBoardProps) {
+export function KanbanBoard({ onAddTask, onMoveTask, onOpenTask }: KanbanBoardProps) {
   const { statuses, cardsByStatus } = useBoard();
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
 
@@ -32,6 +34,7 @@ export function KanbanBoard({ onAddTask, onMoveTask }: KanbanBoardProps) {
               onMoveTask(taskId, statusId);
             }}
             onAddTask={onAddTask}
+            onOpenTask={onOpenTask}
           />
         ))}
       </Group>

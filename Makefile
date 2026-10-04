@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 # Mỗi thư mục trong service/ (và common/) là 1 Go module riêng, quản lý bằng go.work.
 # Vì root không phải module nên `go build ./...` không dùng được -> loop từng module.
-MODULES := common service/backlog service/calendar service/event service/identity service/mail-provider service/notification service/report service/task tools/quality
+MODULES := common service/attachment service/backlog service/calendar service/event service/identity service/mail-provider service/notification service/report service/task tools/quality
 
 GOBIN ?= $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(GOBIN):$(PATH)
@@ -20,6 +20,7 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
         run-calendar run-calendar-grpc run-calendar-http \
         run-event run-event-grpc run-event-http \
         run-backlog run-backlog-grpc run-backlog-http \
+        run-attachment run-attachment-grpc run-attachment-http \
         run-mail-provider run-mail-provider-grpc run-mail-provider-http \
         run-notification run-notification-grpc run-notification-http \
         run-report run-report-grpc run-report-http \
@@ -168,6 +169,15 @@ run-backlog-grpc: ## Chỉ chạy gRPC server backlog (:9086)
 
 run-backlog-http: ## Chỉ chạy HTTP gateway backlog (:8086)
 	cd service/backlog && go run ./cmd/http
+
+run-attachment: ## Chạy attachment local: gRPC :9089 + gateway :8089
+	bash scripts/run-service.sh attachment
+
+run-attachment-grpc: ## Chỉ chạy gRPC server attachment (:9089)
+	cd service/attachment && go run ./cmd/grpc
+
+run-attachment-http: ## Chỉ chạy HTTP gateway attachment (:8089)
+	cd service/attachment && go run ./cmd/http
 
 run-mail-provider: ## Chạy mail-provider local: gRPC :9084 + gateway :8084
 	bash scripts/run-service.sh mail-provider

@@ -1,0 +1,6 @@
+.row {
+  padding: 7px 9px;
+  border: 1px solid var(--tm-border);
+  border-radius: 9px;
+  background: var(--tm-surface-alt);
+}

@@ -1,10 +1,13 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "backlog/v1/backlog.proto",
+    "title": "attachment/v1/attachment.proto",
     "version": "version not set"
   },
   "tags": [
+    {
+      "name": "AttachmentService"
+    },
     {
       "name": "BacklogService"
     },
@@ -44,6 +47,138 @@
     "application/json"
   ],
   "paths": {
+    "/v1/attachments": {
+      "get": {
+        "operationId": "AttachmentService_ListAttachments",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListAttachmentsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "ownerType",
+            "description": "Bỏ trống = không lọc theo đối tượng.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "ownerId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AttachmentService"
+        ]
+      },
+      "post": {
+        "summary": "Upload qua JSON (content base64). UI dùng route multipart /v1/attachments/upload.",
+        "operationId": "AttachmentService_UploadAttachment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UploadAttachmentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UploadAttachmentRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AttachmentService"
+        ]
+      }
+    },
+    "/v1/attachments/{id}": {
+      "get": {
+        "operationId": "AttachmentService_GetAttachment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetAttachmentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AttachmentService"
+        ]
+      },
+      "delete": {
+        "operationId": "AttachmentService_DeleteAttachment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteAttachmentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AttachmentService"
+        ]
+      }
+    },
     "/v1/backlogs": {
       "get": {
         "operationId": "BacklogService_ListBacklogs",
@@ -1775,6 +1910,40 @@
         }
       }
     },
+    "v1Attachment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "profileId": {
+          "type": "string"
+        },
+        "ownerType": {
+          "type": "string",
+          "title": "task | schedule | event | backlog"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Id (uuid) của đối tượng được đính kèm."
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "size": {
+          "type": "string",
+          "format": "int64"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Tệp đính kèm gắn với một đối tượng nghiệp vụ qua (owner_type, owner_id).\nowner_type nằm trong tập: task | schedule | event | backlog.\nMapping DB: attachment.attachments"
+    },
     "v1Backlog": {
       "type": "object",
       "properties": {
@@ -2152,6 +2321,9 @@
         }
       }
     },
+    "v1DeleteAttachmentResponse": {
+      "type": "object"
+    },
     "v1DeleteBacklogResponse": {
       "type": "object"
     },
@@ -2294,6 +2466,19 @@
         }
       }
     },
+    "v1GetAttachmentResponse": {
+      "type": "object",
+      "properties": {
+        "attachment": {
+          "$ref": "#/definitions/v1Attachment"
+        },
+        "content": {
+          "type": "string",
+          "format": "byte"
+        }
+      },
+      "description": "Dùng cho luồng tải xuống: trả metadata kèm nội dung nhị phân."
+    },
     "v1GetBacklogResponse": {
       "type": "object",
       "properties": {
@@ -2394,6 +2579,18 @@
         "totalCompleted": {
           "type": "integer",
           "format": "int32"
+        }
+      }
+    },
+    "v1ListAttachmentsResponse": {
+      "type": "object",
+      "properties": {
+        "attachments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Attachment"
+          }
         }
       }
     },
@@ -2981,6 +3178,38 @@
       "properties": {
         "status": {
           "$ref": "#/definitions/v1TaskStatus"
+        }
+      }
+    },
+    "v1UploadAttachmentRequest": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "ownerType": {
+          "type": "string"
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "v1UploadAttachmentResponse": {
+      "type": "object",
+      "properties": {
+        "attachment": {
+          "$ref": "#/definitions/v1Attachment"
         }
       }
     },

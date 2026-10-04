@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Smoke test end-to-end: build 8 service (mỗi service gồm gRPC server + gateway),
+# Smoke test end-to-end: build 9 service (mỗi service gồm gRPC server + gateway),
 # chạy ở port mặc định, gọi API thật, rồi tắt.
 # Yêu cầu: go, node >= 20 (dùng fetch), curl.
-# Port 8081-8088 và 9081-9088 phải đang trống.
+# Port 8081-8089 và 9081-9089 phải đang trống.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -23,6 +23,8 @@ go build -o "$BIN_DIR/event-grpc" ./service/event/cmd/grpc
 go build -o "$BIN_DIR/event-http" ./service/event/cmd/http
 go build -o "$BIN_DIR/backlog-grpc" ./service/backlog/cmd/grpc
 go build -o "$BIN_DIR/backlog-http" ./service/backlog/cmd/http
+go build -o "$BIN_DIR/attachment-grpc" ./service/attachment/cmd/grpc
+go build -o "$BIN_DIR/attachment-http" ./service/attachment/cmd/http
 go build -o "$BIN_DIR/mail-provider-grpc" ./service/mail-provider/cmd/grpc
 go build -o "$BIN_DIR/mail-provider-http" ./service/mail-provider/cmd/http
 go build -o "$BIN_DIR/report-grpc" ./service/report/cmd/grpc
@@ -51,6 +53,10 @@ EVENT_HTTP_PID=$!
 BACKLOG_GRPC_PID=$!
 "$BIN_DIR/backlog-http" >"$BIN_DIR/backlog-http.log" 2>&1 &
 BACKLOG_HTTP_PID=$!
+"$BIN_DIR/attachment-grpc" >"$BIN_DIR/attachment-grpc.log" 2>&1 &
+ATTACHMENT_GRPC_PID=$!
+"$BIN_DIR/attachment-http" >"$BIN_DIR/attachment-http.log" 2>&1 &
+ATTACHMENT_HTTP_PID=$!
 "$BIN_DIR/mail-provider-grpc" >"$BIN_DIR/mail-provider-grpc.log" 2>&1 &
 MAIL_GRPC_PID=$!
 "$BIN_DIR/mail-provider-http" >"$BIN_DIR/mail-provider-http.log" 2>&1 &
@@ -70,6 +76,7 @@ cleanup() {
     "$CALENDAR_HTTP_PID" "$CALENDAR_GRPC_PID" \
     "$EVENT_HTTP_PID" "$EVENT_GRPC_PID" \
     "$BACKLOG_HTTP_PID" "$BACKLOG_GRPC_PID" \
+    "$ATTACHMENT_HTTP_PID" "$ATTACHMENT_GRPC_PID" \
     "$MAIL_HTTP_PID" "$MAIL_GRPC_PID" \
     "$REPORT_HTTP_PID" "$REPORT_GRPC_PID" \
     "$NOTIFICATION_HTTP_PID" "$NOTIFICATION_GRPC_PID" 2>/dev/null || true
@@ -85,7 +92,8 @@ for _ in $(seq 1 60); do
     && curl -sf localhost:8086/healthz >/dev/null 2>&1 \
     && curl -sf localhost:8087/healthz >/dev/null 2>&1 \
     && curl -sf localhost:8084/healthz >/dev/null 2>&1 \
-    && curl -sf localhost:8088/healthz >/dev/null 2>&1; then
+    && curl -sf localhost:8088/healthz >/dev/null 2>&1 \
+    && curl -sf localhost:8089/healthz >/dev/null 2>&1; then
     break
   fi
   sleep 0.25
@@ -98,7 +106,8 @@ if ! curl -sf localhost:8081/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8086/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8087/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8084/healthz >/dev/null 2>&1 \
-  || ! curl -sf localhost:8088/healthz >/dev/null 2>&1; then
+  || ! curl -sf localhost:8088/healthz >/dev/null 2>&1 \
+  || ! curl -sf localhost:8089/healthz >/dev/null 2>&1; then
   echo "Service không khởi động được. Log:" >&2
   tail -20 \
     "$BIN_DIR/identity-grpc.log" "$BIN_DIR/identity-http.log" \
@@ -106,6 +115,7 @@ if ! curl -sf localhost:8081/healthz >/dev/null 2>&1 \
     "$BIN_DIR/calendar-grpc.log" "$BIN_DIR/calendar-http.log" \
     "$BIN_DIR/event-grpc.log" "$BIN_DIR/event-http.log" \
     "$BIN_DIR/backlog-grpc.log" "$BIN_DIR/backlog-http.log" \
+    "$BIN_DIR/attachment-grpc.log" "$BIN_DIR/attachment-http.log" \
     "$BIN_DIR/mail-provider-grpc.log" "$BIN_DIR/mail-provider-http.log" \
     "$BIN_DIR/report-grpc.log" "$BIN_DIR/report-http.log" \
     "$BIN_DIR/notification-grpc.log" "$BIN_DIR/notification-http.log" >&2

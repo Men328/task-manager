@@ -30,6 +30,9 @@ export const REPORT_BASE_URL: string =
 export const NOTIFICATION_BASE_URL: string =
   (import.meta.env.VITE_NOTIFICATION_API_URL as string | undefined) ?? '/api/notification';
 
+export const ATTACHMENT_BASE_URL: string =
+  (import.meta.env.VITE_ATTACHMENT_API_URL as string | undefined) ?? '/api/attachment';
+
 /** Base URL used by the identity service calls. */
 export const identityApi = IDENTITY_BASE_URL;
 
@@ -50,6 +53,9 @@ export const reportApi = REPORT_BASE_URL;
 
 /** Base URL used by the notification service calls. */
 export const notificationApi = NOTIFICATION_BASE_URL;
+
+/** Base URL used by the attachment service calls. */
+export const attachmentApi = ATTACHMENT_BASE_URL;
 
 export class ApiError extends Error {
   /** HTTP status code, or 0 when the request never reached the server. */
@@ -124,7 +130,9 @@ export async function request<T>(
   const method = (init.method ?? 'GET').toUpperCase();
 
   const headers = new Headers(init.headers);
-  if (!headers.has('Content-Type')) {
+  // FormData phải để browser tự set Content-Type (kèm multipart boundary).
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
+  if (!headers.has('Content-Type') && !isFormData) {
     headers.set('Content-Type', 'application/json');
   }
   if (!headers.has('Accept')) {

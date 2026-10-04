@@ -43,6 +43,7 @@
 
   /* trạng thái */
   --tm-danger: #e5484d;
+  --tm-notice-unread: #2f80ed;
   --tm-progress-track: #eceef4;
   --tm-progress-fill: #16192c;
 
@@ -107,6 +108,7 @@
 
   /* trạng thái */
   --tm-danger: #ff7b81;
+  --tm-notice-unread: #5b9dff;
   --tm-progress-track: #262b39;
   --tm-progress-fill: #8b93ff;
 

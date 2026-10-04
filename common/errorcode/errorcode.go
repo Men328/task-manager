@@ -117,6 +117,16 @@ const (
 	ReportRangeInvalid      = "REPORT_RANGE_INVALID"
 	ReportIntervalInvalid   = "REPORT_INTERVAL_INVALID"
 	ReportTaskSourceFailed  = "REPORT_TASK_SOURCE_FAILED"
+
+	AttachmentProfileIDRequired = "ATTACHMENT_PROFILE_ID_REQUIRED"
+	AttachmentOwnerTypeRequired = "ATTACHMENT_OWNER_TYPE_REQUIRED"
+	AttachmentOwnerTypeInvalid  = "ATTACHMENT_OWNER_TYPE_INVALID"
+	AttachmentOwnerIDRequired   = "ATTACHMENT_OWNER_ID_REQUIRED"
+	AttachmentFileRequired      = "ATTACHMENT_FILE_REQUIRED"
+	AttachmentFileTooLarge      = "ATTACHMENT_FILE_TOO_LARGE"
+	AttachmentStorageFailed     = "ATTACHMENT_STORAGE_FAILED"
+	AttachmentIDRequired        = "ATTACHMENT_ID_REQUIRED"
+	AttachmentNotFound          = "ATTACHMENT_NOT_FOUND"
 )
 
 type LocalizedMessage struct {

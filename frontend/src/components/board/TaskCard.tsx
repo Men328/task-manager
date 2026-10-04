@@ -16,9 +16,10 @@ interface TaskCardProps {
   dragging: boolean;
   onDragStart: (taskId: string) => void;
   onDragEnd: () => void;
+  onOpen?: (task: Task) => void;
 }
 
-export function TaskCard({ task, dragging, onDragStart, onDragEnd }: TaskCardProps) {
+export function TaskCard({ task, dragging, onDragStart, onDragEnd, onOpen }: TaskCardProps) {
   const { i18n } = useTranslation();
   const { statusById, taskById, isStatusDone, statuses } = useBoard();
 
@@ -44,6 +45,7 @@ export function TaskCard({ task, dragging, onDragStart, onDragEnd }: TaskCardPro
         onDragStart(task.id);
       }}
       onDragEnd={onDragEnd}
+      onClick={() => onOpen?.(task)}
       p={13}
     >
       <Group justify="space-between" align="flex-start" gap={8} wrap="nowrap">

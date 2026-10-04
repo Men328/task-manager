@@ -369,6 +369,32 @@ export interface ListBacklogsParams {
 }
 
 /* -------------------------------------------------------------------------- */
+/* attachment service                                                         */
+/* -------------------------------------------------------------------------- */
+
+export type AttachmentOwnerType = 'task' | 'schedule' | 'event' | 'backlog';
+
+export const ATTACHMENT_OWNER_TYPES: AttachmentOwnerType[] = [
+  'task',
+  'schedule',
+  'event',
+  'backlog',
+];
+
+/** attachment service: attachment.attachments */
+export interface Attachment {
+  id: string;
+  profileId: string;
+  ownerType: AttachmentOwnerType;
+  ownerId: string;
+  fileName: string;
+  contentType: string;
+  /** Kích thước byte. */
+  size: number;
+  createdAt?: string;
+}
+
+/* -------------------------------------------------------------------------- */
 /* report service                                                             */
 /* -------------------------------------------------------------------------- */
 

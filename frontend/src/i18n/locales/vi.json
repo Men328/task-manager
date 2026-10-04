@@ -46,9 +46,27 @@
     "title": "Chi tiết công việc",
     "description": "Mô tả",
     "noDescription": "Không có mô tả",
+    "status": "Trạng thái",
+    "start": "Bắt đầu",
     "due": "Hạn",
     "created": "Ngày tạo",
+    "progress": "Tiến độ",
+    "parent": "Công việc cha",
     "subtasks": "Công việc con"
+  },
+  "attachment": {
+    "title": "Tệp đính kèm",
+    "upload": "Tải tệp lên",
+    "loading": "Đang tải tệp...",
+    "empty": "Chưa có tệp đính kèm.",
+    "download": "Tải xuống",
+    "downloadAria": "Tải xuống {{name}}",
+    "removeAria": "Xoá {{name}}",
+    "uploaded": "Đã tải tệp lên",
+    "uploadFailed": "Không tải được tệp lên",
+    "removed": "Đã xoá tệp đính kèm",
+    "removeFailed": "Không xoá được tệp đính kèm",
+    "needProfile": "Chưa có hồ sơ để đính kèm tệp."
   },
   "theme": {
     "light": "Sáng",

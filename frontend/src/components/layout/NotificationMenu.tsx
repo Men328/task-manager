@@ -123,7 +123,7 @@ export function NotificationMenu() {
               {items.map((notice) => (
                 <UnstyledButton
                   key={notice.id}
-                  className={notice.isRead ? classes.item : `${classes.item} ${classes.unread}`}
+                  className={classes.item}
                   onClick={() => openNotice(notice)}
                 >
                   <Group justify="space-between" gap="xs" wrap="nowrap" align="flex-start">
