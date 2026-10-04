@@ -311,6 +311,54 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ---------------------------------------------------------------- report
+  # Báo cáo: tổng hợp qua task + calendar + event + backlog (không có DB riêng).
+  report-grpc:
+    build:
+      context: ../..
+      dockerfile: service/report/Dockerfile
+    container_name: tm-report-grpc
+    entrypoint: ["/usr/local/bin/grpc"]
+    environment:
+      SERVICE_NAME: report
+      GRPC_ADDR: ":9087"
+      LOG_LEVEL: info
+      TASK_GRPC_DIAL_ADDR: "task-grpc:9082"
+      EVENT_GRPC_DIAL_ADDR: "event-grpc:9085"
+      CALENDAR_GRPC_DIAL_ADDR: "calendar-grpc:9083"
+      BACKLOG_GRPC_DIAL_ADDR: "backlog-grpc:9086"
+    depends_on:
+      task-grpc:
+        condition: service_started
+      event-grpc:
+        condition: service_started
+      calendar-grpc:
+        condition: service_started
+      backlog-grpc:
+        condition: service_started
+    restart: unless-stopped
+
+  report:
+    build:
+      context: ../..
+      dockerfile: service/report/Dockerfile
+    container_name: tm-report
+    entrypoint: ["/usr/local/bin/http"]
+    environment:
+      SERVICE_NAME: report
+      HTTP_ADDR: ":8087"
+      GRPC_DIAL_ADDR: "report-grpc:9087"
+      LOG_LEVEL: info
+    depends_on:
+      report-grpc:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8087/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   # --------------------------------------------------------- mail-provider
   # Nhận notice Gmail qua Pub/Sub push -> gọi Gmail API -> DeepSeek -> tạo task.
   # Subscription (refresh token + checkpoint historyId) lưu ở Postgres; bỏ trống
@@ -441,6 +489,8 @@ services:
       event:
         condition: service_healthy
       backlog:
+        condition: service_healthy
+      report:
         condition: service_healthy
       mail-provider:
         condition: service_healthy

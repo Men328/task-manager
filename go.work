@@ -7,6 +7,7 @@ use (
 	./service/event
 	./service/identity
 	./service/mail-provider
+	./service/report
 	./service/task
 	./tools/quality
 )

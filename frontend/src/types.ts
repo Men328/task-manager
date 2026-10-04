@@ -333,3 +333,134 @@ export interface ListBacklogsParams {
   status?: BacklogStatus;
   category?: string;
 }
+
+/* -------------------------------------------------------------------------- */
+/* report service                                                             */
+/* -------------------------------------------------------------------------- */
+
+export type ReportInterval =
+  | 'REPORT_INTERVAL_UNSPECIFIED'
+  | 'REPORT_INTERVAL_DAY'
+  | 'REPORT_INTERVAL_WEEK'
+  | 'REPORT_INTERVAL_MONTH';
+
+export const REPORT_INTERVALS: ReportInterval[] = [
+  'REPORT_INTERVAL_DAY',
+  'REPORT_INTERVAL_WEEK',
+  'REPORT_INTERVAL_MONTH',
+];
+
+/** Category thô của status trong báo cáo (khớp DB enum `task.status_category`). */
+export type ReportStatusCategory = 'todo' | 'in_progress' | 'done' | 'cancelled';
+
+/** report service: ReportOverview (đã bỏ field timestamp dạng chuỗi ISO). */
+export interface ReportOverview {
+  profileId: string;
+  from?: string;
+  to?: string;
+  totalTasks: number;
+  rootTasks: number;
+  subtaskCount: number;
+  todoTasks: number;
+  inProgressTasks: number;
+  doneTasks: number;
+  cancelledTasks: number;
+  overdueTasks: number;
+  dueSoonTasks: number;
+  createdInRange: number;
+  completedInRange: number;
+  /** 0..100 */
+  completionRate: number;
+  /** 0..100 */
+  overdueRate: number;
+}
+
+export interface ReportStatusBreakdownItem {
+  statusId: string;
+  statusName: string;
+  statusSlug: string;
+  color?: string | null;
+  category: ReportStatusCategory;
+  count: number;
+  /** 0..100 */
+  percentage: number;
+}
+
+export interface ReportStatusBreakdown {
+  items: ReportStatusBreakdownItem[];
+  total: number;
+}
+
+export interface ReportTimeSeriesPoint {
+  bucketStart?: string;
+  /** YYYY-MM-DD (UTC) */
+  bucket: string;
+  created: number;
+  completed: number;
+}
+
+export interface ReportTimeSeries {
+  interval: ReportInterval;
+  points: ReportTimeSeriesPoint[];
+  totalCreated: number;
+  totalCompleted: number;
+}
+
+export interface ReportQueryParams {
+  profileId: string;
+  /** ISO-8601; bỏ trống = 30 ngày gần nhất. */
+  from?: string;
+  to?: string;
+  includeArchived?: boolean;
+}
+
+export interface ReportTimeSeriesParams extends ReportQueryParams {
+  interval?: ReportInterval;
+}
+
+export interface ReportBundle {
+  overview: ReportOverview;
+  breakdown: ReportStatusBreakdown;
+  series: ReportTimeSeries;
+}
+
+export interface ReportCategoryCount {
+  category: string;
+  count: number;
+}
+
+export interface ReportEventStats {
+  totalEvents: number;
+  plannedEvents: number;
+  confirmedEvents: number;
+  cancelledEvents: number;
+  upcomingEvents: number;
+  allDayEvents: number;
+}
+
+export interface ReportScheduleStats {
+  totalSchedules: number;
+  allDaySchedules: number;
+  upcomingSchedules: number;
+  todaySchedules: number;
+}
+
+export interface ReportBacklogStats {
+  totalBacklogs: number;
+  newBacklogs: number;
+  triagedBacklogs: number;
+  archivedBacklogs: number;
+  byCategory: ReportCategoryCount[];
+}
+
+/** report service: thống kê sự kiện + lịch + backlog trong khoảng thời gian. */
+export interface ReportActivity {
+  profileId: string;
+  from?: string;
+  to?: string;
+  events: ReportEventStats;
+  schedules: ReportScheduleStats;
+  backlogs: ReportBacklogStats;
+}
+
+

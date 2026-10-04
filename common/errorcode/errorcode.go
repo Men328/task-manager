@@ -102,6 +102,11 @@ const (
 	BacklogTitleRequired     = "BACKLOG_TITLE_REQUIRED"
 	BacklogIDRequired        = "BACKLOG_ID_REQUIRED"
 	BacklogNotFound          = "BACKLOG_NOT_FOUND"
+
+	ReportProfileIDRequired = "REPORT_PROFILE_ID_REQUIRED"
+	ReportRangeInvalid      = "REPORT_RANGE_INVALID"
+	ReportIntervalInvalid   = "REPORT_INTERVAL_INVALID"
+	ReportTaskSourceFailed  = "REPORT_TASK_SOURCE_FAILED"
 )
 
 type LocalizedMessage struct {

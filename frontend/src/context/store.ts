@@ -4,6 +4,7 @@ import { backlogReducer } from './backlog/backlogSlice';
 import { boardReducer } from './board/boardSlice';
 import { calendarReducer } from './calendar/calendarSlice';
 import { eventReducer } from './event/eventSlice';
+import { reportReducer } from './report/reportSlice';
 import { sessionReducer } from './session/sessionSlice';
 import { statusesPageReducer } from './statuses/statusesSlice';
 
@@ -14,6 +15,7 @@ export const store = configureStore({
     calendar: calendarReducer,
     event: eventReducer,
     backlog: backlogReducer,
+    report: reportReducer,
     statusesPage: statusesPageReducer,
   },
 });

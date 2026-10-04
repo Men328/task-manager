@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 # Mỗi thư mục trong service/ (và common/) là 1 Go module riêng, quản lý bằng go.work.
 # Vì root không phải module nên `go build ./...` không dùng được -> loop từng module.
-MODULES := common service/backlog service/calendar service/event service/identity service/mail-provider service/task tools/quality
+MODULES := common service/backlog service/calendar service/event service/identity service/mail-provider service/report service/task tools/quality
 
 GOBIN ?= $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(GOBIN):$(PATH)
@@ -21,6 +21,7 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
         run-event run-event-grpc run-event-http \
         run-backlog run-backlog-grpc run-backlog-http \
         run-mail-provider run-mail-provider-grpc run-mail-provider-http \
+        run-report run-report-grpc run-report-http \
         quality-all quality-fmt quality-vet quality-arch
 
 help: ## Hiển thị danh sách lệnh
@@ -175,6 +176,15 @@ run-mail-provider-grpc: ## Chỉ chạy gRPC server mail-provider (:9084)
 
 run-mail-provider-http: ## Chỉ chạy HTTP gateway mail-provider (:8084)
 	cd service/mail-provider && go run ./cmd/http
+
+run-report: ## Chạy report local: gRPC :9087 + gateway :8087 (cần task service)
+	bash scripts/run-service.sh report
+
+run-report-grpc: ## Chỉ chạy gRPC server report (:9087)
+	cd service/report && go run ./cmd/grpc
+
+run-report-http: ## Chỉ chạy HTTP gateway report (:8087)
+	cd service/report && go run ./cmd/http
 
 web-install: ## Cài dependency frontend
 	cd frontend && npm install

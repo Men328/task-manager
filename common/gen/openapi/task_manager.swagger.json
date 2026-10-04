@@ -22,6 +22,9 @@
       "description": "MailService điều khiển vòng đời watch Gmail và tiếp nhận notice từ Pub/Sub.\nCố ý KHÔNG khai báo google.api.http: các RPC này chỉ dùng nội bộ (gateway của\nidentity gọi Subscribe sau khi đăng nhập, webhook Pub/Sub gọi HandleNotification)."
     },
     {
+      "name": "ReportService"
+    },
+    {
       "name": "StatusTransitionService"
     },
     {
@@ -554,6 +557,216 @@
         ],
         "tags": [
           "ProfileService"
+        ]
+      }
+    },
+    "/v1/reports/activity": {
+      "get": {
+        "operationId": "ReportService_GetActivityReport",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetActivityReportResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "from",
+            "description": "Bỏ trống = mặc định 30 ngày gần nhất.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "ReportService"
+        ]
+      }
+    },
+    "/v1/reports/overview": {
+      "get": {
+        "operationId": "ReportService_GetReportOverview",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetReportOverviewResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "from",
+            "description": "Bỏ trống = mặc định 30 ngày gần nhất.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "ReportService"
+        ]
+      }
+    },
+    "/v1/reports/status-breakdown": {
+      "get": {
+        "operationId": "ReportService_GetStatusBreakdown",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetStatusBreakdownResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "ReportService"
+        ]
+      }
+    },
+    "/v1/reports/timeseries": {
+      "get": {
+        "operationId": "ReportService_GetTaskTimeSeries",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetTaskTimeSeriesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "interval",
+            "description": "Bỏ trống = REPORT_INTERVAL_DAY.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "REPORT_INTERVAL_UNSPECIFIED",
+              "REPORT_INTERVAL_DAY",
+              "REPORT_INTERVAL_WEEK",
+              "REPORT_INTERVAL_MONTH"
+            ],
+            "default": "REPORT_INTERVAL_UNSPECIFIED"
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "ReportService"
         ]
       }
     },
@@ -1608,6 +1821,36 @@
       },
       "title": "Mục backlog: dữ liệu mail worker KHÔNG phân loại được thành\ntask/schedule/event (category = other), hoặc không đủ dữ kiện để tạo.\nMapping DB: backlog.backlogs"
     },
+    "v1BacklogStats": {
+      "type": "object",
+      "properties": {
+        "totalBacklogs": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Mục backlog có created_at trong [from, to]."
+        },
+        "newBacklogs": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "triagedBacklogs": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "archivedBacklogs": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "byCategory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1CategoryCount"
+          }
+        }
+      },
+      "description": "Thống kê backlog (backlog service) theo khoảng thời gian."
+    },
     "v1BacklogStatus": {
       "type": "string",
       "enum": [
@@ -1618,6 +1861,19 @@
       ],
       "default": "BACKLOG_STATUS_UNSPECIFIED",
       "description": "Vòng đời xử lý của 1 mục backlog.\n\n - BACKLOG_STATUS_NEW: Vừa được mail worker đẩy vào, chưa xử lý.\n - BACKLOG_STATUS_TRIAGED: Người dùng đã xem qua / phân loại lại.\n - BACKLOG_STATUS_ARCHIVED: Lưu trữ, không còn hiện trong danh sách mặc định."
+    },
+    "v1CategoryCount": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "description": "Số lượng theo 1 giá trị phân loại (category của backlog)."
     },
     "v1ChangeTaskStatusResponse": {
       "type": "object",
@@ -1967,6 +2223,38 @@
       },
       "title": "Sự kiện (event) cá nhân thuộc 1 profile.\nKhác `schedule` ở chỗ có `status` + `source` để theo dõi sự kiện đến từ email.\nMapping DB: event.events"
     },
+    "v1EventStats": {
+      "type": "object",
+      "properties": {
+        "totalEvents": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Sự kiện giao với [from, to]."
+        },
+        "plannedEvents": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "confirmedEvents": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "cancelledEvents": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "upcomingEvents": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Sự kiện có start_at \u003e= now (không giới hạn khoảng)."
+        },
+        "allDayEvents": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "description": "Thống kê sự kiện (event service) theo khoảng thời gian."
+    },
     "v1EventStatus": {
       "type": "string",
       "enum": [
@@ -1977,6 +2265,31 @@
       ],
       "default": "EVENT_STATUS_UNSPECIFIED",
       "description": "Trạng thái nghiệp vụ của 1 sự kiện.\n\n - EVENT_STATUS_PLANNED: Đã lên kế hoạch, chưa chốt.\n - EVENT_STATUS_CONFIRMED: Đã xác nhận tham dự / đã chốt.\n - EVENT_STATUS_CANCELLED: Đã huỷ."
+    },
+    "v1GetActivityReportResponse": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "to": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "events": {
+          "$ref": "#/definitions/v1EventStats"
+        },
+        "schedules": {
+          "$ref": "#/definitions/v1ScheduleStats"
+        },
+        "backlogs": {
+          "$ref": "#/definitions/v1BacklogStats"
+        }
+      }
     },
     "v1GetBacklogResponse": {
       "type": "object",
@@ -2002,11 +2315,35 @@
         }
       }
     },
+    "v1GetReportOverviewResponse": {
+      "type": "object",
+      "properties": {
+        "overview": {
+          "$ref": "#/definitions/v1ReportOverview"
+        }
+      }
+    },
     "v1GetScheduleResponse": {
       "type": "object",
       "properties": {
         "schedule": {
           "$ref": "#/definitions/v1Schedule"
+        }
+      }
+    },
+    "v1GetStatusBreakdownResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1StatusBreakdownItem"
+          }
+        },
+        "total": {
+          "type": "integer",
+          "format": "int32"
         }
       }
     },
@@ -2031,6 +2368,29 @@
       "properties": {
         "status": {
           "$ref": "#/definitions/v1TaskStatus"
+        }
+      }
+    },
+    "v1GetTaskTimeSeriesResponse": {
+      "type": "object",
+      "properties": {
+        "interval": {
+          "$ref": "#/definitions/v1ReportInterval"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1TimeSeriesPoint"
+          }
+        },
+        "totalCreated": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalCompleted": {
+          "type": "integer",
+          "format": "int32"
         }
       }
     },
@@ -2160,6 +2520,90 @@
       },
       "title": "Profile là hồ sơ của một identity.\nMapping DB: identity.PROFILES"
     },
+    "v1ReportInterval": {
+      "type": "string",
+      "enum": [
+        "REPORT_INTERVAL_UNSPECIFIED",
+        "REPORT_INTERVAL_DAY",
+        "REPORT_INTERVAL_WEEK",
+        "REPORT_INTERVAL_MONTH"
+      ],
+      "default": "REPORT_INTERVAL_UNSPECIFIED",
+      "description": "Độ phân giải bucket thời gian cho báo cáo dạng chuỗi."
+    },
+    "v1ReportOverview": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Khoảng thời gian hiệu lực sau khi service áp default (mặc định 30 ngày gần nhất)."
+        },
+        "to": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "totalTasks": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rootTasks": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "subtaskCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "todoTasks": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "inProgressTasks": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "doneTasks": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "cancelledTasks": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "overdueTasks": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "dueSoonTasks": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Task có due_at trong vòng 7 ngày tới và chưa done/cancelled."
+        },
+        "createdInRange": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "completedInRange": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "completionRate": {
+          "type": "number",
+          "format": "double",
+          "title": "0..100"
+        },
+        "overdueRate": {
+          "type": "number",
+          "format": "double",
+          "title": "0..100"
+        }
+      },
+      "description": "Tổng quan cơ bản của task trong 1 profile + khoảng thời gian.\nReport service tổng hợp qua task service (không đọc trực tiếp DB)."
+    },
     "v1Schedule": {
       "type": "object",
       "properties": {
@@ -2207,6 +2651,30 @@
       },
       "title": "Lịch (schedule) cá nhân thuộc 1 profile.\nMapping DB: calendar.schedules"
     },
+    "v1ScheduleStats": {
+      "type": "object",
+      "properties": {
+        "totalSchedules": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Lịch giao với [from, to]."
+        },
+        "allDaySchedules": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "upcomingSchedules": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "todaySchedules": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Lịch bắt đầu trong ngày hôm nay (UTC)."
+        }
+      },
+      "description": "Thống kê lịch (calendar service) theo khoảng thời gian."
+    },
     "v1SeedDefaultStatusesRequest": {
       "type": "object",
       "properties": {
@@ -2233,6 +2701,37 @@
           }
         }
       }
+    },
+    "v1StatusBreakdownItem": {
+      "type": "object",
+      "properties": {
+        "statusId": {
+          "type": "string"
+        },
+        "statusName": {
+          "type": "string"
+        },
+        "statusSlug": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "title": "todo | in_progress | done | cancelled"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "percentage": {
+          "type": "number",
+          "format": "double",
+          "title": "0..100"
+        }
+      },
+      "description": "1 dòng trong báo cáo tỉ lệ % task theo status."
     },
     "v1StatusTransition": {
       "type": "object",
@@ -2403,6 +2902,28 @@
       ],
       "default": "TASK_STATUS_CATEGORY_UNSPECIFIED",
       "description": "Nhóm ngữ nghĩa của status, dùng cho logic app.\nMapping DB: enum status_category"
+    },
+    "v1TimeSeriesPoint": {
+      "type": "object",
+      "properties": {
+        "bucketStart": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "bucket": {
+          "type": "string",
+          "description": "Nhãn bucket dạng ngày ISO (YYYY-MM-DD) theo UTC."
+        },
+        "created": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "completed": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "description": "1 điểm trên line chart: số task tạo mới / hoàn thành trong bucket."
     },
     "v1UpdateBacklogResponse": {
       "type": "object",

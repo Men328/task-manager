@@ -34,8 +34,8 @@ docker compose -f deployments/docker/docker-compose.yml --profile tunnel up --bu
 
 ## Ghi chú
 
-- Dockerfile **không** nằm ở đây mà ở từng service: `service/identity/Dockerfile`,
-  `service/task/Dockerfile`, `frontend/Dockerfile`. Compose trỏ tới chúng với build context là
+- Dockerfile **không** nằm ở đây mà ở từng service (`service/<svc>/Dockerfile`, gồm cả
+  `service/report/Dockerfile`) và `frontend/Dockerfile`. Compose trỏ tới chúng với build context là
   **root repo** (`../..`) vì mỗi service Go cần copy thêm module `common/`.
 - Entrypoint duy nhất là `frontend` (nginx serve SPA + proxy `/api/*`), bind `127.0.0.1`.
   Cloudflare Tunnel (`cloudflared`, profile `tunnel`) trỏ vào `http://frontend:3000` nên chỉ
