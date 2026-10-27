@@ -1,12 +1,17 @@
 import { Badge, Divider, Group, Modal, Stack, Text } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useBoard } from '../../context';
+import { getErrorMessage } from '../../api/client';
+import { useBoard, useProject } from '../../context';
 import { derivedProgress, formatDateTime, formatShortDate, hasText } from '../../lib/format';
 import { statusColor } from '../../lib/tokens';
 import { tokens } from '../../theme';
 import type { Task } from '../../types';
+import ProjectSelect from '../common/ProjectSelect';
+import { useProjectMoveNotice } from '../common/useProjectMoveNotice';
 import AttachmentSection from '../attachment/AttachmentSection';
 import PriorityBadge from '../board/PriorityBadge';
 import TaskProgress from '../board/TaskProgress';
@@ -27,7 +32,10 @@ function Label({ children }: { children: ReactNode }) {
 
 export function TaskDetailModal({ opened, onClose, task }: TaskDetailModalProps) {
   const { t, i18n } = useTranslation();
-  const { statusById, statuses, taskById, isStatusDone } = useBoard();
+  const { statusById, statuses, taskById, isStatusDone, moveToProject } = useBoard();
+  const { currentProjectId } = useProject();
+  const notifyProjectMove = useProjectMoveNotice();
+  const [moving, setMoving] = useState(false);
 
   const status = task ? statusById.get(task.statusId) : undefined;
   const statusIndex = status ? statuses.findIndex((item) => item.id === status.id) : -1;
@@ -35,6 +43,30 @@ export function TaskDetailModal({ opened, onClose, task }: TaskDetailModalProps)
     ? taskById.get(task.parentTaskId as string)
     : undefined;
   const progress = task ? derivedProgress(task.subtasks, isStatusDone) : null;
+
+  const handleProjectChange = async (nextId: string) => {
+    if (!task || nextId === task.projectId || moving) {
+      return;
+    }
+    setMoving(true);
+    try {
+      await moveToProject(task.id, nextId);
+      onClose();
+      if (nextId === currentProjectId) {
+        notifications.show({ message: t('project.moved'), color: 'teal' });
+      } else {
+        notifyProjectMove(nextId);
+      }
+    } catch (cause) {
+      notifications.show({
+        title: t('project.moveFailed'),
+        message: getErrorMessage(cause),
+        color: 'red',
+      });
+    } finally {
+      setMoving(false);
+    }
+  };
 
   return (
     <Modal opened={opened} onClose={onClose} title={t('taskDetail.title')} radius="md" size="lg">
@@ -58,6 +90,13 @@ export function TaskDetailModal({ opened, onClose, task }: TaskDetailModalProps)
           </div>
 
           <Divider />
+
+          <ProjectSelect
+            value={task.projectId}
+            onChange={(id) => void handleProjectChange(id)}
+            disabled={moving || hasText(task.parentTaskId)}
+            disabledReason={hasText(task.parentTaskId) ? t('project.subtaskLocked') : undefined}
+          />
 
           <div>
             <Label>{t('taskDetail.description')}</Label>

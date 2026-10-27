@@ -15,10 +15,12 @@ import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
 import AttachmentSection from '../attachment/AttachmentSection';
-import { useCalendar } from '../../context';
+import { useCalendar, useProject } from '../../context';
 import type { NewScheduleInput } from '../../context/calendar/useCalendar';
 import type { Schedule } from '../../types';
 import { tokens } from '../../theme';
+import ProjectSelect from '../common/ProjectSelect';
+import { useProjectMoveNotice } from '../common/useProjectMoveNotice';
 
 const DEFAULT_COLOR = '#4353e8';
 
@@ -76,6 +78,8 @@ export function ScheduleFormModal({
 }: ScheduleFormModalProps) {
   const { t } = useTranslation();
   const { create, update } = useCalendar();
+  const { currentProjectId } = useProject();
+  const notifyProjectMove = useProjectMoveNotice();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -84,6 +88,7 @@ export function ScheduleFormModal({
   const [startAt, setStartAt] = useState('');
   const [endAt, setEndAt] = useState('');
   const [color, setColor] = useState(DEFAULT_COLOR);
+  const [projectId, setProjectId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -100,6 +105,7 @@ export function ScheduleFormModal({
       setStartAt(schedule.startAt);
       setEndAt(schedule.endAt ?? '');
       setColor(schedule.color || DEFAULT_COLOR);
+      setProjectId(schedule.projectId);
       return;
     }
     setTitle('');
@@ -109,7 +115,8 @@ export function ScheduleFormModal({
     setStartAt(defaultStart ?? new Date().toISOString());
     setEndAt('');
     setColor(DEFAULT_COLOR);
-  }, [opened, schedule, defaultStart, defaultAllDay]);
+    setProjectId(currentProjectId ?? '');
+  }, [opened, schedule, defaultStart, defaultAllDay, currentProjectId]);
 
   const handleStartChange = (value: string) => {
     if (!value) {
@@ -148,6 +155,9 @@ export function ScheduleFormModal({
       });
       return;
     }
+    if (!projectId) {
+      return;
+    }
     if (!startAt) {
       notifications.show({
         title: t('scheduleForm.saveFailed'),
@@ -158,6 +168,7 @@ export function ScheduleFormModal({
     }
 
     const payload: NewScheduleInput = {
+      projectId,
       title: title.trim(),
       description,
       location,
@@ -180,6 +191,7 @@ export function ScheduleFormModal({
         color: 'teal',
       });
       onClose();
+      notifyProjectMove(projectId);
     } catch (cause) {
       notifications.show({
         title: t('scheduleForm.saveFailed'),
@@ -207,6 +219,8 @@ export function ScheduleFormModal({
           data-autofocus
           required
         />
+
+        <ProjectSelect value={projectId} onChange={setProjectId} required />
 
         <Checkbox
           label={t('scheduleForm.allDayLabel')}

@@ -5,10 +5,12 @@ import { IconCalendar } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
-import { useBoard } from '../../context';
+import { useBoard, useProject } from '../../context';
 import { hasText } from '../../lib/format';
 import { PRIORITY_LABEL_KEY } from '../../lib/tokens';
 import { tokens } from '../../theme';
+import ProjectSelect from '../common/ProjectSelect';
+import { useProjectMoveNotice } from '../common/useProjectMoveNotice';
 import { TASK_PRIORITIES } from '../../types';
 import type { TaskPriority } from '../../types';
 
@@ -22,6 +24,8 @@ interface TaskFormModalProps {
 export function TaskFormModal({ opened, onClose, presetStatusId }: TaskFormModalProps) {
   const { t } = useTranslation();
   const { statuses, tasks, addTask } = useBoard();
+  const { currentProjectId } = useProject();
+  const notifyProjectMove = useProjectMoveNotice();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -29,6 +33,7 @@ export function TaskFormModal({ opened, onClose, presetStatusId }: TaskFormModal
   const [priority, setPriority] = useState<TaskPriority>('TASK_PRIORITY_MEDIUM');
   const [parentTaskId, setParentTaskId] = useState<string | null>(null);
   const [dueAt, setDueAt] = useState('');
+  const [projectId, setProjectId] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // reset mỗi lần mở
@@ -43,7 +48,8 @@ export function TaskFormModal({ opened, onClose, presetStatusId }: TaskFormModal
     setPriority('TASK_PRIORITY_MEDIUM');
     setParentTaskId(null);
     setDueAt('');
-  }, [opened, presetStatusId, statuses]);
+    setProjectId(currentProjectId ?? '');
+  }, [opened, presetStatusId, statuses, currentProjectId]);
 
   const statusOptions = useMemo(
     () => statuses.map((status) => ({ value: status.id, label: status.name })),
@@ -64,13 +70,18 @@ export function TaskFormModal({ opened, onClose, presetStatusId }: TaskFormModal
     [t],
   );
 
+  // Subtask luôn theo project của task cha (backend bỏ qua project_id khi có parent).
+  const parentTask = parentTaskId ? tasks.find((task) => task.id === parentTaskId) : undefined;
+  const effectiveProjectId = parentTask?.projectId ?? projectId;
+
   const submit = async () => {
-    if (!title.trim()) {
+    if (!title.trim() || !effectiveProjectId) {
       return;
     }
     setSubmitting(true);
     try {
       await addTask({
+        projectId: effectiveProjectId,
         title: title.trim(),
         description: description.trim() || undefined,
         statusId: statusId ?? undefined,
@@ -80,6 +91,7 @@ export function TaskFormModal({ opened, onClose, presetStatusId }: TaskFormModal
       });
       notifications.show({ title: t('taskForm.created'), message: title.trim(), color: 'teal' });
       onClose();
+      notifyProjectMove(effectiveProjectId);
     } catch (cause) {
       notifications.show({
         title: t('taskForm.createFailed'),
@@ -141,6 +153,14 @@ export function TaskFormModal({ opened, onClose, presetStatusId }: TaskFormModal
           />
         </Group>
 
+        <ProjectSelect
+          value={effectiveProjectId}
+          onChange={setProjectId}
+          required
+          disabled={Boolean(parentTask)}
+          disabledReason={t('project.subtaskLocked')}
+        />
+
         <Group grow align="flex-start">
           <Select
             label={t('taskForm.parentLabel')}
@@ -169,7 +189,7 @@ export function TaskFormModal({ opened, onClose, presetStatusId }: TaskFormModal
           <Button variant="default" onClick={onClose} disabled={submitting}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={submit} loading={submitting} disabled={!title.trim()}>
+          <Button onClick={submit} loading={submitting} disabled={!title.trim() || !effectiveProjectId}>
             {t('taskForm.submit')}
           </Button>
         </Group>

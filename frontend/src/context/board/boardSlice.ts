@@ -6,6 +6,7 @@ import {
   changeTaskStatus,
   createTask,
   deleteTask,
+  updateTask,
   listStatuses,
   listTasks,
   listTransitions,
@@ -29,16 +30,23 @@ const optimisticMove = createAction<{ taskId: string; statusId: string }>('board
 
 interface FetchBoardArgs {
   profileId: string;
+  /** null = chưa có project hợp lệ -> không tải task. */
+  projectId: string | null;
 }
+
+/** Project đang chọn; dùng cho các thunk refetch sau khi ghi. */
+const currentProjectId = (state: RootState) => state.project.currentId;
 
 export const fetchBoard = createAsyncThunk<BoardData, FetchBoardArgs, { rejectValue: string }>(
   'board/fetchBoard',
-  async ({ profileId }, { rejectWithValue }) => {
+  async ({ profileId, projectId }, { rejectWithValue }) => {
     try {
       const [statuses, transitions, tasks] = await Promise.all([
         listStatuses(profileId),
         listTransitions(profileId),
-        listTasks({ profileId, includeSubtasks: true }),
+        projectId
+          ? listTasks({ profileId, projectId, includeSubtasks: true })
+          : Promise.resolve<Task[]>([]),
       ]);
       return { statuses, transitions, tasks };
     } catch (cause) {
@@ -50,11 +58,11 @@ export const fetchBoard = createAsyncThunk<BoardData, FetchBoardArgs, { rejectVa
 export const createTaskAndRefresh = createAsyncThunk<
   void,
   { profileId: string; input: NewTaskInput },
-  { rejectValue: string }
->('board/createTask', async ({ profileId, input }, { dispatch, rejectWithValue }) => {
+  { state: RootState; rejectValue: string }
+>('board/createTask', async ({ profileId, input }, { dispatch, getState, rejectWithValue }) => {
   try {
     await createTask({ ...input, profileId });
-    await dispatch(fetchBoard({ profileId })).unwrap();
+    await dispatch(fetchBoard({ profileId, projectId: currentProjectId(getState()) })).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
@@ -74,9 +82,25 @@ export const moveTask = createAsyncThunk<
 
   try {
     await changeTaskStatus(args.taskId, args.statusId, args.note);
-    await dispatch(fetchBoard({ profileId: args.profileId })).unwrap();
+    await dispatch(
+      fetchBoard({ profileId: args.profileId, projectId: currentProjectId(getState()) }),
+    ).unwrap();
   } catch (cause) {
     dispatch(optimisticMove({ taskId: args.taskId, statusId: previous.statusId }));
+    return rejectWithValue(getErrorMessage(cause));
+  }
+});
+
+/** Chuyển task sang project khác rồi tải lại board của project đang chọn. */
+export const moveTaskToProject = createAsyncThunk<
+  void,
+  { profileId: string; taskId: string; projectId: string },
+  { state: RootState; rejectValue: string }
+>('board/moveToProject', async ({ profileId, taskId, projectId }, { dispatch, getState, rejectWithValue }) => {
+  try {
+    await updateTask(taskId, { projectId });
+    await dispatch(fetchBoard({ profileId, projectId: currentProjectId(getState()) })).unwrap();
+  } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
 });
@@ -84,11 +108,11 @@ export const moveTask = createAsyncThunk<
 export const removeTask = createAsyncThunk<
   void,
   { profileId: string; taskId: string },
-  { rejectValue: string }
->('board/removeTask', async ({ profileId, taskId }, { dispatch, rejectWithValue }) => {
+  { state: RootState; rejectValue: string }
+>('board/removeTask', async ({ profileId, taskId }, { dispatch, getState, rejectWithValue }) => {
   try {
     await deleteTask(taskId);
-    await dispatch(fetchBoard({ profileId })).unwrap();
+    await dispatch(fetchBoard({ profileId, projectId: currentProjectId(getState()) })).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
@@ -97,11 +121,11 @@ export const removeTask = createAsyncThunk<
 export const seedBoardStatuses = createAsyncThunk<
   void,
   { profileId: string },
-  { rejectValue: string }
->('board/seedStatuses', async ({ profileId }, { dispatch, rejectWithValue }) => {
+  { state: RootState; rejectValue: string }
+>('board/seedStatuses', async ({ profileId }, { dispatch, getState, rejectWithValue }) => {
   try {
     await seedDefaultStatuses(profileId);
-    await dispatch(fetchBoard({ profileId })).unwrap();
+    await dispatch(fetchBoard({ profileId, projectId: currentProjectId(getState()) })).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }

@@ -18,6 +18,7 @@ export interface DateRange {
 
 interface FetchSchedulesArgs {
   profileId: string;
+  projectId: string | null;
   from?: string;
   to?: string;
 }
@@ -30,6 +31,7 @@ export const fetchSchedules = createAsyncThunk<
   try {
     return await listSchedules({
       profileId: params.profileId,
+      projectId: params.projectId ?? undefined,
       from: params.from,
       to: params.to,
     });
@@ -50,7 +52,9 @@ export const saveSchedule = createAsyncThunk<
       await createScheduleApi({ ...(input as CreateScheduleInput), profileId });
     }
     const { range } = getState().calendar;
-    await dispatch(fetchSchedules({ profileId, from: range.from, to: range.to })).unwrap();
+    await dispatch(
+      fetchSchedules({ profileId, projectId: getState().project.currentId, from: range.from, to: range.to }),
+    ).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
@@ -64,7 +68,9 @@ export const removeSchedule = createAsyncThunk<
   try {
     await deleteScheduleApi(id);
     const { range } = getState().calendar;
-    await dispatch(fetchSchedules({ profileId, from: range.from, to: range.to })).unwrap();
+    await dispatch(
+      fetchSchedules({ profileId, projectId: getState().project.currentId, from: range.from, to: range.to }),
+    ).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }

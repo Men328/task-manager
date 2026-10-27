@@ -15,6 +15,7 @@ const REPORTS_PATH = '/v1/reports';
 function toQuery(params: ReportQueryParams): string {
   return buildQuery({
     profile_id: params.profileId,
+    project_id: params.projectId,
     from: params.from,
     to: params.to,
     include_archived: params.includeArchived,
@@ -39,6 +40,7 @@ export function getStatusBreakdown(params: ReportQueryParams): Promise<ReportSta
 export function getTaskTimeSeries(params: ReportTimeSeriesParams): Promise<ReportTimeSeries> {
   const query = buildQuery({
     profile_id: params.profileId,
+    project_id: params.projectId,
     from: params.from,
     to: params.to,
     include_archived: params.includeArchived,

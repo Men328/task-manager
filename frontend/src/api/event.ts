@@ -14,6 +14,7 @@ const EVENTS_PATH = '/v1/events';
 function toCreateBody(input: CreateEventInput): Record<string, unknown> {
   return {
     profile_id: input.profileId,
+    project_id: input.projectId,
     title: input.title,
     description: input.description,
     location: input.location,
@@ -28,6 +29,9 @@ function toCreateBody(input: CreateEventInput): Record<string, unknown> {
 
 function toUpdateBody(input: UpdateEventInput): Record<string, unknown> {
   const body: Record<string, unknown> = {};
+  if (input.projectId !== undefined) {
+    body.project_id = input.projectId;
+  }
   if (input.title !== undefined) {
     body.title = input.title;
   }
@@ -61,6 +65,7 @@ export async function listEvents(params: ListEventsParams): Promise<Event[]> {
     eventApi,
     `${EVENTS_PATH}${buildQuery({
       profile_id: params.profileId,
+      project_id: params.projectId,
       from: params.from,
       to: params.to,
       status: params.status,

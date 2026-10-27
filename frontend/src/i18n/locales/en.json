@@ -444,6 +444,13 @@
     "unarchive": "Restore",
     "emptyTitle": "No projects",
     "emptyActive": "There are no active projects.",
-    "emptyArchived": "No projects have been archived."
+    "emptyArchived": "No projects have been archived.",
+    "selectLabel": "Project",
+    "selectPlaceholder": "Select a project",
+    "movedNotice": "Moved to project \"{{name}}\".",
+    "goTo": "Go to project",
+    "subtaskLocked": "Subtasks follow their parent task's project",
+    "moveFailed": "Could not change project",
+    "moved": "Project changed"
   }
 }

@@ -26,6 +26,7 @@ export interface ReportRange {
 
 interface FetchReportArgs extends ReportRange {
   profileId: string;
+  projectId: string | null;
 }
 
 interface ReportData {
@@ -40,6 +41,7 @@ export const fetchReport = createAsyncThunk<ReportData, FetchReportArgs, { rejec
   async (params, { rejectWithValue }) => {
     const common = {
       profileId: params.profileId,
+      projectId: params.projectId ?? undefined,
       from: params.from,
       to: params.to,
       includeArchived: params.includeArchived,

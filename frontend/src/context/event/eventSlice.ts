@@ -13,11 +13,11 @@ import type { RootState } from '../store';
 
 export const fetchEvents = createAsyncThunk<
   Event[],
-  { profileId: string },
+  { profileId: string; projectId: string | null },
   { rejectValue: string }
 >('event/fetchEvents', async (params, { rejectWithValue }) => {
   try {
-    return await listEvents({ profileId: params.profileId });
+    return await listEvents({ profileId: params.profileId, projectId: params.projectId ?? undefined });
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
@@ -27,14 +27,14 @@ export const saveEvent = createAsyncThunk<
   void,
   { profileId: string; id?: string; input: CreateEventInput | UpdateEventInput },
   { state: RootState; rejectValue: string }
->('event/saveEvent', async ({ profileId, id, input }, { dispatch, rejectWithValue }) => {
+>('event/saveEvent', async ({ profileId, id, input }, { dispatch, getState, rejectWithValue }) => {
   try {
     if (id) {
       await updateEventApi(id, input as UpdateEventInput);
     } else {
       await createEventApi({ ...(input as CreateEventInput), profileId });
     }
-    await dispatch(fetchEvents({ profileId })).unwrap();
+    await dispatch(fetchEvents({ profileId, projectId: getState().project.currentId })).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
@@ -44,10 +44,10 @@ export const removeEvent = createAsyncThunk<
   void,
   { profileId: string; id: string },
   { state: RootState; rejectValue: string }
->('event/removeEvent', async ({ profileId, id }, { dispatch, rejectWithValue }) => {
+>('event/removeEvent', async ({ profileId, id }, { dispatch, getState, rejectWithValue }) => {
   try {
     await deleteEventApi(id);
-    await dispatch(fetchEvents({ profileId })).unwrap();
+    await dispatch(fetchEvents({ profileId, projectId: getState().project.currentId })).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }

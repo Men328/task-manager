@@ -92,6 +92,7 @@ export interface StatusTransition {
 export interface Task {
   id: string;
   profileId: string;
+  projectId: string;
   parentTaskId?: string | null;
   statusId: string;
   title: string;
@@ -169,11 +170,17 @@ export interface CreateStatusInput {
 
 export interface ListTasksParams {
   profileId: string;
+  projectId?: string;
   statusId?: string;
   parentTaskId?: string;
   rootOnly?: boolean;
   includeArchived?: boolean;
   includeSubtasks?: boolean;
+}
+
+export interface UpdateTaskInput {
+  /** Chuyển task sang project khác (subtask bị backend từ chối). */
+  projectId?: string;
 }
 
 export interface CreateTransitionInput {
@@ -185,6 +192,8 @@ export interface CreateTransitionInput {
 
 export interface CreateTaskInput {
   profileId: string;
+  /** Subtask bị backend bỏ qua (luôn theo task cha). */
+  projectId: string;
   title: string;
   statusId?: string;
   description?: string;
@@ -198,6 +207,7 @@ export interface CreateTaskInput {
 export interface Schedule {
   id: string;
   profileId: string;
+  projectId: string;
   title: string;
   description?: string | null;
   location?: string | null;
@@ -213,6 +223,7 @@ export interface Schedule {
 
 export interface CreateScheduleInput {
   profileId: string;
+  projectId: string;
   title: string;
   description?: string;
   location?: string;
@@ -223,6 +234,7 @@ export interface CreateScheduleInput {
 }
 
 export interface UpdateScheduleInput {
+  projectId?: string;
   title?: string;
   description?: string;
   location?: string;
@@ -234,6 +246,7 @@ export interface UpdateScheduleInput {
 
 export interface ListSchedulesParams {
   profileId: string;
+  projectId?: string;
   /** ISO-8601; chỉ lấy lịch giao với [from, to). */
   from?: string;
   to?: string;
@@ -259,6 +272,7 @@ export const EVENT_STATUSES: EventStatus[] = [
 export interface Event {
   id: string;
   profileId: string;
+  projectId: string;
   title: string;
   description?: string | null;
   location?: string | null;
@@ -277,6 +291,7 @@ export interface Event {
 
 export interface CreateEventInput {
   profileId: string;
+  projectId: string;
   title: string;
   description?: string;
   location?: string;
@@ -289,6 +304,7 @@ export interface CreateEventInput {
 }
 
 export interface UpdateEventInput {
+  projectId?: string;
   title?: string;
   description?: string;
   location?: string;
@@ -301,6 +317,7 @@ export interface UpdateEventInput {
 
 export interface ListEventsParams {
   profileId: string;
+  projectId?: string;
   /** ISO-8601; chỉ lấy sự kiện giao với [from, to). */
   from?: string;
   to?: string;
@@ -468,6 +485,7 @@ export interface ReportTimeSeries {
 
 export interface ReportQueryParams {
   profileId: string;
+  projectId?: string;
   /** ISO-8601; bỏ trống = 30 ngày gần nhất. */
   from?: string;
   to?: string;

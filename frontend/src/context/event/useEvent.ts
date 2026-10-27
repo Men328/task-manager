@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 
 import i18n from '../../i18n';
 import type { CreateEventInput, UpdateEventInput } from '../../types';
+import { selectCurrentProjectId } from '../project/projectSlice';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import {
   fetchEvents,
@@ -20,12 +21,13 @@ export function useEvent() {
   const loading = useAppSelector(selectEventLoading);
   const error = useAppSelector(selectEventError);
   const profileId = useAppSelector((state) => state.session.profileId);
+  const projectId = useAppSelector(selectCurrentProjectId);
 
   const refresh = useCallback(() => {
     if (profileId) {
-      void dispatch(fetchEvents({ profileId }));
+      void dispatch(fetchEvents({ profileId, projectId }));
     }
-  }, [dispatch, profileId]);
+  }, [dispatch, profileId, projectId]);
 
   const requireProfile = () => {
     if (!profileId) {
@@ -39,6 +41,7 @@ export function useEvent() {
     loading,
     error,
     profileId,
+    projectId,
     refresh,
     create: async (input: NewEventInput) => {
       const pid = requireProfile();
