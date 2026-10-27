@@ -31,7 +31,11 @@ type TokenRefresher interface {
 }
 
 type MailAnalyzer interface {
-	Analyze(ctx context.Context, message model.EmailMessage) (model.MailDraft, error)
+	Analyze(ctx context.Context, message model.EmailMessage, projects []model.ProjectCandidate) (model.MailDraft, error)
+}
+
+type ProjectLister interface {
+	ListDetectable(ctx context.Context, profileID string) ([]model.ProjectCandidate, error)
 }
 
 type NotificationSource interface {

@@ -65,6 +65,10 @@ type Config struct {
 	NotificationGRPCDialAddr string
 	NotificationTimeout      time.Duration
 
+	ProjectGRPCDialAddr   string
+	ProjectTimeout        time.Duration
+	ProjectMatchThreshold float64
+
 	S3Endpoint          string
 	S3AccessKey         string
 	S3SecretKey         string
@@ -134,6 +138,10 @@ func Load() Config {
 
 		NotificationGRPCDialAddr: getenv("NOTIFICATION_GRPC_DIAL_ADDR", ""),
 		NotificationTimeout:      getduration("MAIL_NOTIFICATION_TIMEOUT", 15*time.Second),
+
+		ProjectGRPCDialAddr:   getenv("PROJECT_GRPC_DIAL_ADDR", ""),
+		ProjectTimeout:        getduration("MAIL_PROJECT_TIMEOUT", 15*time.Second),
+		ProjectMatchThreshold: getfloat("PROJECT_MATCH_THRESHOLD", 0.6),
 
 		S3Endpoint:          firstEnv("S3_ENDPOINT", "MINIO_ENDPOINT"),
 		S3AccessKey:         firstEnv("S3_ACCESS_KEY", "MINIO_ACCESS_KEY"),
@@ -207,6 +215,10 @@ func (c Config) BacklogDialTarget() string {
 	return dialTarget(c.BacklogGRPCDialAddr, ":9086")
 }
 
+func (c Config) ProjectDialTarget() string {
+	return dialTarget(c.ProjectGRPCDialAddr, ":9090")
+}
+
 func (c Config) NotificationDialTarget() string {
 	return dialTarget(c.NotificationGRPCDialAddr, ":9088")
 }
@@ -240,6 +252,18 @@ func getint(key string, fallback int) int {
 	}
 	parsed, err := strconv.Atoi(v)
 	if err != nil || parsed <= 0 {
+		return fallback
+	}
+	return parsed
+}
+
+func getfloat(key string, fallback float64) float64 {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseFloat(v, 64)
+	if err != nil || parsed <= 0 || parsed > 1 {
 		return fallback
 	}
 	return parsed

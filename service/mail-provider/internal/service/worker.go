@@ -35,6 +35,7 @@ type notificationWorker struct {
 	gmail     GmailClient
 	tokens    *TokenManager
 	analyzer  MailAnalyzer
+	projects  ProjectLister
 	tasks     TaskCreator
 	schedules ScheduleCreator
 	events    EventCreator
@@ -50,6 +51,7 @@ func NewWorker(
 	gmail GmailClient,
 	tokens *TokenManager,
 	analyzer MailAnalyzer,
+	projects ProjectLister,
 	tasks TaskCreator,
 	schedules ScheduleCreator,
 	events EventCreator,
@@ -64,6 +66,7 @@ func NewWorker(
 		gmail:     gmail,
 		tokens:    tokens,
 		analyzer:  analyzer,
+		projects:  projects,
 		tasks:     tasks,
 		schedules: schedules,
 		events:    events,
@@ -146,17 +149,23 @@ func (w *notificationWorker) processMessage(ctx context.Context, sub model.Subsc
 
 	objectKey := w.archive(ctx, sub, accessToken, message)
 
-	draft := w.classify(ctx, message)
+	projects, err := w.projects.ListDetectable(ctx, sub.ProfileID)
+	if err != nil {
+		slog.Error("đọc danh sách project thất bại, đẩy email vào backlog", "profile_id", sub.ProfileID, "message_id", messageID, "error", err)
+		projects = nil
+	}
+
+	draft := w.classify(ctx, message, projects)
 	if draft.Priority == model.PriorityUnspecified {
 		draft.Priority = w.opts.DefaultPriority
 	}
 
-	w.dispatch(ctx, sub, message, draft, objectKey)
+	w.dispatch(ctx, sub, message, draft, projects, objectKey)
 }
 
-func (w *notificationWorker) classify(ctx context.Context, message model.EmailMessage) model.MailDraft {
+func (w *notificationWorker) classify(ctx context.Context, message model.EmailMessage, projects []model.ProjectCandidate) model.MailDraft {
 	if w.opts.AnalyzerEnabled {
-		draft, err := w.analyzer.Analyze(ctx, message)
+		draft, err := w.analyzer.Analyze(ctx, message, projects)
 		if err == nil && draft.Category.Valid() {
 			return draft
 		}
@@ -166,41 +175,57 @@ func (w *notificationWorker) classify(ctx context.Context, message model.EmailMe
 		)
 	}
 	if w.opts.RuleFallbackEnabled {
-		return classifyByRules(message)
+		return classifyByRules(message, projects)
 	}
 	return model.MailDraft{Category: model.CategoryOther, Reason: "classifier_disabled"}
 }
 
-func (w *notificationWorker) dispatch(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, objectKey string) {
+func (w *notificationWorker) dispatch(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, projects []model.ProjectCandidate, objectKey string) {
 	switch draft.Category {
 	case model.CategoryTask:
 		if !draft.Actionable || strings.TrimSpace(draft.Title) == "" {
 			w.saveBacklog(ctx, sub, message, draft, objectKey, "not_actionable")
 			return
 		}
-		w.createTask(ctx, sub, message, draft)
+		project, ok := resolveProject(draft, projects, w.opts.ProjectMatchThreshold)
+		if !ok {
+			w.saveBacklog(ctx, sub, message, draft, objectKey, reasonNoProjectMatched)
+			return
+		}
+		w.createTask(ctx, sub, message, draft, project)
 	case model.CategorySchedule:
 		start := firstTime(draft.StartAt, draft.DueAt)
 		if strings.TrimSpace(draft.Title) == "" || start == nil {
 			w.saveBacklog(ctx, sub, message, draft, objectKey, "missing_schedule_time")
 			return
 		}
-		w.createSchedule(ctx, sub, message, draft, *start)
+		project, ok := resolveProject(draft, projects, w.opts.ProjectMatchThreshold)
+		if !ok {
+			w.saveBacklog(ctx, sub, message, draft, objectKey, reasonNoProjectMatched)
+			return
+		}
+		w.createSchedule(ctx, sub, message, draft, project, *start)
 	case model.CategoryEvent:
 		start := firstTime(draft.StartAt, draft.DueAt)
 		if strings.TrimSpace(draft.Title) == "" || start == nil {
 			w.saveBacklog(ctx, sub, message, draft, objectKey, "missing_event_time")
 			return
 		}
-		w.createEvent(ctx, sub, message, draft, *start)
+		project, ok := resolveProject(draft, projects, w.opts.ProjectMatchThreshold)
+		if !ok {
+			w.saveBacklog(ctx, sub, message, draft, objectKey, reasonNoProjectMatched)
+			return
+		}
+		w.createEvent(ctx, sub, message, draft, project, *start)
 	default:
 		w.saveBacklog(ctx, sub, message, draft, objectKey, draftReason(draft))
 	}
 }
 
-func (w *notificationWorker) createTask(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft) {
+func (w *notificationWorker) createTask(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, project model.ProjectCandidate) {
 	created, err := w.tasks.Create(ctx, model.TaskInput{
 		ProfileID:   sub.ProfileID,
+		ProjectID:   project.ID,
 		Title:       draft.Title,
 		Description: draft.Description,
 		Priority:    draft.Priority,
@@ -212,12 +237,13 @@ func (w *notificationWorker) createTask(ctx context.Context, sub model.Subscript
 		return
 	}
 	slog.Info("đã tạo task từ email", "profile_id", sub.ProfileID, "message_id", message.ID, "task_id", created.ID)
-	w.notify(ctx, sub, model.NoticeTypeTaskCreated, model.NoticeTargetTask, created.ID, created.Title, draft.Description, message.ID)
+	w.notify(ctx, sub, model.NoticeTypeTaskCreated, model.NoticeTargetTask, created.ID, created.Title, projectNoticeBody(project, draft.Description), message.ID)
 }
 
-func (w *notificationWorker) createSchedule(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, start time.Time) {
+func (w *notificationWorker) createSchedule(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, project model.ProjectCandidate, start time.Time) {
 	created, err := w.schedules.Create(ctx, model.ScheduleInput{
 		ProfileID:   sub.ProfileID,
+		ProjectID:   project.ID,
 		Title:       draft.Title,
 		Description: draft.Description,
 		Location:    draft.Location,
@@ -230,12 +256,13 @@ func (w *notificationWorker) createSchedule(ctx context.Context, sub model.Subsc
 		return
 	}
 	slog.Info("đã tạo lịch từ email", "profile_id", sub.ProfileID, "message_id", message.ID, "schedule_id", created.ID)
-	w.notify(ctx, sub, model.NoticeTypeScheduleCreated, model.NoticeTargetSchedule, created.ID, created.Title, draft.Description, message.ID)
+	w.notify(ctx, sub, model.NoticeTypeScheduleCreated, model.NoticeTargetSchedule, created.ID, created.Title, projectNoticeBody(project, draft.Description), message.ID)
 }
 
-func (w *notificationWorker) createEvent(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, start time.Time) {
+func (w *notificationWorker) createEvent(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, project model.ProjectCandidate, start time.Time) {
 	created, err := w.events.Create(ctx, model.EventInput{
 		ProfileID:   sub.ProfileID,
+		ProjectID:   project.ID,
 		Title:       draft.Title,
 		Description: draft.Description,
 		Location:    draft.Location,
@@ -249,7 +276,7 @@ func (w *notificationWorker) createEvent(ctx context.Context, sub model.Subscrip
 		return
 	}
 	slog.Info("đã tạo sự kiện từ email", "profile_id", sub.ProfileID, "message_id", message.ID, "event_id", created.ID)
-	w.notify(ctx, sub, model.NoticeTypeEventCreated, model.NoticeTargetEvent, created.ID, created.Title, draft.Description, message.ID)
+	w.notify(ctx, sub, model.NoticeTypeEventCreated, model.NoticeTargetEvent, created.ID, created.Title, projectNoticeBody(project, draft.Description), message.ID)
 }
 
 func (w *notificationWorker) saveBacklog(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, objectKey string, reason string) {
@@ -485,4 +512,8 @@ func safeSegment(value string) string {
 	}
 	replacer := strings.NewReplacer("/", "_", "\\", "_", "..", "_", " ", "_")
 	return replacer.Replace(trimmed)
+}
+
+func projectNoticeBody(project model.ProjectCandidate, description string) string {
+	return "[" + project.Name + "] " + description
 }

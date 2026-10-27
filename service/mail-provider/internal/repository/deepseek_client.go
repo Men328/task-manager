@@ -20,14 +20,16 @@ const analyzerSystemPrompt = `Bạn là trợ lý phân loại email cho một �
 - "event": sự kiện / thiệp mời / hội thảo / tiệc / lễ (có thể có thời gian, thường cần xác nhận).
 - "other": thông báo, quảng cáo, newsletter, spam hoặc không đủ dữ kiện để xếp 3 nhóm trên.
 Chỉ trả về DUY NHẤT một JSON object, không kèm giải thích, không bọc code fence, đúng schema:
-{"category":"task|schedule|event|other","is_actionable":true,"title":"tiêu đề ngắn gọn","description":"mô tả chi tiết","priority":"low|medium|high|urgent","due_at":"RFC3339 hoặc chuỗi rỗng","start_at":"RFC3339 hoặc chuỗi rỗng","end_at":"RFC3339 hoặc chuỗi rỗng","all_day":false,"location":"địa điểm hoặc chuỗi rỗng","reason":"lý do ngắn nếu là other"}
+{"category":"task|schedule|event|other","is_actionable":true,"title":"tiêu đề ngắn gọn","description":"mô tả chi tiết","priority":"low|medium|high|urgent","due_at":"RFC3339 hoặc chuỗi rỗng","start_at":"RFC3339 hoặc chuỗi rỗng","end_at":"RFC3339 hoặc chuỗi rỗng","all_day":false,"location":"địa điểm hoặc chuỗi rỗng","reason":"lý do ngắn nếu là other","project_id":"id trong danh sách hoặc chuỗi rỗng","project_confidence":0.0}
 Quy tắc:
 - category = "other" khi email không thuộc task/schedule/event; khi đó is_actionable = false và điền reason.
 - is_actionable = false với thông báo, quảng cáo, newsletter.
 - title tối đa 120 ký tự. Với task bắt đầu bằng động từ hành động.
 - description tóm tắt nội dung hữu ích (người gửi, deadline, link nếu có).
 - start_at/end_at chỉ điền khi email nêu rõ thời gian; không rõ thì để chuỗi rỗng.
-- due_at chỉ điền khi email nêu rõ hạn; không rõ thì để chuỗi rỗng.`
+- due_at chỉ điền khi email nêu rõ hạn; không rõ thì để chuỗi rỗng.
+- project_id chỉ được chọn id có trong danh sách PROJECTS; so nội dung email với description của từng project.
+- Không project nào phù hợp thì project_id là chuỗi rỗng và project_confidence = 0.`
 
 type deepSeekAnalyzer struct {
 	apiKey  string
@@ -45,7 +47,7 @@ func NewDeepSeekAnalyzer(apiKey string, baseURL string, model string, timeout ti
 	}
 }
 
-func (a *deepSeekAnalyzer) Analyze(ctx context.Context, message model.EmailMessage) (model.MailDraft, error) {
+func (a *deepSeekAnalyzer) Analyze(ctx context.Context, message model.EmailMessage, projects []model.ProjectCandidate) (model.MailDraft, error) {
 	if strings.TrimSpace(a.apiKey) == "" {
 		return model.MailDraft{}, model.ErrNotConfigured
 	}
@@ -54,7 +56,7 @@ func (a *deepSeekAnalyzer) Analyze(ctx context.Context, message model.EmailMessa
 		"model": a.model,
 		"messages": []map[string]string{
 			{"role": "system", "content": analyzerSystemPrompt},
-			{"role": "user", "content": emailPrompt(message)},
+			{"role": "user", "content": emailPrompt(message, projects)},
 		},
 		"response_format": map[string]string{"type": "json_object"},
 		"temperature":     0,
@@ -105,7 +107,7 @@ func (a *deepSeekAnalyzer) Analyze(ctx context.Context, message model.EmailMessa
 	return parseDraft(completion.Choices[0].Message.Content)
 }
 
-func emailPrompt(message model.EmailMessage) string {
+func emailPrompt(message model.EmailMessage, projects []model.ProjectCandidate) string {
 	var builder strings.Builder
 	builder.WriteString("From: ")
 	builder.WriteString(message.From)
@@ -119,6 +121,18 @@ func emailPrompt(message model.EmailMessage) string {
 	}
 	builder.WriteString("\n\n")
 	builder.WriteString(message.Body)
+	builder.WriteString("\n\nPROJECTS:")
+	if len(projects) == 0 {
+		builder.WriteString(" (không có)")
+	}
+	for _, project := range projects {
+		builder.WriteString("\n- id: ")
+		builder.WriteString(project.ID)
+		builder.WriteString(" | name: ")
+		builder.WriteString(project.Name)
+		builder.WriteString(" | description: ")
+		builder.WriteString(project.Description)
+	}
 	return builder.String()
 }
 
@@ -140,6 +154,9 @@ func parseDraft(content string) (model.MailDraft, error) {
 		AllDay      bool   `json:"all_day"`
 		Location    string `json:"location"`
 		Reason      string `json:"reason"`
+
+		ProjectID         string  `json:"project_id"`
+		ProjectConfidence float64 `json:"project_confidence"`
 	}
 	if err := json.Unmarshal([]byte(jsonPayload), &raw); err != nil {
 		return model.MailDraft{}, fmt.Errorf("%w: JSON không hợp lệ: %v", model.ErrAnalyzeFailed, err)
@@ -162,6 +179,9 @@ func parseDraft(content string) (model.MailDraft, error) {
 		AllDay:      raw.AllDay,
 		Location:    strings.TrimSpace(raw.Location),
 		Reason:      strings.TrimSpace(raw.Reason),
+
+		ProjectID:         strings.TrimSpace(raw.ProjectID),
+		ProjectConfidence: raw.ProjectConfidence,
 	}, nil
 }
 

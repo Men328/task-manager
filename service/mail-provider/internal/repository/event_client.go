@@ -29,6 +29,7 @@ func (c *eventClient) Create(ctx context.Context, in model.EventInput) (model.Ev
 
 	request := &eventv1.CreateEventRequest{
 		ProfileId:   in.ProfileID,
+		ProjectId:   in.ProjectID,
 		Title:       in.Title,
 		Description: in.Description,
 		Location:    in.Location,

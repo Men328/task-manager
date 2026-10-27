@@ -21,6 +21,8 @@ type Options struct {
 	PullRetryDelay      time.Duration
 	PullSubscription    string
 	HeartbeatInterval   time.Duration
+
+	ProjectMatchThreshold float64
 }
 
 func (o Options) withDefaults() Options {
@@ -39,6 +41,9 @@ func (o Options) withDefaults() Options {
 	}
 	if out.MaxAttachmentBytes <= 0 {
 		out.MaxAttachmentBytes = model.DefaultMaxAttachmentBytes
+	}
+	if out.ProjectMatchThreshold <= 0 {
+		out.ProjectMatchThreshold = 0.6
 	}
 	return out
 }

@@ -11,7 +11,7 @@ func TestClassifyByRulesDetectsTask(t *testing.T) {
 	draft := classifyByRules(model.EmailMessage{
 		Subject: "Cần nộp báo cáo tháng 10",
 		Body:    "Vui lòng hoàn thành trước hạn chót.",
-	})
+	}, nil)
 	if draft.Category != model.CategoryTask {
 		t.Fatalf("phải phân loại là task, nhận %q", draft.Category)
 	}
@@ -27,7 +27,7 @@ func TestClassifyByRulesDetectsScheduleWithTime(t *testing.T) {
 	draft := classifyByRules(model.EmailMessage{
 		Subject: "Nhắc lịch họp nhóm",
 		Body:    "Cuộc họp diễn ra 2026-10-05 lúc 09:00.",
-	})
+	}, nil)
 	if draft.Category != model.CategorySchedule {
 		t.Fatalf("phải phân loại là schedule, nhận %q", draft.Category)
 	}
@@ -43,7 +43,7 @@ func TestClassifyByRulesDetectsEvent(t *testing.T) {
 	draft := classifyByRules(model.EmailMessage{
 		Subject: "Thư mời tham dự hội thảo công nghệ",
 		Body:    "Sự kiện sẽ diễn ra tại hội trường.",
-	})
+	}, nil)
 	if draft.Category != model.CategoryEvent {
 		t.Fatalf("phải phân loại là event, nhận %q", draft.Category)
 	}
@@ -53,7 +53,7 @@ func TestClassifyByRulesFallsBackToOther(t *testing.T) {
 	draft := classifyByRules(model.EmailMessage{
 		Subject: "Bản tin nội bộ số 12",
 		Body:    "Tổng hợp tin tức trong tuần.",
-	})
+	}, nil)
 	if draft.Category != model.CategoryOther {
 		t.Fatalf("email không khớp rule phải là other, nhận %q", draft.Category)
 	}
@@ -85,7 +85,7 @@ func TestClassifyByRulesKeepsClassifierStableForInvitations(t *testing.T) {
 	draft := classifyByRules(model.EmailMessage{
 		Subject: "Thiệp mời sinh nhật",
 		Body:    "Mời bạn tham gia tiệc sinh nhật.",
-	})
+	}, nil)
 	if draft.Category != model.CategoryEvent {
 		t.Fatalf("thiệp mời phải là event, nhận %q", draft.Category)
 	}

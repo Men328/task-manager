@@ -181,10 +181,39 @@ func (r *stubRefresher) Refresh(_ context.Context, _ string) (model.Token, error
 type stubAnalyzer struct {
 	draft model.MailDraft
 	err   error
+
+	mu       sync.Mutex
+	projects []model.ProjectCandidate
 }
 
-func (a *stubAnalyzer) Analyze(_ context.Context, _ model.EmailMessage) (model.MailDraft, error) {
+func (a *stubAnalyzer) Analyze(_ context.Context, _ model.EmailMessage, projects []model.ProjectCandidate) (model.MailDraft, error) {
+	a.mu.Lock()
+	a.projects = projects
+	a.mu.Unlock()
 	return a.draft, a.err
+}
+
+func (a *stubAnalyzer) receivedProjects() []model.ProjectCandidate {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.projects
+}
+
+type stubProjects struct {
+	items []model.ProjectCandidate
+	err   error
+}
+
+func (p *stubProjects) ListDetectable(_ context.Context, _ string) ([]model.ProjectCandidate, error) {
+	return p.items, p.err
+}
+
+func defaultProjects() *stubProjects {
+	return &stubProjects{items: []model.ProjectCandidate{{
+		ID:          "pr1",
+		Name:        "Dự án nhóm",
+		Description: "họp hội thảo sự kiện",
+	}}}
 }
 
 type stubTasks struct {

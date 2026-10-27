@@ -101,7 +101,7 @@ func TestParseDueAtLayouts(t *testing.T) {
 
 func TestDeepSeekAnalyzerRequiresAPIKey(t *testing.T) {
 	analyzer := NewDeepSeekAnalyzer("", "http://127.0.0.1:1", "deepseek-chat", time.Second)
-	if _, err := analyzer.Analyze(context.Background(), model.EmailMessage{}); !errors.Is(err, model.ErrNotConfigured) {
+	if _, err := analyzer.Analyze(context.Background(), model.EmailMessage{}, nil); !errors.Is(err, model.ErrNotConfigured) {
 		t.Fatalf("thiếu API key phải là ErrNotConfigured, nhận %v", err)
 	}
 }
@@ -122,7 +122,7 @@ func TestDeepSeekAnalyzerSendsEmailAndParsesResponse(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"choices": []map[string]any{{
 				"message": map[string]string{
-					"content": `{"is_actionable": true, "title": "Gọi khách hàng", "description": "Xác nhận hợp đồng", "priority": "urgent", "due_at": ""}`,
+					"content": `{"is_actionable": true, "title": "Gọi khách hàng", "description": "Xác nhận hợp đồng", "priority": "urgent", "due_at": "", "project_id": "pr1", "project_confidence": 0.8}`,
 				},
 			}},
 		})
@@ -135,12 +135,16 @@ func TestDeepSeekAnalyzerSendsEmailAndParsesResponse(t *testing.T) {
 		To:      "user@example.com",
 		Subject: "Hợp đồng",
 		Body:    "Gọi khách hàng xác nhận hợp đồng",
-	})
+	}, []model.ProjectCandidate{{ID: "pr1", Name: "ACME", Description: "khách hàng"}})
 	if err != nil {
 		t.Fatalf("analyze: %v", err)
 	}
 	if draft.Title != "Gọi khách hàng" || draft.Priority != model.PriorityUrgent {
 		t.Fatalf("draft sai: %+v", draft)
+	}
+
+	if draft.ProjectID != "pr1" || draft.ProjectConfidence != 0.8 {
+		t.Fatalf("draft phải đọc project: %+v", draft)
 	}
 
 	messages, ok := captured["messages"].([]any)
@@ -149,6 +153,9 @@ func TestDeepSeekAnalyzerSendsEmailAndParsesResponse(t *testing.T) {
 	}
 	userMessage, _ := messages[1].(map[string]any)
 	content, _ := userMessage["content"].(string)
+	if !strings.Contains(content, "id: pr1 | name:") {
+		t.Fatalf("prompt phải chứa danh sách project, nhận %q", content)
+	}
 	if !strings.Contains(content, "Hợp đồng") || !strings.Contains(content, "Gọi khách hàng") {
 		t.Fatalf("prompt phải chứa nội dung email, nhận %q", content)
 	}
@@ -162,7 +169,23 @@ func TestDeepSeekAnalyzerReportsHTTPError(t *testing.T) {
 	defer server.Close()
 
 	analyzer := NewDeepSeekAnalyzer("secret", server.URL, "deepseek-chat", 5*time.Second)
-	if _, err := analyzer.Analyze(context.Background(), model.EmailMessage{}); !errors.Is(err, model.ErrAnalyzeFailed) {
+	if _, err := analyzer.Analyze(context.Background(), model.EmailMessage{}, nil); !errors.Is(err, model.ErrAnalyzeFailed) {
 		t.Fatalf("lỗi HTTP phải là ErrAnalyzeFailed, nhận %v", err)
+	}
+}
+
+func TestEmailPromptWithoutProjects(t *testing.T) {
+	if got := emailPrompt(model.EmailMessage{Subject: "x"}, nil); !strings.Contains(got, "PROJECTS: (không có)") {
+		t.Fatalf("danh sách rỗng phải ghi (không có), nhận %q", got)
+	}
+}
+
+func TestParseDraftReadsProject(t *testing.T) {
+	draft, err := parseDraft(`{"category":"task","project_id":" pr1 ","project_confidence":0.75}`)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if draft.ProjectID != "pr1" || draft.ProjectConfidence != 0.75 {
+		t.Fatalf("project sai: %+v", draft)
 	}
 }

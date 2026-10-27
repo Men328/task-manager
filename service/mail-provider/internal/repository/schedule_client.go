@@ -29,6 +29,7 @@ func (c *scheduleClient) Create(ctx context.Context, in model.ScheduleInput) (mo
 
 	request := &calendarv1.CreateScheduleRequest{
 		ProfileId:   in.ProfileID,
+		ProjectId:   in.ProjectID,
 		Title:       in.Title,
 		Description: in.Description,
 		Location:    in.Location,
