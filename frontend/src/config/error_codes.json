@@ -1,6 +1,6 @@
 {
   "_note": "Bộ mã lỗi chuẩn (canonical). Backend gắn mã này vào google.rpc.ErrorInfo; FE map mã sang message. Bản mirror cho FE: frontend/src/config/error_codes.json - sinh bằng `make error-codes`, không sửa tay.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "domain": "taskmanager",
   "defaultCode": "COMMON_INTERNAL",
   "codes": {
@@ -757,6 +757,78 @@
       "message": {
         "vi": "Không tìm thấy lịch.",
         "en": "Schedule not found."
+      }
+    },
+    "PROJECT_PROFILE_ID_REQUIRED": {
+      "owner": "project",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã hồ sơ.",
+        "en": "Profile id is required."
+      }
+    },
+    "PROJECT_ID_REQUIRED": {
+      "owner": "project",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Thiếu mã dự án.",
+        "en": "Project id is required."
+      }
+    },
+    "PROJECT_NAME_REQUIRED": {
+      "owner": "project",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Tên dự án là bắt buộc.",
+        "en": "Project name is required."
+      }
+    },
+    "PROJECT_NAME_DUPLICATE": {
+      "owner": "project",
+      "grpcCode": "AlreadyExists",
+      "httpStatus": 409,
+      "message": {
+        "vi": "Tên dự án đã tồn tại.",
+        "en": "A project with this name already exists."
+      }
+    },
+    "PROJECT_NOT_FOUND": {
+      "owner": "project",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy dự án.",
+        "en": "Project not found."
+      }
+    },
+    "PROJECT_ARCHIVED": {
+      "owner": "project",
+      "grpcCode": "FailedPrecondition",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Dự án đã được lưu trữ.",
+        "en": "Project is archived."
+      }
+    },
+    "PROJECT_DEFAULT_NOT_ARCHIVABLE": {
+      "owner": "project",
+      "grpcCode": "FailedPrecondition",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Không thể lưu trữ dự án mặc định.",
+        "en": "The default project cannot be archived."
+      }
+    },
+    "TASK_SUBTASK_PROJECT_LOCKED": {
+      "owner": "task",
+      "grpcCode": "FailedPrecondition",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Công việc con luôn thuộc cùng dự án với công việc cha.",
+        "en": "A subtask always belongs to the same project as its parent task."
       }
     },
     "EVENT_PROFILE_ID_REQUIRED": {

@@ -98,9 +98,11 @@ type Event struct {
 	Color  string      `protobuf:"bytes,9,opt,name=color,proto3" json:"color,omitempty"`
 	Status EventStatus `protobuf:"varint,10,opt,name=status,proto3,enum=event.v1.EventStatus" json:"status,omitempty"`
 	// Nguồn tạo: rỗng = người dùng tạo trên UI; ngược lại là id email nguồn.
-	Source        string                 `protobuf:"bytes,11,opt,name=source,proto3" json:"source,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Source    string                 `protobuf:"bytes,11,opt,name=source,proto3" json:"source,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Dự án chứa mục này.
+	ProjectId     string `protobuf:"bytes,14,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -226,6 +228,13 @@ func (x *Event) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Event) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
 type CreateEventRequest struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	ProfileId   string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
@@ -237,8 +246,10 @@ type CreateEventRequest struct {
 	AllDay      bool                   `protobuf:"varint,7,opt,name=all_day,json=allDay,proto3" json:"all_day,omitempty"`
 	Color       string                 `protobuf:"bytes,8,opt,name=color,proto3" json:"color,omitempty"`
 	// Bỏ trống = EVENT_STATUS_PLANNED.
-	Status        EventStatus `protobuf:"varint,9,opt,name=status,proto3,enum=event.v1.EventStatus" json:"status,omitempty"`
-	Source        string      `protobuf:"bytes,10,opt,name=source,proto3" json:"source,omitempty"`
+	Status EventStatus `protobuf:"varint,9,opt,name=status,proto3,enum=event.v1.EventStatus" json:"status,omitempty"`
+	Source string      `protobuf:"bytes,10,opt,name=source,proto3" json:"source,omitempty"`
+	// Dự án chứa mục này.
+	ProjectId     string `protobuf:"bytes,11,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -339,6 +350,13 @@ func (x *CreateEventRequest) GetStatus() EventStatus {
 func (x *CreateEventRequest) GetSource() string {
 	if x != nil {
 		return x.Source
+	}
+	return ""
+}
+
+func (x *CreateEventRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
 	}
 	return ""
 }
@@ -482,7 +500,9 @@ type ListEventsRequest struct {
 	From *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
 	To   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
 	// Lọc theo trạng thái (optional).
-	Status        EventStatus `protobuf:"varint,4,opt,name=status,proto3,enum=event.v1.EventStatus" json:"status,omitempty"`
+	Status EventStatus `protobuf:"varint,4,opt,name=status,proto3,enum=event.v1.EventStatus" json:"status,omitempty"`
+	// Lọc theo dự án; rỗng = tất cả dự án.
+	ProjectId     string `protobuf:"bytes,5,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -545,6 +565,13 @@ func (x *ListEventsRequest) GetStatus() EventStatus {
 	return EventStatus_EVENT_STATUS_UNSPECIFIED
 }
 
+func (x *ListEventsRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
 type ListEventsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Events        []*Event               `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
@@ -596,11 +623,13 @@ type UpdateEventRequest struct {
 	Description *string                `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
 	Location    *string                `protobuf:"bytes,4,opt,name=location,proto3,oneof" json:"location,omitempty"`
 	// message field đã có presence (nil = không đổi) nên không cần `optional`.
-	StartAt       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
-	EndAt         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=end_at,json=endAt,proto3" json:"end_at,omitempty"`
-	AllDay        *bool                  `protobuf:"varint,7,opt,name=all_day,json=allDay,proto3,oneof" json:"all_day,omitempty"`
-	Color         *string                `protobuf:"bytes,8,opt,name=color,proto3,oneof" json:"color,omitempty"`
-	Status        *EventStatus           `protobuf:"varint,9,opt,name=status,proto3,enum=event.v1.EventStatus,oneof" json:"status,omitempty"`
+	StartAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
+	EndAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=end_at,json=endAt,proto3" json:"end_at,omitempty"`
+	AllDay  *bool                  `protobuf:"varint,7,opt,name=all_day,json=allDay,proto3,oneof" json:"all_day,omitempty"`
+	Color   *string                `protobuf:"bytes,8,opt,name=color,proto3,oneof" json:"color,omitempty"`
+	Status  *EventStatus           `protobuf:"varint,9,opt,name=status,proto3,enum=event.v1.EventStatus,oneof" json:"status,omitempty"`
+	// Chuyển sang dự án khác; rỗng = không đổi.
+	ProjectId     *string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3,oneof" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -696,6 +725,13 @@ func (x *UpdateEventRequest) GetStatus() EventStatus {
 		return *x.Status
 	}
 	return EventStatus_EVENT_STATUS_UNSPECIFIED
+}
+
+func (x *UpdateEventRequest) GetProjectId() string {
+	if x != nil && x.ProjectId != nil {
+		return *x.ProjectId
+	}
+	return ""
 }
 
 type UpdateEventResponse struct {
@@ -826,7 +862,7 @@ var File_event_v1_event_proto protoreflect.FileDescriptor
 
 const file_event_v1_event_proto_rawDesc = "" +
 	"\n" +
-	"\x14event/v1/event.proto\x12\bevent.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe0\x03\n" +
+	"\x14event/v1/event.proto\x12\bevent.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xff\x03\n" +
 	"\x05Event\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -844,7 +880,9 @@ const file_event_v1_event_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xe7\x02\n" +
+	"updated_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x0e \x01(\tR\tprojectId\"\x86\x03\n" +
 	"\x12CreateEventRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12\x14\n" +
@@ -857,21 +895,25 @@ const file_event_v1_event_proto_rawDesc = "" +
 	"\x05color\x18\b \x01(\tR\x05color\x12-\n" +
 	"\x06status\x18\t \x01(\x0e2\x15.event.v1.EventStatusR\x06status\x12\x16\n" +
 	"\x06source\x18\n" +
-	" \x01(\tR\x06source\"<\n" +
+	" \x01(\tR\x06source\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\v \x01(\tR\tprojectId\"<\n" +
 	"\x13CreateEventResponse\x12%\n" +
 	"\x05event\x18\x01 \x01(\v2\x0f.event.v1.EventR\x05event\"!\n" +
 	"\x0fGetEventRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"9\n" +
 	"\x10GetEventResponse\x12%\n" +
-	"\x05event\x18\x01 \x01(\v2\x0f.event.v1.EventR\x05event\"\xbd\x01\n" +
+	"\x05event\x18\x01 \x01(\v2\x0f.event.v1.EventR\x05event\"\xdc\x01\n" +
 	"\x11ListEventsRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12.\n" +
 	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
 	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12-\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x15.event.v1.EventStatusR\x06status\"=\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x15.event.v1.EventStatusR\x06status\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x05 \x01(\tR\tprojectId\"=\n" +
 	"\x12ListEventsResponse\x12'\n" +
-	"\x06events\x18\x01 \x03(\v2\x0f.event.v1.EventR\x06events\"\xa6\x03\n" +
+	"\x06events\x18\x01 \x03(\v2\x0f.event.v1.EventR\x06events\"\xd9\x03\n" +
 	"\x12UpdateEventRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
 	"\x05title\x18\x02 \x01(\tH\x00R\x05title\x88\x01\x01\x12%\n" +
@@ -881,14 +923,18 @@ const file_event_v1_event_proto_rawDesc = "" +
 	"\x06end_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x05endAt\x12\x1c\n" +
 	"\aall_day\x18\a \x01(\bH\x03R\x06allDay\x88\x01\x01\x12\x19\n" +
 	"\x05color\x18\b \x01(\tH\x04R\x05color\x88\x01\x01\x122\n" +
-	"\x06status\x18\t \x01(\x0e2\x15.event.v1.EventStatusH\x05R\x06status\x88\x01\x01B\b\n" +
+	"\x06status\x18\t \x01(\x0e2\x15.event.v1.EventStatusH\x05R\x06status\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"project_id\x18\n" +
+	" \x01(\tH\x06R\tprojectId\x88\x01\x01B\b\n" +
 	"\x06_titleB\x0e\n" +
 	"\f_descriptionB\v\n" +
 	"\t_locationB\n" +
 	"\n" +
 	"\b_all_dayB\b\n" +
 	"\x06_colorB\t\n" +
-	"\a_status\"<\n" +
+	"\a_statusB\r\n" +
+	"\v_project_id\"<\n" +
 	"\x13UpdateEventResponse\x12%\n" +
 	"\x05event\x18\x01 \x01(\v2\x0f.event.v1.EventR\x05event\"$\n" +
 	"\x12DeleteEventRequest\x12\x0e\n" +

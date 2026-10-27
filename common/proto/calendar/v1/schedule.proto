@@ -25,6 +25,8 @@ message Schedule {
   string color = 9;
   google.protobuf.Timestamp created_at = 10;
   google.protobuf.Timestamp updated_at = 11;
+  // Dự án chứa mục này.
+  string project_id = 12;
 }
 
 message CreateScheduleRequest {
@@ -36,6 +38,8 @@ message CreateScheduleRequest {
   google.protobuf.Timestamp end_at = 6;
   bool all_day = 7;
   string color = 8;
+  // Dự án chứa mục này.
+  string project_id = 9;
 }
 
 message CreateScheduleResponse {
@@ -56,6 +60,8 @@ message ListSchedulesRequest {
   // Dùng cho calendar khi chỉ cần tải đúng khoảng đang hiển thị.
   google.protobuf.Timestamp from = 2;
   google.protobuf.Timestamp to = 3;
+  // Lọc theo dự án; rỗng = tất cả dự án.
+  string project_id = 4;
 }
 
 message ListSchedulesResponse {
@@ -72,6 +78,8 @@ message UpdateScheduleRequest {
   google.protobuf.Timestamp end_at = 6;
   optional bool all_day = 7;
   optional string color = 8;
+  // Chuyển sang dự án khác; rỗng = không đổi.
+  optional string project_id = 9;
 }
 
 message UpdateScheduleResponse {

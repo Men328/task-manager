@@ -46,6 +46,8 @@ message GetReportOverviewRequest {
   google.protobuf.Timestamp from = 2;
   google.protobuf.Timestamp to = 3;
   bool include_archived = 4;
+  // Lọc theo dự án; rỗng = tất cả dự án.
+  string project_id = 5;
 }
 
 message GetReportOverviewResponse {
@@ -70,6 +72,8 @@ message GetStatusBreakdownRequest {
   google.protobuf.Timestamp from = 2;
   google.protobuf.Timestamp to = 3;
   bool include_archived = 4;
+  // Lọc theo dự án; rỗng = tất cả dự án.
+  string project_id = 5;
 }
 
 message GetStatusBreakdownResponse {
@@ -93,6 +97,8 @@ message GetTaskTimeSeriesRequest {
   // Bỏ trống = REPORT_INTERVAL_DAY.
   ReportInterval interval = 4;
   bool include_archived = 5;
+  // Lọc theo dự án; rỗng = tất cả dự án.
+  string project_id = 6;
 }
 
 message GetTaskTimeSeriesResponse {
@@ -145,6 +151,8 @@ message GetActivityReportRequest {
   // Bỏ trống = mặc định 30 ngày gần nhất.
   google.protobuf.Timestamp from = 2;
   google.protobuf.Timestamp to = 3;
+  // Lọc theo dự án; rỗng = tất cả dự án.
+  string project_id = 4;
 }
 
 message GetActivityReportResponse {

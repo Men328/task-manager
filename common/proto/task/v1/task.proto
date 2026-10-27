@@ -36,6 +36,8 @@ message Task {
   google.protobuf.Timestamp updated_at = 14;
   // chỉ được fill khi request yêu cầu include_subtasks
   repeated Task subtasks = 15;
+  // Dự án chứa mục này.
+  string project_id = 16;
 }
 
 message CreateTaskRequest {
@@ -48,6 +50,8 @@ message CreateTaskRequest {
   int32 position = 7;
   google.protobuf.Timestamp start_at = 8;
   google.protobuf.Timestamp due_at = 9;
+  // Dự án chứa mục này.
+  string project_id = 10;
 }
 
 message CreateTaskResponse {
@@ -72,6 +76,8 @@ message ListTasksRequest {
   string status_id = 4;
   bool include_archived = 5;
   bool include_subtasks = 6;
+  // Lọc theo dự án; rỗng = tất cả dự án.
+  string project_id = 7;
 }
 
 message ListTasksResponse {
@@ -89,6 +95,8 @@ message UpdateTaskRequest {
   google.protobuf.Timestamp start_at = 7;
   google.protobuf.Timestamp due_at = 8;
   optional bool is_archived = 9;
+  // Chuyển sang dự án khác; rỗng = không đổi.
+  optional string project_id = 10;
 }
 
 message UpdateTaskResponse {

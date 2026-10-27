@@ -101,6 +101,15 @@ const (
 	CalendarTimeRangeInvalid  = "CALENDAR_TIME_RANGE_INVALID"
 	CalendarNotFound          = "CALENDAR_NOT_FOUND"
 
+	ProjectProfileIDRequired    = "PROJECT_PROFILE_ID_REQUIRED"
+	ProjectIDRequired           = "PROJECT_ID_REQUIRED"
+	ProjectNameRequired         = "PROJECT_NAME_REQUIRED"
+	ProjectNameDuplicate        = "PROJECT_NAME_DUPLICATE"
+	ProjectNotFound             = "PROJECT_NOT_FOUND"
+	ProjectArchived             = "PROJECT_ARCHIVED"
+	ProjectDefaultNotArchivable = "PROJECT_DEFAULT_NOT_ARCHIVABLE"
+	TaskSubtaskProjectLocked    = "TASK_SUBTASK_PROJECT_LOCKED"
+
 	EventProfileIDRequired = "EVENT_PROFILE_ID_REQUIRED"
 	EventTitleRequired     = "EVENT_TITLE_REQUIRED"
 	EventIDRequired        = "EVENT_ID_REQUIRED"

@@ -39,9 +39,11 @@ type Schedule struct {
 	// Lịch cả ngày (FullCalendar allDay).
 	AllDay bool `protobuf:"varint,8,opt,name=all_day,json=allDay,proto3" json:"all_day,omitempty"`
 	// Màu hiển thị `#RRGGBB` / `#RRGGBBAA`; rỗng = dùng màu mặc định của UI.
-	Color         string                 `protobuf:"bytes,9,opt,name=color,proto3" json:"color,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Color     string                 `protobuf:"bytes,9,opt,name=color,proto3" json:"color,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Dự án chứa mục này.
+	ProjectId     string `protobuf:"bytes,12,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -153,16 +155,25 @@ func (x *Schedule) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Schedule) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
 type CreateScheduleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProfileId     string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Location      string                 `protobuf:"bytes,4,opt,name=location,proto3" json:"location,omitempty"`
-	StartAt       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
-	EndAt         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=end_at,json=endAt,proto3" json:"end_at,omitempty"`
-	AllDay        bool                   `protobuf:"varint,7,opt,name=all_day,json=allDay,proto3" json:"all_day,omitempty"`
-	Color         string                 `protobuf:"bytes,8,opt,name=color,proto3" json:"color,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ProfileId   string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	Title       string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Location    string                 `protobuf:"bytes,4,opt,name=location,proto3" json:"location,omitempty"`
+	StartAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
+	EndAt       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=end_at,json=endAt,proto3" json:"end_at,omitempty"`
+	AllDay      bool                   `protobuf:"varint,7,opt,name=all_day,json=allDay,proto3" json:"all_day,omitempty"`
+	Color       string                 `protobuf:"bytes,8,opt,name=color,proto3" json:"color,omitempty"`
+	// Dự án chứa mục này.
+	ProjectId     string `protobuf:"bytes,9,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,6 +260,13 @@ func (x *CreateScheduleRequest) GetAllDay() bool {
 func (x *CreateScheduleRequest) GetColor() string {
 	if x != nil {
 		return x.Color
+	}
+	return ""
+}
+
+func (x *CreateScheduleRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
 	}
 	return ""
 }
@@ -390,8 +408,10 @@ type ListSchedulesRequest struct {
 	ProfileId string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
 	// Lọc theo khoảng thời gian (optional): trả lịch giao với [from, to).
 	// Dùng cho calendar khi chỉ cần tải đúng khoảng đang hiển thị.
-	From          *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
-	To            *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
+	From *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
+	To   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
+	// Lọc theo dự án; rỗng = tất cả dự án.
+	ProjectId     string `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -447,6 +467,13 @@ func (x *ListSchedulesRequest) GetTo() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ListSchedulesRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
 type ListSchedulesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Schedules     []*Schedule            `protobuf:"bytes,1,rep,name=schedules,proto3" json:"schedules,omitempty"`
@@ -498,10 +525,12 @@ type UpdateScheduleRequest struct {
 	Description *string                `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
 	Location    *string                `protobuf:"bytes,4,opt,name=location,proto3,oneof" json:"location,omitempty"`
 	// message field đã có presence (nil = không đổi) nên không cần `optional`.
-	StartAt       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
-	EndAt         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=end_at,json=endAt,proto3" json:"end_at,omitempty"`
-	AllDay        *bool                  `protobuf:"varint,7,opt,name=all_day,json=allDay,proto3,oneof" json:"all_day,omitempty"`
-	Color         *string                `protobuf:"bytes,8,opt,name=color,proto3,oneof" json:"color,omitempty"`
+	StartAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
+	EndAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=end_at,json=endAt,proto3" json:"end_at,omitempty"`
+	AllDay  *bool                  `protobuf:"varint,7,opt,name=all_day,json=allDay,proto3,oneof" json:"all_day,omitempty"`
+	Color   *string                `protobuf:"bytes,8,opt,name=color,proto3,oneof" json:"color,omitempty"`
+	// Chuyển sang dự án khác; rỗng = không đổi.
+	ProjectId     *string `protobuf:"bytes,9,opt,name=project_id,json=projectId,proto3,oneof" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -588,6 +617,13 @@ func (x *UpdateScheduleRequest) GetAllDay() bool {
 func (x *UpdateScheduleRequest) GetColor() string {
 	if x != nil && x.Color != nil {
 		return *x.Color
+	}
+	return ""
+}
+
+func (x *UpdateScheduleRequest) GetProjectId() string {
+	if x != nil && x.ProjectId != nil {
+		return *x.ProjectId
 	}
 	return ""
 }
@@ -720,7 +756,7 @@ var File_calendar_v1_schedule_proto protoreflect.FileDescriptor
 
 const file_calendar_v1_schedule_proto_rawDesc = "" +
 	"\n" +
-	"\x1acalendar/v1/schedule.proto\x12\vcalendar.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9c\x03\n" +
+	"\x1acalendar/v1/schedule.proto\x12\vcalendar.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbb\x03\n" +
 	"\bSchedule\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -736,7 +772,9 @@ const file_calendar_v1_schedule_proto_rawDesc = "" +
 	"created_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xa3\x02\n" +
+	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\f \x01(\tR\tprojectId\"\xc2\x02\n" +
 	"\x15CreateScheduleRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12\x14\n" +
@@ -746,20 +784,24 @@ const file_calendar_v1_schedule_proto_rawDesc = "" +
 	"\bstart_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x121\n" +
 	"\x06end_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x05endAt\x12\x17\n" +
 	"\aall_day\x18\a \x01(\bR\x06allDay\x12\x14\n" +
-	"\x05color\x18\b \x01(\tR\x05color\"K\n" +
+	"\x05color\x18\b \x01(\tR\x05color\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\t \x01(\tR\tprojectId\"K\n" +
 	"\x16CreateScheduleResponse\x121\n" +
 	"\bschedule\x18\x01 \x01(\v2\x15.calendar.v1.ScheduleR\bschedule\"$\n" +
 	"\x12GetScheduleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"H\n" +
 	"\x13GetScheduleResponse\x121\n" +
-	"\bschedule\x18\x01 \x01(\v2\x15.calendar.v1.ScheduleR\bschedule\"\x91\x01\n" +
+	"\bschedule\x18\x01 \x01(\v2\x15.calendar.v1.ScheduleR\bschedule\"\xb0\x01\n" +
 	"\x14ListSchedulesRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12.\n" +
 	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
-	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"L\n" +
+	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x04 \x01(\tR\tprojectId\"L\n" +
 	"\x15ListSchedulesResponse\x123\n" +
-	"\tschedules\x18\x01 \x03(\v2\x15.calendar.v1.ScheduleR\tschedules\"\xea\x02\n" +
+	"\tschedules\x18\x01 \x03(\v2\x15.calendar.v1.ScheduleR\tschedules\"\x9d\x03\n" +
 	"\x15UpdateScheduleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
 	"\x05title\x18\x02 \x01(\tH\x00R\x05title\x88\x01\x01\x12%\n" +
@@ -768,13 +810,16 @@ const file_calendar_v1_schedule_proto_rawDesc = "" +
 	"\bstart_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x121\n" +
 	"\x06end_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x05endAt\x12\x1c\n" +
 	"\aall_day\x18\a \x01(\bH\x03R\x06allDay\x88\x01\x01\x12\x19\n" +
-	"\x05color\x18\b \x01(\tH\x04R\x05color\x88\x01\x01B\b\n" +
+	"\x05color\x18\b \x01(\tH\x04R\x05color\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"project_id\x18\t \x01(\tH\x05R\tprojectId\x88\x01\x01B\b\n" +
 	"\x06_titleB\x0e\n" +
 	"\f_descriptionB\v\n" +
 	"\t_locationB\n" +
 	"\n" +
 	"\b_all_dayB\b\n" +
-	"\x06_color\"K\n" +
+	"\x06_colorB\r\n" +
+	"\v_project_id\"K\n" +
 	"\x16UpdateScheduleResponse\x121\n" +
 	"\bschedule\x18\x01 \x01(\v2\x15.calendar.v1.ScheduleR\bschedule\"'\n" +
 	"\x15DeleteScheduleRequest\x12\x0e\n" +

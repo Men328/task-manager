@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package project.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/project/v1;projectv1";
+
+// Dự án: nhóm task / lịch / sự kiện của 1 profile.
+// Mapping DB: project.projects
+message Project {
+  string id = 1;
+  string profile_id = 2;
+  string name = 3;
+  string description = 4;
+  // Màu hiển thị `#RRGGBB`; rỗng = dùng màu mặc định của UI.
+  string color = 5;
+  // Dự án mặc định của profile (không thể lưu trữ).
+  bool is_default = 6;
+  bool is_archived = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message CreateProjectRequest {
+  string profile_id = 1;
+  string name = 2;
+  string description = 3;
+  string color = 4;
+}
+
+message CreateProjectResponse {
+  Project project = 1;
+}
+
+message GetProjectRequest {
+  string id = 1;
+}
+
+message GetProjectResponse {
+  Project project = 1;
+}
+
+message ListProjectsRequest {
+  string profile_id = 1;
+  // false = ẩn các dự án đã lưu trữ.
+  bool include_archived = 2;
+}
+
+message ListProjectsResponse {
+  repeated Project projects = 1;
+}
+
+message UpdateProjectRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string color = 4;
+}
+
+message UpdateProjectResponse {
+  Project project = 1;
+}
+
+message ArchiveProjectRequest {
+  string id = 1;
+}
+
+message ArchiveProjectResponse {
+  Project project = 1;
+}
+
+message UnarchiveProjectRequest {
+  string id = 1;
+}
+
+message UnarchiveProjectResponse {
+  Project project = 1;
+}
+
+// Tạo dự án mặc định cho profile nếu chưa có (idempotent). Chỉ gọi nội bộ (gRPC).
+message SeedDefaultProjectRequest {
+  string profile_id = 1;
+}
+
+message SeedDefaultProjectResponse {
+  Project project = 1;
+}
+
+service ProjectService {
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse) {
+    option (google.api.http) = {
+      post: "/v1/projects"
+      body: "*"
+    };
+  }
+
+  rpc GetProject(GetProjectRequest) returns (GetProjectResponse) {
+    option (google.api.http) = {get: "/v1/projects/{id}"};
+  }
+
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse) {
+    option (google.api.http) = {get: "/v1/projects"};
+  }
+
+  rpc UpdateProject(UpdateProjectRequest) returns (UpdateProjectResponse) {
+    option (google.api.http) = {
+      patch: "/v1/projects/{id}"
+      body: "*"
+    };
+  }
+
+  rpc ArchiveProject(ArchiveProjectRequest) returns (ArchiveProjectResponse) {
+    option (google.api.http) = {
+      post: "/v1/projects/{id}/archive"
+      body: "*"
+    };
+  }
+
+  rpc UnarchiveProject(UnarchiveProjectRequest) returns (UnarchiveProjectResponse) {
+    option (google.api.http) = {
+      post: "/v1/projects/{id}/unarchive"
+      body: "*"
+    };
+  }
+
+  // Nội bộ: không có HTTP binding.
+  rpc SeedDefaultProject(SeedDefaultProjectRequest) returns (SeedDefaultProjectResponse);
+}
