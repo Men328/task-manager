@@ -57,12 +57,14 @@ export interface EventState {
   events: Event[];
   loading: boolean;
   error: string | null;
+  latestRequestId: string | null;
 }
 
 const initialState: EventState = {
   events: [],
   loading: false,
   error: null,
+  latestRequestId: null,
 };
 
 const eventSlice = createSlice({
@@ -71,15 +73,22 @@ const eventSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchEvents.pending, (state) => {
+      .addCase(fetchEvents.pending, (state, action) => {
+        state.latestRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchEvents.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) {
+          return;
+        }
         state.loading = false;
         state.events = action.payload;
       })
       .addCase(fetchEvents.rejected, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) {
+          return;
+        }
         state.loading = false;
         state.error = action.payload ?? action.error.message ?? i18n.t('errors.loadEvents');
       });

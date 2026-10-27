@@ -81,6 +81,7 @@ export interface CalendarState {
   range: DateRange;
   loading: boolean;
   error: string | null;
+  latestRequestId: string | null;
 }
 
 const initialState: CalendarState = {
@@ -88,6 +89,7 @@ const initialState: CalendarState = {
   range: {},
   loading: false,
   error: null,
+  latestRequestId: null,
 };
 
 const calendarSlice = createSlice({
@@ -96,16 +98,23 @@ const calendarSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchSchedules.pending, (state) => {
+      .addCase(fetchSchedules.pending, (state, action) => {
+        state.latestRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchSchedules.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) {
+          return;
+        }
         state.loading = false;
         state.schedules = action.payload;
         state.range = { from: action.meta.arg.from, to: action.meta.arg.to };
       })
       .addCase(fetchSchedules.rejected, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) {
+          return;
+        }
         state.loading = false;
         state.error = action.payload ?? action.error.message ?? i18n.t('errors.loadCalendar');
       });

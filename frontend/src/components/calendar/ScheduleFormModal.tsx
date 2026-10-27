@@ -167,6 +167,7 @@ export function ScheduleFormModal({
       return;
     }
 
+    // Khi sửa chỉ gửi projectId nếu thực sự đổi (backend kiểm tra project đích, kể cả đã lưu trữ).
     const payload: NewScheduleInput = {
       projectId,
       title: title.trim(),
@@ -181,7 +182,11 @@ export function ScheduleFormModal({
     setSubmitting(true);
     try {
       if (schedule) {
-        await update(schedule.id, payload);
+        const { projectId: nextProjectId, ...rest } = payload;
+        await update(schedule.id, {
+          ...rest,
+          ...(nextProjectId !== schedule.projectId ? { projectId: nextProjectId } : {}),
+        });
       } else {
         await create(payload);
       }

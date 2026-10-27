@@ -155,7 +155,11 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
     setSubmitting(true);
     try {
       if (event) {
-        await update(event.id, payload);
+        const { projectId: nextProjectId, ...rest } = payload;
+        await update(event.id, {
+          ...rest,
+          ...(nextProjectId !== event.projectId ? { projectId: nextProjectId } : {}),
+        });
       } else {
         await create(payload);
       }

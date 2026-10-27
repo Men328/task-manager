@@ -138,6 +138,8 @@ export interface BoardState {
   priorityFilter: TaskPriority[];
   loading: boolean;
   error: string | null;
+  /** requestId của fetchBoard mới nhất; response cũ hơn bị bỏ qua. */
+  latestRequestId: string | null;
 }
 
 const initialState: BoardState = {
@@ -147,6 +149,7 @@ const initialState: BoardState = {
   priorityFilter: [],
   loading: false,
   error: null,
+  latestRequestId: null,
 };
 
 const boardSlice = createSlice({
@@ -165,17 +168,24 @@ const boardSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchBoard.pending, (state) => {
+      .addCase(fetchBoard.pending, (state, action) => {
+        state.latestRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchBoard.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) {
+          return;
+        }
         state.loading = false;
         state.statuses = action.payload.statuses;
         state.transitions = action.payload.transitions;
         state.tasks = action.payload.tasks;
       })
       .addCase(fetchBoard.rejected, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) {
+          return;
+        }
         state.loading = false;
         state.error = action.payload ?? action.error.message ?? i18n.t('errors.loadBoard');
       })
