@@ -66,6 +66,9 @@ func (r *InMemoryTaskRepository) List(_ context.Context, f model.TaskFilter) ([]
 		if f.ProfileID != "" && t.ProfileID != f.ProfileID {
 			continue
 		}
+		if f.ProjectID != "" && t.ProjectID != f.ProjectID {
+			continue
+		}
 		if f.RootOnly {
 			if t.ParentTaskID != "" {
 				continue
@@ -147,6 +150,40 @@ func (r *InMemoryTaskRepository) Update(_ context.Context, id string, upd model.
 	t.UpdatedAt = time.Now().UTC()
 	r.items[id] = t
 	return t, nil
+}
+
+func (r *InMemoryTaskRepository) SetProjectForSubtree(_ context.Context, rootID, projectID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	root, ok := r.items[rootID]
+	if !ok {
+		return fmt.Errorf("%w: task %s", model.ErrNotFound, rootID)
+	}
+
+	now := time.Now().UTC()
+	queue := []string{rootID}
+	visited := map[string]bool{}
+	for len(queue) > 0 {
+		id := queue[0]
+		queue = queue[1:]
+		if visited[id] {
+			continue
+		}
+		visited[id] = true
+
+		t := r.items[id]
+		t.ProjectID = projectID
+		t.UpdatedAt = now
+		r.items[id] = t
+
+		for _, c := range r.items {
+			if c.ParentTaskID == id && c.ProfileID == root.ProfileID {
+				queue = append(queue, c.ID)
+			}
+		}
+	}
+	return nil
 }
 
 func (r *InMemoryTaskRepository) Delete(_ context.Context, id string) error {

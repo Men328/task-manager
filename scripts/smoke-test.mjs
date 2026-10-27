@@ -138,20 +138,21 @@ check('POST /v1/transitions/validate Todo->Done => allowed=false (không khai b�
 const task = check(
   'POST /v1/tasks (không truyền status_id -> dùng status default)',
   await req('POST', `${TASK}/v1/tasks`, {
-    profile_id: profileId, title: 'Viết báo cáo', priority: 'TASK_PRIORITY_HIGH',
+    profile_id: profileId, project_id: defaultProjectId, title: 'Viết báo cáo', priority: 'TASK_PRIORITY_HIGH',
   }),
   200,
-  (r) => r.data.task?.statusId === todoId && r.data.task?.parentTaskId === '',
+  (r) => r.data.task?.statusId === todoId && r.data.task?.parentTaskId === '' &&
+    r.data.task?.projectId === defaultProjectId,
 );
 const taskId = task.task.id;
 
 const sub = check(
-  'POST /v1/tasks (task con)',
+  'POST /v1/tasks (task con, kế thừa project của cha)',
   await req('POST', `${TASK}/v1/tasks`, {
     profile_id: profileId, title: 'Thu thập số liệu', parent_task_id: taskId,
   }),
   200,
-  (r) => r.data.task?.parentTaskId === taskId,
+  (r) => r.data.task?.parentTaskId === taskId && r.data.task?.projectId === defaultProjectId,
 );
 const subId = sub.task.id;
 
@@ -338,7 +339,7 @@ checkCode('GET /v1/backlogs/{id} sau khi xoá -> 404 + BACKLOG_NOT_FOUND',
 
 // ---------------------------------------------------------------- report
 check('POST /v1/tasks (report fixture)',
-  await req('POST', `${TASK}/v1/tasks`, { profile_id: profileId, title: 'Báo cáo fixture' }),
+  await req('POST', `${TASK}/v1/tasks`, { profile_id: profileId, project_id: defaultProjectId, title: 'Báo cáo fixture' }),
   200);
 check('GET /v1/reports/overview (tổng quan + khoảng mặc định)',
   await req('GET', `${REPORT}/v1/reports/overview?profile_id=${profileId}`), 200,

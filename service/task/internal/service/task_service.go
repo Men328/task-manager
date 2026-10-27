@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"taskmanager/service/task/internal/model"
@@ -11,14 +12,16 @@ type taskService struct {
 	tasks       TaskRepository
 	statuses    StatusRepository
 	transitions TransitionRepository
+	projects    ProjectChecker
 }
 
 func NewTaskService(
 	tasks TaskRepository,
 	statuses StatusRepository,
 	transitions TransitionRepository,
+	projects ProjectChecker,
 ) TaskService {
-	return &taskService{tasks: tasks, statuses: statuses, transitions: transitions}
+	return &taskService{tasks: tasks, statuses: statuses, transitions: transitions, projects: projects}
 }
 
 func (s *taskService) Create(ctx context.Context, t model.Task) (model.Task, error) {
@@ -35,6 +38,15 @@ func (s *taskService) Create(ctx context.Context, t model.Task) (model.Task, err
 		}
 		if parent.ProfileID != t.ProfileID {
 			return model.Task{}, model.NewError(model.ErrorKindParentNotInProfile, "task cha không thuộc profile này")
+		}
+		// Task con luôn nằm cùng project với cha; bỏ qua project client gửi.
+		t.ProjectID = parent.ProjectID
+	} else {
+		if strings.TrimSpace(t.ProjectID) == "" {
+			return model.Task{}, model.NewError(model.ErrorKindProjectRequired, "project_id is required")
+		}
+		if err := s.projects.CheckAssignable(ctx, t.ProfileID, t.ProjectID); err != nil {
+			return model.Task{}, err
 		}
 	}
 
@@ -66,8 +78,62 @@ func (s *taskService) ListChildren(ctx context.Context, parentTaskID string) ([]
 	return s.tasks.ListChildren(ctx, parentTaskID)
 }
 
+// Update áp các thay đổi thường qua tasks.Update; mọi thay đổi project (đổi
+// project của task gốc, hoặc đổi cha sang cây ở project khác) đi qua
+// SetProjectForSubtree để cả cây con luôn nằm chung một project.
 func (s *taskService) Update(ctx context.Context, id string, upd model.TaskUpdate) (model.Task, error) {
-	return s.tasks.Update(ctx, id, upd)
+	current, err := s.tasks.Get(ctx, id)
+	if err != nil {
+		return model.Task{}, err
+	}
+
+	if upd.ProjectID != nil && strings.TrimSpace(*upd.ProjectID) == "" {
+		return model.Task{}, model.NewError(model.ErrorKindProjectRequired, "project_id must not be empty")
+	}
+
+	parentID := current.ParentTaskID
+	if upd.ParentTaskID != nil {
+		parentID = *upd.ParentTaskID
+	}
+	parentChanged := parentID != current.ParentTaskID
+
+	targetProject := current.ProjectID
+	switch {
+	case parentID != "" && (parentChanged || upd.ProjectID != nil):
+		parent, err := s.tasks.Get(ctx, parentID)
+		if err != nil {
+			return model.Task{}, err
+		}
+		if parent.ProfileID != current.ProfileID {
+			return model.Task{}, model.NewError(model.ErrorKindParentNotInProfile, "task cha không thuộc profile này")
+		}
+		if upd.ProjectID != nil && *upd.ProjectID != parent.ProjectID {
+			return model.Task{}, model.NewError(model.ErrorKindSubtaskProjectLocked,
+				"task con luôn theo project của task cha; hãy đổi project ở task gốc")
+		}
+		targetProject = parent.ProjectID
+	case parentID == "" && upd.ProjectID != nil && *upd.ProjectID != current.ProjectID:
+		if err := s.projects.CheckAssignable(ctx, current.ProfileID, *upd.ProjectID); err != nil {
+			return model.Task{}, err
+		}
+		targetProject = *upd.ProjectID
+	}
+
+	// Đổi cha (kèm kiểm tra vòng lặp) và các field khác trước, để lỗi cycle
+	// không để lại cây con đã bị đổi project.
+	upd.ProjectID = nil
+	updated, err := s.tasks.Update(ctx, id, upd)
+	if err != nil {
+		return model.Task{}, err
+	}
+	if targetProject == current.ProjectID {
+		return updated, nil
+	}
+
+	if err := s.tasks.SetProjectForSubtree(ctx, id, targetProject); err != nil {
+		return model.Task{}, err
+	}
+	return s.tasks.Get(ctx, id)
 }
 
 func (s *taskService) Delete(ctx context.Context, id string) error {

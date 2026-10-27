@@ -13,11 +13,18 @@ type TaskRepository interface {
 	List(ctx context.Context, f model.TaskFilter) ([]model.Task, error)
 	ListChildren(ctx context.Context, parentTaskID string) ([]model.Task, error)
 	Update(ctx context.Context, id string, upd model.TaskUpdate) (model.Task, error)
+	// SetProjectForSubtree đổi project của task rootID và mọi hậu duệ của nó.
+	SetProjectForSubtree(ctx context.Context, rootID, projectID string) error
 	Delete(ctx context.Context, id string) error
 	ChangeStatus(ctx context.Context, id, statusID string, completedAt *time.Time) (model.Task, error)
 	CountByStatus(ctx context.Context, statusID string) (int, error)
 	AppendStatusLog(ctx context.Context, log model.StatusLog) error
 	ListStatusLogs(ctx context.Context, taskID string) ([]model.StatusLog, error)
+}
+
+// ProjectChecker xác minh project tồn tại, thuộc profile và chưa archive.
+type ProjectChecker interface {
+	CheckAssignable(ctx context.Context, profileID, projectID string) error
 }
 
 type StatusRepository interface {

@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -16,6 +17,9 @@ type Config struct {
 	LogLevel     string
 
 	DatabaseURL string
+
+	ProjectGRPCDialAddr string
+	ProjectTimeout      time.Duration
 }
 
 func Load() Config {
@@ -26,6 +30,9 @@ func Load() Config {
 		HTTPAddr:     getenv("HTTP_ADDR", ":8082"),
 		LogLevel:     getenv("LOG_LEVEL", "info"),
 		DatabaseURL:  os.Getenv("DATABASE_URL"),
+
+		ProjectGRPCDialAddr: os.Getenv("PROJECT_GRPC_DIAL_ADDR"),
+		ProjectTimeout:      getduration("PROJECT_TIMEOUT", 10*time.Second),
 	}
 }
 
@@ -50,6 +57,25 @@ func (c Config) GRPCDialTarget() string {
 		return "127.0.0.1" + c.GRPCAddr
 	}
 	return c.GRPCAddr
+}
+
+func (c Config) ProjectDialTarget() string {
+	if c.ProjectGRPCDialAddr != "" {
+		return c.ProjectGRPCDialAddr
+	}
+	return "127.0.0.1:9090"
+}
+
+func getduration(key string, fallback time.Duration) time.Duration {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(v)
+	if err != nil || parsed <= 0 {
+		return fallback
+	}
+	return parsed
 }
 
 func getenv(key, fallback string) string {
