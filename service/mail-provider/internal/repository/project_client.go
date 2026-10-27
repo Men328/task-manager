@@ -21,7 +21,7 @@ func NewProjectClient(client projectv1.ProjectServiceClient, timeout time.Durati
 	return &projectClient{client: client, timeout: timeout}
 }
 
-// ListDetectable returns the profile's active, non-default projects.
+// ListDetectable trả về các project đang hoạt động, không phải project mặc định, của profile.
 func (c *projectClient) ListDetectable(ctx context.Context, profileID string) ([]model.ProjectCandidate, error) {
 	callCtx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
@@ -31,7 +31,7 @@ func (c *projectClient) ListDetectable(ctx context.Context, profileID string) ([
 		IncludeArchived: false,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("list projects: %w", err)
+		return nil, fmt.Errorf("%w: %v", model.ErrProjectList, err)
 	}
 
 	out := make([]model.ProjectCandidate, 0, len(response.GetProjects()))

@@ -68,7 +68,7 @@ const (
 
 type Query struct {
 	ProfileID string
-	// ProjectID rong nghia la khong loc theo project.
+	// ProjectID rỗng nghĩa là không lọc theo project.
 	ProjectID       string
 	From            *time.Time
 	To              *time.Time

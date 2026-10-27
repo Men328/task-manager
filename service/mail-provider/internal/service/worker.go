@@ -192,7 +192,7 @@ func (w *notificationWorker) dispatch(ctx context.Context, sub model.Subscriptio
 			w.saveBacklog(ctx, sub, message, draft, objectKey, reasonNoProjectMatched)
 			return
 		}
-		w.createTask(ctx, sub, message, draft, project)
+		w.createTask(ctx, sub, message, draft, project, objectKey)
 	case model.CategorySchedule:
 		start := firstTime(draft.StartAt, draft.DueAt)
 		if strings.TrimSpace(draft.Title) == "" || start == nil {
@@ -204,7 +204,7 @@ func (w *notificationWorker) dispatch(ctx context.Context, sub model.Subscriptio
 			w.saveBacklog(ctx, sub, message, draft, objectKey, reasonNoProjectMatched)
 			return
 		}
-		w.createSchedule(ctx, sub, message, draft, project, *start)
+		w.createSchedule(ctx, sub, message, draft, project, *start, objectKey)
 	case model.CategoryEvent:
 		start := firstTime(draft.StartAt, draft.DueAt)
 		if strings.TrimSpace(draft.Title) == "" || start == nil {
@@ -216,13 +216,13 @@ func (w *notificationWorker) dispatch(ctx context.Context, sub model.Subscriptio
 			w.saveBacklog(ctx, sub, message, draft, objectKey, reasonNoProjectMatched)
 			return
 		}
-		w.createEvent(ctx, sub, message, draft, project, *start)
+		w.createEvent(ctx, sub, message, draft, project, *start, objectKey)
 	default:
 		w.saveBacklog(ctx, sub, message, draft, objectKey, draftReason(draft))
 	}
 }
 
-func (w *notificationWorker) createTask(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, project model.ProjectCandidate) {
+func (w *notificationWorker) createTask(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, project model.ProjectCandidate, objectKey string) {
 	created, err := w.tasks.Create(ctx, model.TaskInput{
 		ProfileID:   sub.ProfileID,
 		ProjectID:   project.ID,
@@ -233,14 +233,15 @@ func (w *notificationWorker) createTask(ctx context.Context, sub model.Subscript
 		Source:      message.ID,
 	})
 	if err != nil {
-		slog.Error("tạo task từ email thất bại", "profile_id", sub.ProfileID, "message_id", message.ID, "error", err)
+		slog.Error("tạo task từ email thất bại, giữ email trong backlog", "profile_id", sub.ProfileID, "message_id", message.ID, "error", err)
+		w.saveBacklog(ctx, sub, message, draft, objectKey, reasonCreateFailed)
 		return
 	}
 	slog.Info("đã tạo task từ email", "profile_id", sub.ProfileID, "message_id", message.ID, "task_id", created.ID)
 	w.notify(ctx, sub, model.NoticeTypeTaskCreated, model.NoticeTargetTask, created.ID, created.Title, projectNoticeBody(project, draft.Description), message.ID)
 }
 
-func (w *notificationWorker) createSchedule(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, project model.ProjectCandidate, start time.Time) {
+func (w *notificationWorker) createSchedule(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, project model.ProjectCandidate, start time.Time, objectKey string) {
 	created, err := w.schedules.Create(ctx, model.ScheduleInput{
 		ProfileID:   sub.ProfileID,
 		ProjectID:   project.ID,
@@ -252,14 +253,15 @@ func (w *notificationWorker) createSchedule(ctx context.Context, sub model.Subsc
 		AllDay:      draft.AllDay,
 	})
 	if err != nil {
-		slog.Error("tạo lịch từ email thất bại", "profile_id", sub.ProfileID, "message_id", message.ID, "error", err)
+		slog.Error("tạo lịch từ email thất bại, giữ email trong backlog", "profile_id", sub.ProfileID, "message_id", message.ID, "error", err)
+		w.saveBacklog(ctx, sub, message, draft, objectKey, reasonCreateFailed)
 		return
 	}
 	slog.Info("đã tạo lịch từ email", "profile_id", sub.ProfileID, "message_id", message.ID, "schedule_id", created.ID)
 	w.notify(ctx, sub, model.NoticeTypeScheduleCreated, model.NoticeTargetSchedule, created.ID, created.Title, projectNoticeBody(project, draft.Description), message.ID)
 }
 
-func (w *notificationWorker) createEvent(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, project model.ProjectCandidate, start time.Time) {
+func (w *notificationWorker) createEvent(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, project model.ProjectCandidate, start time.Time, objectKey string) {
 	created, err := w.events.Create(ctx, model.EventInput{
 		ProfileID:   sub.ProfileID,
 		ProjectID:   project.ID,
@@ -272,7 +274,8 @@ func (w *notificationWorker) createEvent(ctx context.Context, sub model.Subscrip
 		Source:      message.ID,
 	})
 	if err != nil {
-		slog.Error("tạo sự kiện từ email thất bại", "profile_id", sub.ProfileID, "message_id", message.ID, "error", err)
+		slog.Error("tạo sự kiện từ email thất bại, giữ email trong backlog", "profile_id", sub.ProfileID, "message_id", message.ID, "error", err)
+		w.saveBacklog(ctx, sub, message, draft, objectKey, reasonCreateFailed)
 		return
 	}
 	slog.Info("đã tạo sự kiện từ email", "profile_id", sub.ProfileID, "message_id", message.ID, "event_id", created.ID)

@@ -657,3 +657,42 @@ func TestWorkerNoticeBodyIncludesProjectName(t *testing.T) {
 		t.Fatal("worker không đẩy notice")
 	}
 }
+
+func TestWorkerSendsToBacklogWhenTaskCreateFails(t *testing.T) {
+	backlogs := &stubBacklogs{created: make(chan model.BacklogInput, 1)}
+	analyzer := &stubAnalyzer{draft: model.MailDraft{
+		Category: model.CategoryTask, Actionable: true, Title: "Nộp báo cáo",
+		ProjectID: "pr1", ProjectConfidence: 0.9,
+	}}
+	runProjectWorker(t, analyzer, defaultProjects(), model.EmailMessage{ID: "m1", Subject: "Nộp báo cáo", Body: "x", From: "boss@example.com"}, testOptions(),
+		&stubTasks{err: errors.New("task service down")}, &stubSchedules{}, backlogs, &stubNotices{})
+
+	select {
+	case input := <-backlogs.created:
+		if input.Reason != "create_failed" || input.Category != "task" || input.Source != "m1" {
+			t.Fatalf("tạo task lỗi phải giữ email trong backlog với reason create_failed, nhận %+v", input)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("tạo task lỗi nhưng email không được đẩy vào backlog")
+	}
+}
+
+func TestWorkerSendsToBacklogWhenScheduleCreateFails(t *testing.T) {
+	backlogs := &stubBacklogs{created: make(chan model.BacklogInput, 1)}
+	start := time.Date(2026, 10, 5, 9, 0, 0, 0, time.UTC)
+	analyzer := &stubAnalyzer{draft: model.MailDraft{
+		Category: model.CategorySchedule, Actionable: true, Title: "Họp", StartAt: &start,
+		ProjectID: "pr1", ProjectConfidence: 0.9,
+	}}
+	runProjectWorker(t, analyzer, defaultProjects(), model.EmailMessage{ID: "m1", Subject: "Họp", Body: "x"}, testOptions(),
+		&stubTasks{}, &stubSchedules{err: errors.New("calendar down")}, backlogs, &stubNotices{})
+
+	select {
+	case input := <-backlogs.created:
+		if input.Reason != "create_failed" || input.Category != "schedule" {
+			t.Fatalf("tạo lịch lỗi phải vào backlog với reason create_failed, nhận %+v", input)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("tạo lịch lỗi nhưng email không được đẩy vào backlog")
+	}
+}

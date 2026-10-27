@@ -9,7 +9,9 @@ import (
 
 const (
 	reasonNoProjectMatched = "no_project_matched"
-	maxProjectTokens       = 5
+	// reasonCreateFailed: đã phân loại xong nhưng tạo item thất bại — giữ email trong backlog để không bị mất.
+	reasonCreateFailed = "create_failed"
+	maxProjectTokens   = 5
 	// Mẫu số tối thiểu: project tên ngắn (1-2 token) không được đạt điểm tuyệt đối dễ dàng.
 	minProjectDenominator = 3
 	// Số token trùng tối thiểu để có điểm khác 0, tránh khớp nhầm vì một âm tiết chung.

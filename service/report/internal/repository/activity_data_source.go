@@ -77,7 +77,7 @@ func (s *ActivityDataSource) FetchBacklogs(ctx context.Context, profileID string
 	callCtx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Backlog khong thuoc project nao: so lieu backlog luon tinh theo ca profile.
+	// Backlog không thuộc project nào: số liệu backlog luôn tính theo cả profile.
 	response, err := s.backlogs.ListBacklogs(callCtx, &backlogv1.ListBacklogsRequest{ProfileId: profileID})
 	if err != nil {
 		return nil, fmt.Errorf("list backlogs cho profile %s: %w", profileID, err)

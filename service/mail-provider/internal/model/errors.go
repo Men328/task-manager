@@ -18,4 +18,5 @@ var (
 	ErrQueueFull      = errors.New("notification queue is full")
 	ErrUnauthorized   = errors.New("notification is not authenticated")
 	ErrInvalidPayload = errors.New("notification payload is invalid")
+	ErrProjectList    = errors.New("project listing failed")
 )
