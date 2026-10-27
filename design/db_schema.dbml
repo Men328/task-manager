@@ -160,6 +160,7 @@ Table task.TASKS {
   profile_id     uuid          [not null]
   parent_task_id uuid          [note: 'NULL = task gốc (root)']
   status_id      uuid          [not null]
+  project_id     uuid          [not null, note: 'FK composite (project_id, profile_id) -> project.projects']
   title          varchar(500)  [not null]
   description    text
   priority       task_priority [not null, default: 'medium']
@@ -186,6 +187,7 @@ Table task.TASKS {
   indexes {
     (id, profile_id)                          [unique, name: 'uq_tasks_id_profile']
     (profile_id, status_id)
+    (profile_id, project_id)
     (profile_id, parent_task_id, position)
     (profile_id, due_at)
     (profile_id, is_archived, deleted_at)
@@ -334,6 +336,7 @@ Table mail_provider.NOTI_INDEXES {
 Table calendar.schedules {
   id          uuid         [pk, default: `gen_random_uuid()`]
   profile_id  uuid         [not null]
+  project_id  uuid         [not null, note: 'FK composite (project_id, profile_id) -> project.projects']
   title       varchar(500) [not null]
   description text
   location    varchar(255)
@@ -358,6 +361,7 @@ Table calendar.schedules {
 
   indexes {
     (profile_id, start_at)
+    (profile_id, project_id)
   }
 }
 
@@ -372,6 +376,7 @@ Table calendar.schedules {
 Table event.events {
   id          uuid         [pk, default: `gen_random_uuid()`]
   profile_id  uuid         [not null]
+  project_id  uuid         [not null, note: 'FK composite (project_id, profile_id) -> project.projects']
   title       varchar(500) [not null]
   description text
   location    varchar(255)
@@ -399,6 +404,39 @@ Table event.events {
 
   indexes {
     (profile_id, start_at)
+    (profile_id, project_id)
+  }
+}
+
+// =============================================================================
+// SERVICE: project
+// =============================================================================
+// Nhóm công việc của từng profile. Mỗi profile có đúng 1 project mặc định
+// ("Chung"). Task / schedule / event bắt buộc thuộc 1 project (project_id).
+// =============================================================================
+Table project.projects {
+  id          uuid         [pk, default: `gen_random_uuid()`]
+  profile_id  uuid         [not null]
+  name        varchar(100) [not null]
+  description text         [not null, default: '', note: 'Ngữ cảnh để auto-detect project']
+  color       varchar(9)   [note: '#RRGGBB hoặc #RRGGBBAA']
+  is_default  boolean      [not null, default: false, note: 'Project "Chung"']
+  is_archived boolean      [not null, default: false]
+  created_at  timestamptz  [not null, default: `now()`]
+  updated_at  timestamptz  [not null, default: `now()`]
+
+  Note: '''
+  Ràng buộc enforce ở tầng DB (PostgreSQL):
+    CONSTRAINT ck_project_projects_name_not_blank CHECK (btrim(name) <> '');
+    CONSTRAINT ck_project_projects_color_format
+      CHECK (color IS NULL OR color ~* '^#[0-9a-f]{6}([0-9a-f]{2})?$');
+    UNIQUE INDEX uq_projects_one_default ON (profile_id) WHERE is_default;
+    UNIQUE INDEX uq_projects_profile_name ON (profile_id, lower(name));
+  '''
+
+  indexes {
+    (id, profile_id)          [unique, name: 'uq_projects_id_profile']
+    (profile_id, is_archived)
   }
 }
 
@@ -520,6 +558,12 @@ Ref: calendar.schedules.profile_id > identity.PROFILES.id [delete: cascade]
 // --- event: sự kiện thuộc 1 profile ---
 Ref: event.events.profile_id > identity.PROFILES.id [delete: cascade]
 
+// --- project: project thuộc 1 profile; item gắn project cùng profile (FK composite) ---
+Ref: project.projects.profile_id > identity.PROFILES.id [delete: cascade]
+Ref: task.TASKS.(project_id, profile_id)         > project.projects.(id, profile_id) [delete: restrict]
+Ref: calendar.schedules.(project_id, profile_id) > project.projects.(id, profile_id) [delete: restrict]
+Ref: event.events.(project_id, profile_id)       > project.projects.(id, profile_id) [delete: restrict]
+
 // --- backlog: mục backlog thuộc 1 profile ---
 Ref: backlog.backlogs.profile_id > identity.PROFILES.id [delete: cascade]
 
@@ -547,6 +591,10 @@ TableGroup calendar_service {
 
 TableGroup event_service {
   event.events
+}
+
+TableGroup project_service {
+  project.projects
 }
 
 TableGroup backlog_service {
