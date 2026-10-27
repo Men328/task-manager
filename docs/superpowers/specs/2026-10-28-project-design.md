@@ -196,3 +196,51 @@ Số liệu backlog trong report vẫn tính theo cả profile (backlog không c
 - Thiết kế chi tiết UI (dùng Mantine + tokens hiện có) và vị trí toast.
 - Cách cache danh sách project trong mail-provider (nếu cần).
 - Thứ tự triển khai và test, theo quy ước test hiện có của từng service.
+
+## 8. Tồn đọng sau triển khai (chưa sửa)
+
+Cập nhật 2026-10-28, sau review toàn nhánh `feature/project` (HEAD `07c6cc8`). Lượt sửa
+theo review dừng giữa chừng; các mục dưới đây **chưa sửa**, để làm sau.
+
+### Quan trọng
+- **Project đã archive không xem được trên UI** — trái §5.2 ("vẫn xem được"). Switcher chỉ
+  liệt kê project đang hoạt động, trang Quản lý project không có nút "Xem", và
+  `fetchProjects.fulfilled` (`frontend/src/context/project/projectSlice.ts`) đẩy `currentId`
+  về "Chung" khi id trỏ tới project archived. Hướng sửa: thêm nút "Xem" trên dòng archived →
+  `setCurrent(id)`; chỉ fallback khi id không còn tồn tại; badge "Đã lưu trữ" ở switcher;
+  form tạo mới khi đang đứng ở project archived thì mặc định về "Chung".
+
+### Nhỏ
+- **Validate tên / màu project**: tên > 100 ký tự trả 500 (SQLSTATE 22001 chưa map), màu sai
+  trả nhầm `PROJECT_NAME_REQUIRED` (23514). Cần validate ở `service/project` + `maxLength={100}`
+  ở `ProjectFormModal`. *Có thay đổi đang dở, chưa commit* trong `service/project/**` và
+  `common/errorcode/**` — chưa chạy test.
+- Trang Quản lý project vẫn hiện nút "Sửa" trên project archived, nhưng service từ chối
+  (`PROJECT_ARCHIVED`) → nên ẩn.
+- `docker-compose.yml`: `report-grpc` có `PROJECT_GRPC_DIAL_ADDR` và `depends_on: project-grpc`
+  thừa (report không gọi project service).
+- `UpdateTask` không chạy trong transaction: đổi cha rồi mới `SetProjectForSubtree`; lỗi DB
+  giữa hai bước (hoặc tạo subtask đồng thời) có thể làm cây task lệch project.
+- Postgres `UpdateProject` dùng `COALESCE(NULLIF(color,''), color)` nên không xoá được màu
+  (repo in-memory thì xoá được); form luôn gửi màu mặc định.
+- Calendar/event: write thunk refetch không chặn `currentId = null` (board có chặn) — nếu null
+  sẽ tải toàn bộ profile. Gate hiện đảm bảo không null nên chưa xảy ra.
+- `fetchProjects` không có guard request-id: response trễ của profile trước có thể ghi đè khi
+  đổi profile rất nhanh (thực tế đổi profile qua OAuth reload / signOut nên khó xảy ra).
+- Notification focus có thể `setCurrent` sang project archived/không tồn tại (hết vấn đề khi
+  sửa mục "Quan trọng" ở trên).
+- Test còn thiếu: cycle reparent / reparent-to-root / CTE Postgres của task; worker test nhánh
+  event ở mail-provider; thứ tự tham số `QueryFromParts` ở report; nhánh race của `SeedDefault`.
+
+### Chưa kiểm chứng
+- **Xoá profile đang có task/lịch/sự kiện**: FK item → project là `ON DELETE RESTRICT`, còn
+  `identity.profiles` cascade xuống cả project lẫn item — chưa thử `DeleteProfile` thực tế.
+  Nếu lỗi: migration mới đổi 3 FK `fk_*_project` sang `ON DELETE NO ACTION`.
+- **Detect qua Gmail thật** (email khớp ACME → task; email không liên quan → backlog
+  `no_project_matched`): chỉ có unit test, chưa gửi email thật.
+- **Frontend chưa chạy trên trình duyệt** (cần đăng nhập Google OAuth): switcher, trang
+  `/projects`, đổi project trong form + toast "Đến project", chuyển backlog thành item,
+  bấm notification chuyển project — mới qua `typecheck` + `build`.
+- 3 commit sửa sau review (`ed2b162`, `a393d41`, `07c6cc8`: luật từ khoá chặt hơn, email
+  tạo item lỗi thì vào backlog, chặn `project_id` rỗng ở calendar/event) **chưa được review
+  lại** và chưa chạy lại toàn bộ `make test` / `make smoke`.
