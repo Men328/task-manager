@@ -524,3 +524,32 @@ export interface ReportActivity {
 }
 
 
+
+/* -------------------------------------------------------------------------- */
+/* Project                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export interface Project {
+  id: string;
+  profileId: string;
+  name: string;
+  description: string;
+  color: string;
+  isDefault: boolean;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProjectInput {
+  profileId: string;
+  name: string;
+  description: string;
+  color?: string;
+}
+
+export interface UpdateProjectInput {
+  name?: string;
+  description?: string;
+  color?: string;
+}

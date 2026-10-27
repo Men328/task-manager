@@ -6,6 +6,7 @@ export { useBoard } from './board/useBoard';
 export { useCalendar } from './calendar/useCalendar';
 export { useEvent } from './event/useEvent';
 export { useNotices } from './notification/useNotices';
+export { useProject } from './project/useProject';
 export { useReport } from './report/useReport';
 export { useSession } from './session/useSession';
 export { useNoticeFocus } from './useNoticeFocus';

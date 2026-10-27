@@ -5,6 +5,7 @@ import {
   IconCalendarMonth,
   IconChartHistogram,
   IconChecklist,
+  IconFolders,
 } from '@tabler/icons-react';
 
 type IconComponent = typeof IconChecklist;
@@ -44,6 +45,7 @@ export const NAV_SECTIONS: NavSection[] = [
     key: 'config',
     labelKey: 'nav.groups.config',
     items: [
+      { key: 'projects', labelKey: 'nav.projects', icon: IconFolders, to: '/projects' },
       {
         key: 'statuses',
         labelKey: 'nav.statusesLifecycle',

@@ -11,6 +11,7 @@ import { BoardPage } from './pages/BoardPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { EventPage } from './pages/EventPage';
 import { LoginPage } from './pages/LoginPage';
+import { ProjectsPage } from './pages/ProjectsPage';
 import { ReportPage } from './pages/ReportPage';
 import { StatusesPage } from './pages/StatusesPage';
 
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/events" element={<EventPage />} />
           <Route path="/backlog" element={<BacklogPage />} />
           <Route path="/statuses" element={<StatusesPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Route>

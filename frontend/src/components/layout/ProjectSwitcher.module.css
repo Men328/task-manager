@@ -1,0 +1,51 @@
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  padding: 6px 10px;
+  border: 1px solid var(--tm-border);
+  border-radius: 8px;
+  background: var(--tm-input-bg);
+  color: var(--tm-text);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.trigger:hover {
+  background: var(--tm-hover-bg);
+}
+
+.dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chevron {
+  flex: none;
+  color: var(--tm-text-muted);
+}
+
+.list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.check {
+  color: var(--tm-brand);
+}
+
+.checkPlaceholder {
+  display: inline-block;
+  width: 14px;
+}
