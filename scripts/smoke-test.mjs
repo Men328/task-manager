@@ -240,7 +240,7 @@ checkCode('GET /v1/schedules/{id} sau khi xoá -> 404 + CALENDAR_NOT_FOUND',
 const event = check(
   'POST /v1/events (status + source)',
   await req('POST', `${EVENT}/v1/events`, {
-    profile_id: profileId,
+    profile_id: profileId, project_id: defaultProjectId,
     title: 'Hội thảo AI',
     description: 'Sự kiện công nghệ',
     location: 'Hà Nội',
@@ -258,7 +258,7 @@ const eventId = event.event.id;
 
 check('POST /v1/events (không truyền status -> PLANNED)',
   await req('POST', `${EVENT}/v1/events`, {
-    profile_id: profileId, title: 'Sự kiện mặc định', start_at: '2026-11-13T07:00:00Z',
+    profile_id: profileId, project_id: defaultProjectId, title: 'Sự kiện mặc định', start_at: '2026-11-13T07:00:00Z',
   }),
   200,
   (r) => r.data.event?.status === 'EVENT_STATUS_PLANNED');
@@ -275,11 +275,11 @@ check('PATCH /v1/events/{id} -> CANCELLED',
   await req('PATCH', `${EVENT}/v1/events/${eventId}`, { status: 'EVENT_STATUS_CANCELLED' }), 200,
   (r) => r.data.event?.status === 'EVENT_STATUS_CANCELLED');
 checkCode('POST /v1/events thiếu title -> 400 + EVENT_TITLE_REQUIRED',
-  await req('POST', `${EVENT}/v1/events`, { profile_id: profileId, start_at: '2026-11-12T07:00:00Z' }),
+  await req('POST', `${EVENT}/v1/events`, { profile_id: profileId, project_id: defaultProjectId, start_at: '2026-11-12T07:00:00Z' }),
   400, 'EVENT_TITLE_REQUIRED');
 checkCode('POST /v1/events end < start -> 400 + EVENT_TIME_RANGE_INVALID',
   await req('POST', `${EVENT}/v1/events`, {
-    profile_id: profileId, title: 'Sai giờ',
+    profile_id: profileId, project_id: defaultProjectId, title: 'Sai giờ',
     start_at: '2026-11-12T09:00:00Z', end_at: '2026-11-12T07:00:00Z',
   }),
   400, 'EVENT_TIME_RANGE_INVALID');
@@ -368,7 +368,7 @@ checkCode('GET /v1/reports/overview from > to -> 400 + REPORT_RANGE_INVALID',
 
 check('POST /v1/events (activity fixture)',
   await req('POST', `${EVENT}/v1/events`, {
-    profile_id: profileId, title: 'Sự kiện thống kê', start_at: '2026-11-20T07:00:00Z',
+    profile_id: profileId, project_id: defaultProjectId, title: 'Sự kiện thống kê', start_at: '2026-11-20T07:00:00Z',
   }),
   200);
 check('POST /v1/schedules (activity fixture)',

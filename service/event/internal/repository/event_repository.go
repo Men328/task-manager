@@ -58,6 +58,9 @@ func (r *InMemoryEventRepository) List(_ context.Context, f model.Filter) ([]mod
 		if f.ProfileID != "" && e.ProfileID != f.ProfileID {
 			continue
 		}
+		if f.ProjectID != "" && e.ProjectID != f.ProjectID {
+			continue
+		}
 		if f.Status != "" && e.Status != f.Status {
 			continue
 		}
@@ -77,6 +80,9 @@ func (r *InMemoryEventRepository) Update(_ context.Context, id string, upd model
 	e, ok := r.items[id]
 	if !ok {
 		return model.Event{}, fmt.Errorf("%w: event %s", model.ErrNotFound, id)
+	}
+	if upd.ProjectID != nil {
+		e.ProjectID = *upd.ProjectID
 	}
 	if upd.Title != nil {
 		e.Title = *upd.Title

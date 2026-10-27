@@ -8,7 +8,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
+	projectv1 "taskmanager/common/gen/go/project/v1"
 	"taskmanager/service/event/internal/config"
 	"taskmanager/service/event/internal/repository"
 	"taskmanager/service/event/internal/service"
@@ -47,4 +50,25 @@ func newEventRepository(pool *pgxpool.Pool) service.EventRepository {
 		return repository.NewInMemoryEventRepository()
 	}
 	return repository.NewPostgresEventRepository(pool)
+}
+
+func newProjectConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(cfg.ProjectDialTarget(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("dial gRPC project (%s): %w", cfg.ProjectDialTarget(), err)
+	}
+	lc.Append(fx.Hook{
+		OnStop: func(context.Context) error {
+			return conn.Close()
+		},
+	})
+	return conn, nil
+}
+
+func newProjectServiceClient(conn *grpc.ClientConn) projectv1.ProjectServiceClient {
+	return projectv1.NewProjectServiceClient(conn)
+}
+
+func newProjectChecker(client projectv1.ProjectServiceClient, cfg config.Config) service.ProjectChecker {
+	return repository.NewProjectChecker(client, cfg.ProjectTimeout)
 }

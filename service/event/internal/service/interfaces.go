@@ -15,6 +15,11 @@ type EventRepository interface {
 	Delete(ctx context.Context, id string) error
 }
 
+// ProjectChecker xác minh project tồn tại, thuộc profile và chưa archive.
+type ProjectChecker interface {
+	CheckAssignable(ctx context.Context, profileID, projectID string) error
+}
+
 type EventService interface {
 	Create(ctx context.Context, e model.Event) (model.Event, error)
 	Get(ctx context.Context, id string) (model.Event, error)
