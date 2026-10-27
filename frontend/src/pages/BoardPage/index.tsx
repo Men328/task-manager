@@ -52,6 +52,7 @@ export function BoardPage() {
   useNoticeFocus<Task>(
     async (id) => board.taskById.get(id) ?? (await getTask(id).catch(() => null)),
     openTaskDetail,
+    (task) => task.projectId,
   );
 
   const loading = session.loading || board.loading;

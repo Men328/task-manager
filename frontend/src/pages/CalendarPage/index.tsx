@@ -109,6 +109,7 @@ export function CalendarPage() {
       setDefaultAllDay(false);
       setModalOpened(true);
     },
+    (schedule) => schedule.projectId,
   );
 
   const handleEventChange = async (arg: EventChangeArg) => {

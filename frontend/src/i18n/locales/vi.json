@@ -262,6 +262,11 @@
     "deleteConfirm": "Xoá sự kiện này?"
   },
   "backlogPage": {
+    "convert": "Chuyển thành…",
+    "convertTask": "Chuyển thành task",
+    "convertSchedule": "Chuyển thành lịch",
+    "convertEvent": "Chuyển thành sự kiện",
+    "markTriagedFailed": "Đã tạo mục nhưng không đánh dấu được backlog là đã xử lý",
     "breadcrumb": "Kế hoạch",
     "title": "Backlog",
     "subtitle": "Email không thuộc task/lịch/sự kiện được mail worker đẩy về đây",

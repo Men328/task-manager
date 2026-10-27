@@ -34,6 +34,10 @@ interface ScheduleFormModalProps {
   defaultAllDay?: boolean;
   onDelete?: (schedule: Schedule) => void;
   deleting?: boolean;
+  /** Điền sẵn tiêu đề/mô tả khi tạo mới (vd. từ backlog). */
+  prefill?: { title?: string; description?: string };
+  /** Gọi sau khi tạo mới thành công. */
+  onCreated?: () => void;
 }
 
 function pad(value: number): string {
@@ -75,6 +79,8 @@ export function ScheduleFormModal({
   defaultAllDay,
   onDelete,
   deleting,
+  prefill,
+  onCreated,
 }: ScheduleFormModalProps) {
   const { t } = useTranslation();
   const { create, update } = useCalendar();
@@ -108,15 +114,15 @@ export function ScheduleFormModal({
       setProjectId(schedule.projectId);
       return;
     }
-    setTitle('');
-    setDescription('');
+    setTitle(prefill?.title ?? '');
+    setDescription(prefill?.description ?? '');
     setLocation('');
     setAllDay(defaultAllDay ?? false);
     setStartAt(defaultStart ?? new Date().toISOString());
     setEndAt('');
     setColor(DEFAULT_COLOR);
     setProjectId(currentProjectId ?? '');
-  }, [opened, schedule, defaultStart, defaultAllDay, currentProjectId]);
+  }, [opened, schedule, defaultStart, defaultAllDay, currentProjectId, prefill]);
 
   const handleStartChange = (value: string) => {
     if (!value) {
@@ -196,6 +202,9 @@ export function ScheduleFormModal({
         color: 'teal',
       });
       onClose();
+      if (!schedule) {
+        onCreated?.();
+      }
       notifyProjectMove(projectId);
     } catch (cause) {
       notifications.show({

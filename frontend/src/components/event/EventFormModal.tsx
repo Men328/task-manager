@@ -32,6 +32,10 @@ interface EventFormModalProps {
   event: Event | null;
   onDelete?: (event: Event) => void;
   deleting?: boolean;
+  /** Điền sẵn tiêu đề/mô tả khi tạo mới (vd. từ backlog). */
+  prefill?: { title?: string; description?: string };
+  /** Gọi sau khi tạo mới thành công. */
+  onCreated?: () => void;
 }
 
 function pad(value: number): string {
@@ -57,7 +61,15 @@ function toInput(iso: string, allDay: boolean): string {
   return allDay ? localDate(date) : localDateTime(date);
 }
 
-export function EventFormModal({ opened, onClose, event, onDelete, deleting }: EventFormModalProps) {
+export function EventFormModal({
+  opened,
+  onClose,
+  event,
+  onDelete,
+  deleting,
+  prefill,
+  onCreated,
+}: EventFormModalProps) {
   const { t } = useTranslation();
   const { create, update } = useEvent();
   const { currentProjectId } = useProject();
@@ -92,8 +104,8 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
       setProjectId(event.projectId);
       return;
     }
-    setTitle('');
-    setDescription('');
+    setTitle(prefill?.title ?? '');
+    setDescription(prefill?.description ?? '');
     setLocation('');
     setAllDay(false);
     setStartAt(new Date().toISOString());
@@ -101,7 +113,7 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
     setColor(DEFAULT_COLOR);
     setStatus('EVENT_STATUS_PLANNED');
     setProjectId(currentProjectId ?? '');
-  }, [opened, event, currentProjectId]);
+  }, [opened, event, currentProjectId, prefill]);
 
   const handleStartChange = (value: string) => {
     if (!value) {
@@ -169,6 +181,9 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
         color: 'teal',
       });
       onClose();
+      if (!event) {
+        onCreated?.();
+      }
       notifyProjectMove(projectId);
     } catch (cause) {
       notifications.show({

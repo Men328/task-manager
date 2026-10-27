@@ -19,9 +19,13 @@ interface TaskFormModalProps {
   onClose: () => void;
   /** status được chọn sẵn (khi bấm "+ Add Task" ở 1 cột) */
   presetStatusId?: string | null;
+  /** Điền sẵn tiêu đề/mô tả khi tạo mới (vd. từ backlog). */
+  prefill?: { title?: string; description?: string };
+  /** Gọi sau khi tạo mới thành công. */
+  onCreated?: () => void;
 }
 
-export function TaskFormModal({ opened, onClose, presetStatusId }: TaskFormModalProps) {
+export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCreated }: TaskFormModalProps) {
   const { t } = useTranslation();
   const { statuses, tasks, addTask } = useBoard();
   const { currentProjectId } = useProject();
@@ -42,14 +46,14 @@ export function TaskFormModal({ opened, onClose, presetStatusId }: TaskFormModal
       return;
     }
     const fallback = statuses.find((status) => status.isDefault)?.id ?? statuses[0]?.id ?? null;
-    setTitle('');
-    setDescription('');
+    setTitle(prefill?.title ?? '');
+    setDescription(prefill?.description ?? '');
     setStatusId(presetStatusId ?? fallback);
     setPriority('TASK_PRIORITY_MEDIUM');
     setParentTaskId(null);
     setDueAt('');
     setProjectId(currentProjectId ?? '');
-  }, [opened, presetStatusId, statuses, currentProjectId]);
+  }, [opened, presetStatusId, statuses, currentProjectId, prefill]);
 
   const statusOptions = useMemo(
     () => statuses.map((status) => ({ value: status.id, label: status.name })),
@@ -91,6 +95,7 @@ export function TaskFormModal({ opened, onClose, presetStatusId }: TaskFormModal
       });
       notifications.show({ title: t('taskForm.created'), message: title.trim(), color: 'teal' });
       onClose();
+      onCreated?.();
       notifyProjectMove(effectiveProjectId);
     } catch (cause) {
       notifications.show({

@@ -83,6 +83,7 @@ export function EventPage() {
   useNoticeFocus<Event>(
     async (id) => eventState.events.find((item) => item.id === id) ?? (await getEvent(id).catch(() => null)),
     (item) => openEdit(item),
+    (item) => item.projectId,
   );
 
   const handleDelete = async (item: Event) => {
