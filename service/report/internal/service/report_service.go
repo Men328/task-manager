@@ -218,11 +218,11 @@ func (s *reportService) Activity(ctx context.Context, q model.Query) (model.Acti
 		return model.ActivityReport{}, err
 	}
 
-	events, err := s.activity.FetchEvents(ctx, q.ProfileID)
+	events, err := s.activity.FetchEvents(ctx, q.ProfileID, q.ProjectID)
 	if err != nil {
 		return model.ActivityReport{}, model.NewError(model.ErrorKindSourceFailed, "load events: %v", err)
 	}
-	schedules, err := s.activity.FetchSchedules(ctx, q.ProfileID)
+	schedules, err := s.activity.FetchSchedules(ctx, q.ProfileID, q.ProjectID)
 	if err != nil {
 		return model.ActivityReport{}, model.NewError(model.ErrorKindSourceFailed, "load schedules: %v", err)
 	}
@@ -341,7 +341,7 @@ func (s *reportService) load(ctx context.Context, q model.Query) (dataset, error
 	if err != nil {
 		return dataset{}, model.NewError(model.ErrorKindSourceFailed, "load statuses: %v", err)
 	}
-	tasks, err := s.source.FetchTasks(ctx, q.ProfileID, q.IncludeArchived)
+	tasks, err := s.source.FetchTasks(ctx, q.ProfileID, q.ProjectID, q.IncludeArchived)
 	if err != nil {
 		return dataset{}, model.NewError(model.ErrorKindSourceFailed, "load tasks: %v", err)
 	}

@@ -9,9 +9,10 @@ import (
 	"taskmanager/service/report/internal/model"
 )
 
-func QueryFromParts(profileID string, from, to *timestamppb.Timestamp, includeArchived bool) model.Query {
+func QueryFromParts(profileID, projectID string, from, to *timestamppb.Timestamp, includeArchived bool) model.Query {
 	return model.Query{
 		ProfileID:       profileID,
+		ProjectID:       projectID,
 		From:            timeFromProto(from),
 		To:              timeFromProto(to),
 		IncludeArchived: includeArchived,

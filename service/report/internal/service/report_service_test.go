@@ -10,9 +10,10 @@ import (
 )
 
 type fakeDataSource struct {
-	statuses []model.Status
-	tasks    []model.Task
-	err      error
+	statuses  []model.Status
+	tasks     []model.Task
+	err       error
+	projectID string
 }
 
 func (f *fakeDataSource) FetchStatuses(_ context.Context, _ string) ([]model.Status, error) {
@@ -22,7 +23,8 @@ func (f *fakeDataSource) FetchStatuses(_ context.Context, _ string) ([]model.Sta
 	return f.statuses, nil
 }
 
-func (f *fakeDataSource) FetchTasks(_ context.Context, _ string, _ bool) ([]model.Task, error) {
+func (f *fakeDataSource) FetchTasks(_ context.Context, _ string, projectID string, _ bool) ([]model.Task, error) {
+	f.projectID = projectID
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -34,16 +36,22 @@ type fakeActivitySource struct {
 	schedules []model.Schedule
 	backlogs  []model.BacklogItem
 	err       error
+
+	eventsProject    string
+	schedulesProject string
+	backlogCalls     int
 }
 
-func (f *fakeActivitySource) FetchEvents(_ context.Context, _ string) ([]model.Event, error) {
+func (f *fakeActivitySource) FetchEvents(_ context.Context, _ string, projectID string) ([]model.Event, error) {
+	f.eventsProject = projectID
 	if f.err != nil {
 		return nil, f.err
 	}
 	return f.events, nil
 }
 
-func (f *fakeActivitySource) FetchSchedules(_ context.Context, _ string) ([]model.Schedule, error) {
+func (f *fakeActivitySource) FetchSchedules(_ context.Context, _ string, projectID string) ([]model.Schedule, error) {
+	f.schedulesProject = projectID
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -51,6 +59,7 @@ func (f *fakeActivitySource) FetchSchedules(_ context.Context, _ string) ([]mode
 }
 
 func (f *fakeActivitySource) FetchBacklogs(_ context.Context, _ string) ([]model.BacklogItem, error) {
+	f.backlogCalls++
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -322,5 +331,48 @@ func assertKind(t *testing.T, err error, kind model.ErrorKind) {
 	}
 	if domainErr.Kind != kind {
 		t.Fatalf("kind = %s, muốn %s", domainErr.Kind, kind)
+	}
+}
+
+func TestTaskReportsPassProjectToSource(t *testing.T) {
+	source, clock := fixture()
+	svc := NewReportService(source, &fakeActivitySource{}, clock)
+	q := model.Query{ProfileID: "p", ProjectID: "proj-1"}
+
+	if _, err := svc.Overview(context.Background(), q); err != nil {
+		t.Fatal(err)
+	}
+	if source.projectID != "proj-1" {
+		t.Fatalf("overview project = %q", source.projectID)
+	}
+	source.projectID = ""
+	if _, err := svc.StatusBreakdown(context.Background(), q); err != nil {
+		t.Fatal(err)
+	}
+	if source.projectID != "proj-1" {
+		t.Fatalf("breakdown project = %q", source.projectID)
+	}
+	source.projectID = ""
+	if _, err := svc.TimeSeries(context.Background(), q, model.IntervalDay); err != nil {
+		t.Fatal(err)
+	}
+	if source.projectID != "proj-1" {
+		t.Fatalf("timeseries project = %q", source.projectID)
+	}
+}
+
+func TestActivityScopesEventsAndSchedulesButNotBacklogs(t *testing.T) {
+	source, clock := fixture()
+	activity := &fakeActivitySource{}
+	svc := NewReportService(source, activity, clock)
+
+	if _, err := svc.Activity(context.Background(), model.Query{ProfileID: "p", ProjectID: "proj-1"}); err != nil {
+		t.Fatal(err)
+	}
+	if activity.eventsProject != "proj-1" || activity.schedulesProject != "proj-1" {
+		t.Fatalf("events=%q schedules=%q", activity.eventsProject, activity.schedulesProject)
+	}
+	if activity.backlogCalls != 1 {
+		t.Fatalf("backlog calls = %d", activity.backlogCalls)
 	}
 }

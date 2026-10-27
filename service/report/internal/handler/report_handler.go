@@ -22,7 +22,7 @@ func (h *ReportHandler) GetReportOverview(ctx context.Context, req *reportv1.Get
 		return nil, err
 	}
 
-	query := dependency.QueryFromParts(req.GetProfileId(), req.GetFrom(), req.GetTo(), req.GetIncludeArchived())
+	query := dependency.QueryFromParts(req.GetProfileId(), req.GetProjectId(), req.GetFrom(), req.GetTo(), req.GetIncludeArchived())
 	overview, err := h.reports.Overview(ctx, query)
 	if err != nil {
 		return nil, dependency.ToGRPCError(err)
@@ -35,7 +35,7 @@ func (h *ReportHandler) GetStatusBreakdown(ctx context.Context, req *reportv1.Ge
 		return nil, err
 	}
 
-	query := dependency.QueryFromParts(req.GetProfileId(), req.GetFrom(), req.GetTo(), req.GetIncludeArchived())
+	query := dependency.QueryFromParts(req.GetProfileId(), req.GetProjectId(), req.GetFrom(), req.GetTo(), req.GetIncludeArchived())
 	breakdown, err := h.reports.StatusBreakdown(ctx, query)
 	if err != nil {
 		return nil, dependency.ToGRPCError(err)
@@ -48,7 +48,7 @@ func (h *ReportHandler) GetTaskTimeSeries(ctx context.Context, req *reportv1.Get
 		return nil, err
 	}
 
-	query := dependency.QueryFromParts(req.GetProfileId(), req.GetFrom(), req.GetTo(), req.GetIncludeArchived())
+	query := dependency.QueryFromParts(req.GetProfileId(), req.GetProjectId(), req.GetFrom(), req.GetTo(), req.GetIncludeArchived())
 	series, err := h.reports.TimeSeries(ctx, query, dependency.IntervalFromProto(req.GetInterval()))
 	if err != nil {
 		return nil, dependency.ToGRPCError(err)
@@ -61,7 +61,7 @@ func (h *ReportHandler) GetActivityReport(ctx context.Context, req *reportv1.Get
 		return nil, err
 	}
 
-	query := dependency.QueryFromParts(req.GetProfileId(), req.GetFrom(), req.GetTo(), false)
+	query := dependency.QueryFromParts(req.GetProfileId(), req.GetProjectId(), req.GetFrom(), req.GetTo(), false)
 	report, err := h.reports.Activity(ctx, query)
 	if err != nil {
 		return nil, dependency.ToGRPCError(err)

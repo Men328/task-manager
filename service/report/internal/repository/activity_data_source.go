@@ -30,11 +30,11 @@ func NewActivityDataSource(
 	return &ActivityDataSource{events: events, schedules: schedules, backlogs: backlogs, timeout: timeout}
 }
 
-func (s *ActivityDataSource) FetchEvents(ctx context.Context, profileID string) ([]model.Event, error) {
+func (s *ActivityDataSource) FetchEvents(ctx context.Context, profileID, projectID string) ([]model.Event, error) {
 	callCtx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	response, err := s.events.ListEvents(callCtx, &eventv1.ListEventsRequest{ProfileId: profileID})
+	response, err := s.events.ListEvents(callCtx, &eventv1.ListEventsRequest{ProfileId: profileID, ProjectId: projectID})
 	if err != nil {
 		return nil, fmt.Errorf("list events cho profile %s: %w", profileID, err)
 	}
@@ -52,11 +52,11 @@ func (s *ActivityDataSource) FetchEvents(ctx context.Context, profileID string) 
 	return out, nil
 }
 
-func (s *ActivityDataSource) FetchSchedules(ctx context.Context, profileID string) ([]model.Schedule, error) {
+func (s *ActivityDataSource) FetchSchedules(ctx context.Context, profileID, projectID string) ([]model.Schedule, error) {
 	callCtx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	response, err := s.schedules.ListSchedules(callCtx, &calendarv1.ListSchedulesRequest{ProfileId: profileID})
+	response, err := s.schedules.ListSchedules(callCtx, &calendarv1.ListSchedulesRequest{ProfileId: profileID, ProjectId: projectID})
 	if err != nil {
 		return nil, fmt.Errorf("list schedules cho profile %s: %w", profileID, err)
 	}
@@ -77,6 +77,7 @@ func (s *ActivityDataSource) FetchBacklogs(ctx context.Context, profileID string
 	callCtx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	// Backlog khong thuoc project nao: so lieu backlog luon tinh theo ca profile.
 	response, err := s.backlogs.ListBacklogs(callCtx, &backlogv1.ListBacklogsRequest{ProfileId: profileID})
 	if err != nil {
 		return nil, fmt.Errorf("list backlogs cho profile %s: %w", profileID, err)

@@ -67,7 +67,9 @@ const (
 )
 
 type Query struct {
-	ProfileID       string
+	ProfileID string
+	// ProjectID rong nghia la khong loc theo project.
+	ProjectID       string
 	From            *time.Time
 	To              *time.Time
 	IncludeArchived bool
