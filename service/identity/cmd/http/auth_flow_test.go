@@ -108,7 +108,7 @@ func newTestAuthEnv(t *testing.T, fake *fakeGoogle) (*authRoutes, *repository.In
 	profiles := repository.NewInMemoryProfileRepository()
 	providers := repository.NewInMemoryAuthProviderRepository()
 	authService := service.NewAuthService(profiles, providers, nil, nil)
-	profileService := service.NewProfileService(profiles, nil)
+	profileService := service.NewProfileService(profiles, nil, nil)
 	profileHandler := handler.NewProfileHandler(profileService, authService)
 
 	grpcServer := grpc.NewServer()

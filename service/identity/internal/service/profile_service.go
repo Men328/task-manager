@@ -12,10 +12,11 @@ const defaultListLimit = 50
 type profileService struct {
 	profiles ProfileRepository
 	seeder   DefaultLifecycleSeeder
+	projects DefaultProjectSeeder
 }
 
-func NewProfileService(profiles ProfileRepository, seeder DefaultLifecycleSeeder) ProfileService {
-	return &profileService{profiles: profiles, seeder: seeder}
+func NewProfileService(profiles ProfileRepository, seeder DefaultLifecycleSeeder, projects DefaultProjectSeeder) ProfileService {
+	return &profileService{profiles: profiles, seeder: seeder, projects: projects}
 }
 
 func (s *profileService) Create(ctx context.Context, p model.Profile) (model.Profile, error) {
@@ -25,6 +26,7 @@ func (s *profileService) Create(ctx context.Context, p model.Profile) (model.Pro
 		return model.Profile{}, err
 	}
 	seedDefaultLifecycle(ctx, s.seeder, created.ID)
+	seedDefaultProject(ctx, s.projects, created.ID)
 	return created, nil
 }
 
