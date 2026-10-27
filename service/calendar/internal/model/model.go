@@ -5,6 +5,7 @@ import "time"
 type Schedule struct {
 	ID          string
 	ProfileID   string
+	ProjectID   string
 	Title       string
 	Description string
 	Location    string
@@ -18,11 +19,13 @@ type Schedule struct {
 
 type ScheduleFilter struct {
 	ProfileID string
+	ProjectID string
 	From      *time.Time
 	To        *time.Time
 }
 
 type ScheduleUpdate struct {
+	ProjectID   *string
 	Title       *string
 	Description *string
 	Location    *string

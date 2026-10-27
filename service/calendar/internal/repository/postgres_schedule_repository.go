@@ -13,7 +13,7 @@ import (
 	"taskmanager/service/calendar/internal/model"
 )
 
-const scheduleColumns = `id::text, profile_id::text, title, COALESCE(description, ''), COALESCE(location, ''), start_at, end_at, all_day, COALESCE(color, ''), created_at, updated_at`
+const scheduleColumns = `id::text, profile_id::text, project_id::text, title, COALESCE(description, ''), COALESCE(location, ''), start_at, end_at, all_day, COALESCE(color, ''), created_at, updated_at`
 
 type PostgresScheduleRepository struct {
 	pool *pgxpool.Pool
@@ -50,6 +50,7 @@ func scanSchedule(row pgx.Row) (model.Schedule, error) {
 	if err := row.Scan(
 		&s.ID,
 		&s.ProfileID,
+		&s.ProjectID,
 		&s.Title,
 		&s.Description,
 		&s.Location,
@@ -82,14 +83,14 @@ func optionalTime(t *time.Time) any {
 func (r *PostgresScheduleRepository) Create(ctx context.Context, s model.Schedule) (model.Schedule, error) {
 	const query = `
 		INSERT INTO calendar.schedules
-			(id, profile_id, title, description, location, start_at, end_at, all_day, color)
+			(id, profile_id, project_id, title, description, location, start_at, end_at, all_day, color)
 		VALUES
-			(COALESCE(NULLIF($1, '')::uuid, gen_random_uuid()), $2::uuid, $3,
-			 NULLIF($4, ''), NULLIF($5, ''), $6, $7, $8, NULLIF($9, ''))
+			(COALESCE(NULLIF($1, '')::uuid, gen_random_uuid()), $2::uuid, $3::uuid, $4,
+			 NULLIF($5, ''), NULLIF($6, ''), $7, $8, $9, NULLIF($10, ''))
 		RETURNING ` + scheduleColumns
 
 	return scanSchedule(r.pool.QueryRow(ctx, query,
-		s.ID, s.ProfileID, s.Title, s.Description, s.Location,
+		s.ID, s.ProfileID, s.ProjectID, s.Title, s.Description, s.Location,
 		s.StartAt, s.EndAt, s.AllDay, s.Color))
 }
 
@@ -103,12 +104,14 @@ func (r *PostgresScheduleRepository) List(ctx context.Context, f model.ScheduleF
 		SELECT ` + scheduleColumns + `
 		FROM calendar.schedules
 		WHERE ($1::uuid IS NULL OR profile_id = $1::uuid)
-		  AND ($2::timestamptz IS NULL OR COALESCE(end_at, start_at) >= $2::timestamptz)
-		  AND ($3::timestamptz IS NULL OR start_at < $3::timestamptz)
+		  AND ($2::uuid IS NULL OR project_id = $2::uuid)
+		  AND ($3::timestamptz IS NULL OR COALESCE(end_at, start_at) >= $3::timestamptz)
+		  AND ($4::timestamptz IS NULL OR start_at < $4::timestamptz)
 		ORDER BY start_at, created_at`
 
 	rows, err := r.pool.Query(ctx, query,
 		optionalUUID(f.ProfileID),
+		optionalUUID(f.ProjectID),
 		optionalTime(f.From),
 		optionalTime(f.To),
 	)
@@ -137,7 +140,8 @@ func (r *PostgresScheduleRepository) Update(ctx context.Context, id string, upd 
 		    start_at    = COALESCE($5::timestamptz, start_at),
 		    end_at      = COALESCE($6::timestamptz, end_at),
 		    all_day     = COALESCE($7, all_day),
-		    color       = COALESCE(NULLIF($8, ''), color)
+		    color       = COALESCE(NULLIF($8, ''), color),
+		    project_id  = COALESCE($9::uuid, project_id)
 		WHERE id = $1::uuid
 		RETURNING ` + scheduleColumns
 
@@ -150,6 +154,7 @@ func (r *PostgresScheduleRepository) Update(ctx context.Context, id string, upd 
 		optionalTime(upd.EndAt),
 		upd.AllDay,
 		upd.Color,
+		upd.ProjectID,
 	))
 }
 

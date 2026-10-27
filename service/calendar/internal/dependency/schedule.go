@@ -34,6 +34,7 @@ func ValidateScheduleID(id string) error {
 func ScheduleFromCreateRequest(req *calendarv1.CreateScheduleRequest) model.Schedule {
 	return model.Schedule{
 		ProfileID:   req.GetProfileId(),
+		ProjectID:   req.GetProjectId(),
 		Title:       req.GetTitle(),
 		Description: req.GetDescription(),
 		Location:    req.GetLocation(),
@@ -47,6 +48,7 @@ func ScheduleFromCreateRequest(req *calendarv1.CreateScheduleRequest) model.Sche
 func ScheduleFilterFromRequest(req *calendarv1.ListSchedulesRequest) model.ScheduleFilter {
 	return model.ScheduleFilter{
 		ProfileID: req.GetProfileId(),
+		ProjectID: req.GetProjectId(),
 		From:      timePtr(req.GetFrom()),
 		To:        timePtr(req.GetTo()),
 	}
@@ -54,6 +56,7 @@ func ScheduleFilterFromRequest(req *calendarv1.ListSchedulesRequest) model.Sched
 
 func ScheduleUpdateFromRequest(req *calendarv1.UpdateScheduleRequest) model.ScheduleUpdate {
 	return model.ScheduleUpdate{
+		ProjectID:   req.ProjectId,
 		Title:       req.Title,
 		Description: req.Description,
 		Location:    req.Location,
@@ -68,6 +71,7 @@ func ScheduleToProto(s model.Schedule) *calendarv1.Schedule {
 	return &calendarv1.Schedule{
 		Id:          s.ID,
 		ProfileId:   s.ProfileID,
+		ProjectId:   s.ProjectID,
 		Title:       s.Title,
 		Description: s.Description,
 		Location:    s.Location,

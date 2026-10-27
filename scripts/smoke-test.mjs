@@ -87,9 +87,10 @@ checkCode('POST profile thiếu email -> 400 + IDENTITY_EMAIL_REQUIRED',
   await req('POST', `${IDENTITY}/v1/profiles`, { display_name: 'x' }), 400, 'IDENTITY_EMAIL_REQUIRED');
 
 // ---------------------------------------------------------------- project
-check('GET /v1/projects?profile_id=... (auto-seed project mặc định "Chung")',
+const projectList = check('GET /v1/projects?profile_id=... (auto-seed project mặc định "Chung")',
   await req('GET', `${PROJECT}/v1/projects?profile_id=${profileId}`), 200,
   (r) => (r.data.projects ?? []).some((p) => p.name === 'Chung' && p.isDefault === true));
+const defaultProjectId = projectList.projects.find((p) => p.isDefault).id;
 
 // ---------------------------------------------------------------- status
 const seeded = check(
@@ -190,6 +191,7 @@ const schedule = check(
   'POST /v1/schedules',
   await req('POST', `${CALENDAR}/v1/schedules`, {
     profile_id: profileId,
+    project_id: defaultProjectId,
     title: 'Họp nhóm',
     description: 'Standup',
     location: 'Zoom',
@@ -216,11 +218,12 @@ check('PATCH /v1/schedules/{id}',
   await req('PATCH', `${CALENDAR}/v1/schedules/${scheduleId}`, { title: 'Họp nhóm (đã sửa)', all_day: true }), 200,
   (r) => r.data.schedule?.title === 'Họp nhóm (đã sửa)' && r.data.schedule?.allDay === true);
 checkCode('POST /v1/schedules thiếu title -> 400 + CALENDAR_TITLE_REQUIRED',
-  await req('POST', `${CALENDAR}/v1/schedules`, { profile_id: profileId, start_at: '2026-10-05T01:00:00Z' }),
+  await req('POST', `${CALENDAR}/v1/schedules`, { profile_id: profileId, project_id: defaultProjectId, start_at: '2026-10-05T01:00:00Z' }),
   400, 'CALENDAR_TITLE_REQUIRED');
 checkCode('POST /v1/schedules end < start -> 400 + CALENDAR_TIME_RANGE_INVALID',
   await req('POST', `${CALENDAR}/v1/schedules`, {
     profile_id: profileId,
+    project_id: defaultProjectId,
     title: 'Sai giờ',
     start_at: '2026-10-05T02:00:00Z',
     end_at: '2026-10-05T01:00:00Z',
@@ -370,7 +373,7 @@ check('POST /v1/events (activity fixture)',
   200);
 check('POST /v1/schedules (activity fixture)',
   await req('POST', `${CALENDAR}/v1/schedules`, {
-    profile_id: profileId, title: 'Lịch thống kê', start_at: '2026-11-21T07:00:00Z',
+    profile_id: profileId, project_id: defaultProjectId, title: 'Lịch thống kê', start_at: '2026-11-21T07:00:00Z',
   }),
   200);
 check('POST /v1/backlogs (activity fixture)',

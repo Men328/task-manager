@@ -15,6 +15,11 @@ type ScheduleRepository interface {
 	Delete(ctx context.Context, id string) error
 }
 
+// ProjectChecker xác minh project tồn tại, thuộc profile và chưa archive.
+type ProjectChecker interface {
+	CheckAssignable(ctx context.Context, profileID, projectID string) error
+}
+
 type ScheduleService interface {
 	Create(ctx context.Context, s model.Schedule) (model.Schedule, error)
 	Get(ctx context.Context, id string) (model.Schedule, error)

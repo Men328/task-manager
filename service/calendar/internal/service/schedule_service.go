@@ -8,14 +8,21 @@ import (
 
 type scheduleService struct {
 	schedules ScheduleRepository
+	projects  ProjectChecker
 }
 
-func NewScheduleService(schedules ScheduleRepository) ScheduleService {
-	return &scheduleService{schedules: schedules}
+func NewScheduleService(schedules ScheduleRepository, projects ProjectChecker) ScheduleService {
+	return &scheduleService{schedules: schedules, projects: projects}
 }
 
 func (s *scheduleService) Create(ctx context.Context, sc model.Schedule) (model.Schedule, error) {
 	if err := validateRange(sc.StartAt, sc.EndAt); err != nil {
+		return model.Schedule{}, err
+	}
+	if sc.ProjectID == "" {
+		return model.Schedule{}, model.NewError(model.ErrorKindProjectRequired, "project_id is required")
+	}
+	if err := s.projects.CheckAssignable(ctx, sc.ProfileID, sc.ProjectID); err != nil {
 		return model.Schedule{}, err
 	}
 	return s.schedules.Create(ctx, sc)
@@ -45,6 +52,12 @@ func (s *scheduleService) Update(ctx context.Context, id string, upd model.Sched
 	}
 	if err := validateRange(start, end); err != nil {
 		return model.Schedule{}, err
+	}
+
+	if upd.ProjectID != nil {
+		if err := s.projects.CheckAssignable(ctx, current.ProfileID, *upd.ProjectID); err != nil {
+			return model.Schedule{}, err
+		}
 	}
 
 	return s.schedules.Update(ctx, id, upd)
