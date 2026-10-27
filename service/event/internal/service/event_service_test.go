@@ -289,3 +289,18 @@ func TestListFiltersByProject(t *testing.T) {
 		t.Fatalf("expected only event a, got %+v", got)
 	}
 }
+
+func TestCreateRejectsBlankProject(t *testing.T) {
+	repo := newFakeEventRepository()
+	svc := NewEventService(repo, newFakeProjectChecker())
+
+	_, err := svc.Create(context.Background(), model.Event{
+		ProfileID: "p1", ProjectID: "  ", Title: "x", StartAt: mustEventTime(t, "2026-11-12T07:00:00Z"),
+	})
+	if err == nil || kindOf(t, err) != model.ErrorKindProjectRequired {
+		t.Fatalf("expected project_required, got %v", err)
+	}
+	if len(repo.items) != 0 {
+		t.Fatal("repo must stay empty")
+	}
+}

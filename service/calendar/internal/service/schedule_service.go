@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"taskmanager/service/calendar/internal/model"
 )
@@ -19,7 +20,7 @@ func (s *scheduleService) Create(ctx context.Context, sc model.Schedule) (model.
 	if err := validateRange(sc.StartAt, sc.EndAt); err != nil {
 		return model.Schedule{}, err
 	}
-	if sc.ProjectID == "" {
+	if strings.TrimSpace(sc.ProjectID) == "" {
 		return model.Schedule{}, model.NewError(model.ErrorKindProjectRequired, "project_id is required")
 	}
 	if err := s.projects.CheckAssignable(ctx, sc.ProfileID, sc.ProjectID); err != nil {
@@ -55,6 +56,9 @@ func (s *scheduleService) Update(ctx context.Context, id string, upd model.Sched
 	}
 
 	if upd.ProjectID != nil {
+		if strings.TrimSpace(*upd.ProjectID) == "" {
+			return model.Schedule{}, model.NewError(model.ErrorKindProjectRequired, "project_id must not be empty")
+		}
 		if err := s.projects.CheckAssignable(ctx, current.ProfileID, *upd.ProjectID); err != nil {
 			return model.Schedule{}, err
 		}

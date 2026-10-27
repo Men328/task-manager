@@ -25,7 +25,7 @@ func (s *eventService) Create(ctx context.Context, e model.Event) (model.Event, 
 		return model.Event{}, err
 	}
 	e.Status = status
-	if e.ProjectID == "" {
+	if strings.TrimSpace(e.ProjectID) == "" {
 		return model.Event{}, model.NewError(model.ErrorKindProjectRequired, "project_id is required")
 	}
 	if err := s.projects.CheckAssignable(ctx, e.ProfileID, e.ProjectID); err != nil {

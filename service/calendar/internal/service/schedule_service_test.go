@@ -282,3 +282,35 @@ func TestListFiltersByProject(t *testing.T) {
 		t.Fatalf("expected only schedule a, got %+v", got)
 	}
 }
+
+func TestCreateRejectsBlankProject(t *testing.T) {
+	repo := newFakeScheduleRepository()
+	svc := NewScheduleService(repo, newFakeProjectChecker())
+
+	_, err := svc.Create(context.Background(), model.Schedule{
+		ProfileID: "p1", ProjectID: "   ", Title: "x", StartAt: mustTime(t, "2026-10-05T01:00:00Z"),
+	})
+	if err == nil || kindOf(t, err) != model.ErrorKindProjectRequired {
+		t.Fatalf("expected project_required, got %v", err)
+	}
+	if len(repo.items) != 0 {
+		t.Fatal("repo must stay empty")
+	}
+}
+
+func TestUpdateRejectsEmptyProject(t *testing.T) {
+	start := mustTime(t, "2026-10-05T01:00:00Z")
+	repo := newFakeScheduleRepository(model.Schedule{ID: "s1", ProfileID: "p1", ProjectID: "p1proj", Title: "x", StartAt: start})
+	svc := NewScheduleService(repo, newFakeProjectChecker())
+
+	for _, value := range []string{"", "  "} {
+		empty := value
+		_, err := svc.Update(context.Background(), "s1", model.ScheduleUpdate{ProjectID: &empty})
+		if err == nil || kindOf(t, err) != model.ErrorKindProjectRequired {
+			t.Fatalf("project_id %q: expected project_required, got %v", value, err)
+		}
+	}
+	if repo.items["s1"].ProjectID != "p1proj" {
+		t.Fatalf("project must be unchanged, got %s", repo.items["s1"].ProjectID)
+	}
+}
