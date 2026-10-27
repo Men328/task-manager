@@ -208,6 +208,8 @@ func (p *stubProjects) ListDetectable(_ context.Context, _ string) ([]model.Proj
 	return p.items, p.err
 }
 
+// defaultProjects: các từ "dự án nhóm họp hội thảo sự kiện" được chọn để email mẫu
+// của test rule (họp nhóm dự án / hội thảo sự kiện) trùng ít nhất 3 token, vượt ngưỡng 0.6.
 func defaultProjects() *stubProjects {
 	return &stubProjects{items: []model.ProjectCandidate{{
 		ID:          "pr1",
