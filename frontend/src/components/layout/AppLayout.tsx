@@ -1,9 +1,10 @@
 import { AppShell } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { useTranslation } from 'react-i18next';
 import { Outlet } from 'react-router-dom';
 
 import { useProjectGate } from '../../context/project/useProjectGate';
-import { ApiErrorAlert, LoadingBlock } from '../common/States';
+import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../common/States';
 
 import classes from './AppLayout.module.css';
 import { Sidebar } from './Sidebar';
@@ -11,6 +12,7 @@ import { TopBar } from './TopBar';
 
 export function AppLayout() {
   const [navOpened, { toggle, close }] = useDisclosure(false);
+  const { t } = useTranslation();
   const gate = useProjectGate();
 
   return (
@@ -35,6 +37,9 @@ export function AppLayout() {
       <AppShell.Main>
         {gate.status === 'ready' ? <Outlet /> : null}
         {gate.status === 'loading' ? <LoadingBlock /> : null}
+        {gate.status === 'empty' ? (
+          <CenteredPanel title={t('project.emptyTitle')} description={t('project.emptyActive')} />
+        ) : null}
         {gate.status === 'error' ? (
           <div style={{ padding: 24 }}>
             <ApiErrorAlert message={gate.message} onRetry={gate.retry} />

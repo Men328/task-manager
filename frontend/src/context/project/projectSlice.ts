@@ -10,6 +10,7 @@ import {
   updateProject,
 } from '../../api/project';
 import i18n from '../../i18n';
+import { signOut } from '../session/sessionSlice';
 import type { CreateProjectInput, Project, UpdateProjectInput } from '../../types';
 import type { RootState } from '../store';
 
@@ -79,6 +80,8 @@ export const setProjectArchived = createAsyncThunk<
 export interface ProjectState {
   items: Project[];
   currentId: string | null;
+  /** Profile mà `items` đã được tải cho; khác profile hiện tại = chưa tải. */
+  loadedProfileId: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -86,6 +89,7 @@ export interface ProjectState {
 const initialState: ProjectState = {
   items: [],
   currentId: readStoredId(),
+  loadedProfileId: null,
   loading: false,
   error: null,
 };
@@ -101,13 +105,26 @@ const projectSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchProjects.pending, (state) => {
+      .addCase(signOut, (state) => {
+        state.items = [];
+        state.currentId = null;
+        state.loadedProfileId = null;
+        state.loading = false;
+        state.error = null;
+        writeStoredId(null);
+      })
+      .addCase(fetchProjects.pending, (state, action) => {
+        if (state.loadedProfileId !== action.meta.arg) {
+          state.items = [];
+          state.loadedProfileId = null;
+        }
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchProjects.fulfilled, (state, action) => {
         state.loading = false;
         state.items = action.payload;
+        state.loadedProfileId = action.meta.arg;
         const active = action.payload.filter((item) => !item.isArchived);
         if (!active.some((item) => item.id === state.currentId)) {
           const fallback = active.find((item) => item.isDefault) ?? active[0] ?? null;
@@ -128,6 +145,7 @@ export const projectReducer = projectSlice.reducer;
 export const selectProjects = (state: RootState) => state.project.items;
 export const selectProjectLoading = (state: RootState) => state.project.loading;
 export const selectProjectError = (state: RootState) => state.project.error;
+export const selectLoadedProfileId = (state: RootState) => state.project.loadedProfileId;
 export const selectCurrentProjectId = (state: RootState) => state.project.currentId;
 export const selectCurrentProject = (state: RootState): Project | null =>
   state.project.items.find((item) => item.id === state.project.currentId) ?? null;
