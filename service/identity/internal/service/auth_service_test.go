@@ -160,7 +160,7 @@ func newTestAuthServiceWithSeeder() (AuthService, *stubProfiles, *stubAuthProvid
 	profiles := newStubProfiles()
 	providers := newStubAuthProviders()
 	seeder := &stubSeeder{}
-	return NewAuthService(profiles, providers, seeder), profiles, providers, seeder
+	return NewAuthService(profiles, providers, seeder, nil), profiles, providers, seeder
 }
 
 func googleLogin(sub string, email string) model.ProviderLogin {
@@ -329,5 +329,45 @@ func TestLoginWithProviderIgnoresSeedFailure(t *testing.T) {
 
 	if _, created, err := svc.LoginWithProvider(context.Background(), googleLogin("sub-1", "user@example.com")); err != nil || !created {
 		t.Fatalf("seed lỗi không được làm hỏng login: created=%v err=%v", created, err)
+	}
+}
+
+type stubProjectSeeder struct {
+	profiles []string
+	err      error
+}
+
+func (s *stubProjectSeeder) SeedDefaultProject(_ context.Context, profileID string) error {
+	s.profiles = append(s.profiles, profileID)
+	return s.err
+}
+
+func TestLoginWithProviderSeedsDefaultProjectForNewProfile(t *testing.T) {
+	projectSeeder := &stubProjectSeeder{}
+	svc := NewAuthService(newStubProfiles(), newStubAuthProviders(), &stubSeeder{}, projectSeeder)
+	ctx := context.Background()
+
+	profile, created, err := svc.LoginWithProvider(ctx, googleLogin("sub-1", "user@example.com"))
+	if err != nil || !created {
+		t.Fatalf("login lần đầu: created=%v err=%v", created, err)
+	}
+	if len(projectSeeder.profiles) != 1 || projectSeeder.profiles[0] != profile.ID {
+		t.Fatalf("phải seed project cho profile mới, nhận %v", projectSeeder.profiles)
+	}
+
+	if _, _, err := svc.LoginWithProvider(ctx, googleLogin("sub-1", "user@example.com")); err != nil {
+		t.Fatalf("login lần hai: %v", err)
+	}
+	if len(projectSeeder.profiles) != 1 {
+		t.Fatalf("login lại không được seed thêm, nhận %v", projectSeeder.profiles)
+	}
+}
+
+func TestLoginWithProviderIgnoresProjectSeedFailure(t *testing.T) {
+	projectSeeder := &stubProjectSeeder{err: errors.New("project service offline")}
+	svc := NewAuthService(newStubProfiles(), newStubAuthProviders(), &stubSeeder{}, projectSeeder)
+
+	if _, created, err := svc.LoginWithProvider(context.Background(), googleLogin("sub-1", "user@example.com")); err != nil || !created {
+		t.Fatalf("seed project lỗi không được làm hỏng login: created=%v err=%v", created, err)
 	}
 }

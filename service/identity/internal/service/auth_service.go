@@ -12,10 +12,11 @@ type authService struct {
 	profiles      ProfileRepository
 	authProviders AuthProviderRepository
 	seeder        DefaultLifecycleSeeder
+	projectSeeder DefaultProjectSeeder
 }
 
-func NewAuthService(profiles ProfileRepository, authProviders AuthProviderRepository, seeder DefaultLifecycleSeeder) AuthService {
-	return &authService{profiles: profiles, authProviders: authProviders, seeder: seeder}
+func NewAuthService(profiles ProfileRepository, authProviders AuthProviderRepository, seeder DefaultLifecycleSeeder, projectSeeder DefaultProjectSeeder) AuthService {
+	return &authService{profiles: profiles, authProviders: authProviders, seeder: seeder, projectSeeder: projectSeeder}
 }
 
 func (s *authService) LoginWithProvider(ctx context.Context, in model.ProviderLogin) (model.Profile, bool, error) {
@@ -69,6 +70,7 @@ func (s *authService) LoginWithProvider(ctx context.Context, in model.ProviderLo
 	}
 
 	seedDefaultLifecycle(ctx, s.seeder, created.ID)
+	seedDefaultProject(ctx, s.projectSeeder, created.ID)
 
 	profile, err := s.profiles.TouchLastLogin(ctx, created.ID)
 	if err != nil {
