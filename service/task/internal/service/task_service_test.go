@@ -290,3 +290,44 @@ func TestUpdateTaskRejectsArchivedProject(t *testing.T) {
 		t.Fatalf("title must not change")
 	}
 }
+
+func TestReparentIntoArchivedProjectRejected(t *testing.T) {
+	repo := newFakeTaskRepo()
+	repo.put(model.Task{ID: "x", ProfileID: "u1", ProjectID: "p1", Title: "orig"})
+	repo.put(model.Task{ID: "x-child", ProfileID: "u1", ProjectID: "p1", ParentTaskID: "x"})
+	repo.put(model.Task{ID: "other", ProfileID: "u1", ProjectID: "p2"})
+	checker := &fakeProjectChecker{err: model.NewError(model.ErrorKindProjectArchived, "archived")}
+	svc := newTestTaskService(repo, checker)
+
+	_, err := svc.Update(context.Background(), "x", model.TaskUpdate{
+		ParentTaskID: strPtr("other"),
+		Title:        strPtr("renamed"),
+	})
+	wantKind(t, err, model.ErrorKindProjectArchived)
+	if len(checker.calls) != 1 || checker.calls[0] != "p2" {
+		t.Fatalf("want CheckAssignable(p2) once, got %v", checker.calls)
+	}
+	x := repo.items["x"]
+	if x.ParentTaskID != "" || x.ProjectID != "p1" || x.Title != "orig" {
+		t.Fatalf("x must be unchanged, got %+v", x)
+	}
+	if got := repo.items["x-child"].ProjectID; got != "p1" {
+		t.Fatalf("x-child: want p1, got %q", got)
+	}
+}
+
+func TestCreateSubtaskUnderArchivedProjectRejected(t *testing.T) {
+	repo := newFakeTaskRepo()
+	repo.put(model.Task{ID: "parent", ProfileID: "u1", ProjectID: "p1"})
+	checker := &fakeProjectChecker{err: model.NewError(model.ErrorKindProjectArchived, "archived")}
+	svc := newTestTaskService(repo, checker)
+
+	_, err := svc.Create(context.Background(), model.Task{ProfileID: "u1", ParentTaskID: "parent", Title: "c"})
+	wantKind(t, err, model.ErrorKindProjectArchived)
+	if len(checker.calls) != 1 || checker.calls[0] != "p1" {
+		t.Fatalf("want CheckAssignable(p1) once, got %v", checker.calls)
+	}
+	if len(repo.items) != 1 {
+		t.Fatalf("subtask must not be created, repo has %d items", len(repo.items))
+	}
+}

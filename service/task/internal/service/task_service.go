@@ -41,6 +41,9 @@ func (s *taskService) Create(ctx context.Context, t model.Task) (model.Task, err
 		}
 		// Task con luôn nằm cùng project với cha; bỏ qua project client gửi.
 		t.ProjectID = parent.ProjectID
+		if err := s.projects.CheckAssignable(ctx, t.ProfileID, t.ProjectID); err != nil {
+			return model.Task{}, err
+		}
 	} else {
 		if strings.TrimSpace(t.ProjectID) == "" {
 			return model.Task{}, model.NewError(model.ErrorKindProjectRequired, "project_id is required")
@@ -112,6 +115,11 @@ func (s *taskService) Update(ctx context.Context, id string, upd model.TaskUpdat
 				"task con luôn theo project của task cha; hãy đổi project ở task gốc")
 		}
 		targetProject = parent.ProjectID
+		if targetProject != current.ProjectID {
+			if err := s.projects.CheckAssignable(ctx, current.ProfileID, targetProject); err != nil {
+				return model.Task{}, err
+			}
+		}
 	case parentID == "" && upd.ProjectID != nil && *upd.ProjectID != current.ProjectID:
 		if err := s.projects.CheckAssignable(ctx, current.ProfileID, *upd.ProjectID); err != nil {
 			return model.Task{}, err
