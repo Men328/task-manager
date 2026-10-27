@@ -120,11 +120,14 @@ services:
       SERVICE_NAME: identity
       GRPC_ADDR: ":9081"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       # Repository Postgres: bỏ trống biến này thì identity quay về in-memory stub.
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
       # Khi tạo profile mới, identity gọi task service để tạo bộ status + lifecycle mặc định.
       TASK_GRPC_DIAL_ADDR: "task-grpc:9082"
     depends_on:
+      project-grpc:
+        condition: service_started
       postgres:
         condition: service_healthy
       migrate:
@@ -189,8 +192,11 @@ services:
       SERVICE_NAME: task
       GRPC_ADDR: ":9082"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
     depends_on:
+      project-grpc:
+        condition: service_started
       postgres:
         condition: service_healthy
       migrate:
@@ -230,8 +236,11 @@ services:
       SERVICE_NAME: calendar
       GRPC_ADDR: ":9083"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
     depends_on:
+      project-grpc:
+        condition: service_started
       postgres:
         condition: service_healthy
       migrate:
@@ -260,6 +269,47 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # --------------------------------------------------------------- project
+  project-grpc:
+    build:
+      context: ../..
+      dockerfile: service/project/Dockerfile
+    container_name: tm-project-grpc
+    entrypoint: ["/usr/local/bin/grpc"]
+    environment:
+      SERVICE_NAME: project
+      GRPC_ADDR: ":9090"
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  project:
+    build:
+      context: ../..
+      dockerfile: service/project/Dockerfile
+    container_name: tm-project
+    entrypoint: ["/usr/local/bin/http"]
+    environment:
+      SERVICE_NAME: project
+      HTTP_ADDR: ":8090"
+      GRPC_DIAL_ADDR: "project-grpc:9090"
+      LOG_LEVEL: info
+    depends_on:
+      project-grpc:
+        condition: service_started
+    healthcheck:
+      # /healthz chỉ 200 khi gateway gọi được gRPC health service.
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   # ------------------------------------------------------------------ event
   # Sự kiện cá nhân (EVENT.events): giống lịch nhưng có status + source.
   event-grpc:
@@ -272,8 +322,11 @@ services:
       SERVICE_NAME: event
       GRPC_ADDR: ":9085"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
     depends_on:
+      project-grpc:
+        condition: service_started
       postgres:
         condition: service_healthy
       migrate:
@@ -410,11 +463,14 @@ services:
       SERVICE_NAME: report
       GRPC_ADDR: ":9087"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       TASK_GRPC_DIAL_ADDR: "task-grpc:9082"
       EVENT_GRPC_DIAL_ADDR: "event-grpc:9085"
       CALENDAR_GRPC_DIAL_ADDR: "calendar-grpc:9083"
       BACKLOG_GRPC_DIAL_ADDR: "backlog-grpc:9086"
     depends_on:
+      project-grpc:
+        condition: service_started
       task-grpc:
         condition: service_started
       event-grpc:
@@ -460,6 +516,7 @@ services:
       SERVICE_NAME: mail-provider
       GRPC_ADDR: ":9084"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
       TASK_GRPC_DIAL_ADDR: "task-grpc:9082"
       # Worker phân loại email rồi gọi service tương ứng (schedule/event) và
@@ -514,6 +571,8 @@ services:
     volumes:
       - /root/secrets:/secrets:ro
     depends_on:
+      project-grpc:
+        condition: service_started
       postgres:
         condition: service_healthy
       migrate:
@@ -636,6 +695,8 @@ services:
       task:
         condition: service_healthy
       calendar:
+        condition: service_healthy
+      project:
         condition: service_healthy
       event:
         condition: service_healthy

@@ -12,6 +12,7 @@
 const IDENTITY = process.env.IDENTITY_URL ?? 'http://localhost:8081';
 const TASK = process.env.TASK_URL ?? 'http://localhost:8082';
 const CALENDAR = process.env.CALENDAR_URL ?? 'http://localhost:8083';
+const PROJECT = process.env.PROJECT_URL ?? 'http://localhost:8090';
 const EVENT = process.env.EVENT_URL ?? 'http://localhost:8085';
 const BACKLOG = process.env.BACKLOG_URL ?? 'http://localhost:8086';
 const REPORT = process.env.REPORT_URL ?? 'http://localhost:8087';
@@ -63,6 +64,7 @@ function checkCode(label, r, expectedStatus, expectedCode, extra) {
 check('GET /healthz (identity)', await req('GET', `${IDENTITY}/healthz`), 200);
 check('GET /healthz (task)', await req('GET', `${TASK}/healthz`), 200);
 check('GET /healthz (calendar)', await req('GET', `${CALENDAR}/healthz`), 200);
+check('GET /healthz (project)', await req('GET', `${PROJECT}/healthz`), 200);
 check('GET /healthz (event)', await req('GET', `${EVENT}/healthz`), 200);
 check('GET /healthz (backlog)', await req('GET', `${BACKLOG}/healthz`), 200);
 
@@ -83,6 +85,11 @@ checkCode('GET profile không tồn tại -> 404 + IDENTITY_PROFILE_NOT_FOUND',
   await req('GET', `${IDENTITY}/v1/profiles/khong-ton-tai`), 404, 'IDENTITY_PROFILE_NOT_FOUND');
 checkCode('POST profile thiếu email -> 400 + IDENTITY_EMAIL_REQUIRED',
   await req('POST', `${IDENTITY}/v1/profiles`, { display_name: 'x' }), 400, 'IDENTITY_EMAIL_REQUIRED');
+
+// ---------------------------------------------------------------- project
+check('GET /v1/projects?profile_id=... (auto-seed project mặc định "Chung")',
+  await req('GET', `${PROJECT}/v1/projects?profile_id=${profileId}`), 200,
+  (r) => (r.data.projects ?? []).some((p) => p.name === 'Chung' && p.isDefault === true));
 
 // ---------------------------------------------------------------- status
 const seeded = check(

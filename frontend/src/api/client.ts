@@ -18,6 +18,9 @@ export const TASK_BASE_URL: string =
 export const CALENDAR_BASE_URL: string =
   (import.meta.env.VITE_CALENDAR_API_URL as string | undefined) ?? '/api/calendar';
 
+export const PROJECT_BASE_URL: string =
+  (import.meta.env.VITE_PROJECT_API_URL as string | undefined) ?? '/api/project';
+
 export const EVENT_BASE_URL: string =
   (import.meta.env.VITE_EVENT_API_URL as string | undefined) ?? '/api/event';
 
@@ -41,6 +44,9 @@ export const taskApi = TASK_BASE_URL;
 
 /** Base URL used by the calendar service calls. */
 export const calendarApi = CALENDAR_BASE_URL;
+
+/** Base URL used by the project service calls. */
+export const projectApi = PROJECT_BASE_URL;
 
 /** Base URL used by the event service calls. */
 export const eventApi = EVENT_BASE_URL;

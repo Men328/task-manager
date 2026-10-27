@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Smoke test end-to-end: build 9 service (mỗi service gồm gRPC server + gateway),
+# Smoke test end-to-end: build 10 service (mỗi service gồm gRPC server + gateway),
 # chạy ở port mặc định, gọi API thật, rồi tắt.
 # Yêu cầu: go, node >= 20 (dùng fetch), curl.
-# Port 8081-8089 và 9081-9089 phải đang trống.
+# Port 8081-8090 và 9081-9090 phải đang trống.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -19,6 +19,8 @@ go build -o "$BIN_DIR/task-grpc" ./service/task/cmd/grpc
 go build -o "$BIN_DIR/task-http" ./service/task/cmd/http
 go build -o "$BIN_DIR/calendar-grpc" ./service/calendar/cmd/grpc
 go build -o "$BIN_DIR/calendar-http" ./service/calendar/cmd/http
+go build -o "$BIN_DIR/project-grpc" ./service/project/cmd/grpc
+go build -o "$BIN_DIR/project-http" ./service/project/cmd/http
 go build -o "$BIN_DIR/event-grpc" ./service/event/cmd/grpc
 go build -o "$BIN_DIR/event-http" ./service/event/cmd/http
 go build -o "$BIN_DIR/backlog-grpc" ./service/backlog/cmd/grpc
@@ -45,6 +47,10 @@ TASK_HTTP_PID=$!
 CALENDAR_GRPC_PID=$!
 "$BIN_DIR/calendar-http" >"$BIN_DIR/calendar-http.log" 2>&1 &
 CALENDAR_HTTP_PID=$!
+"$BIN_DIR/project-grpc" >"$BIN_DIR/project-grpc.log" 2>&1 &
+PROJECT_GRPC_PID=$!
+"$BIN_DIR/project-http" >"$BIN_DIR/project-http.log" 2>&1 &
+PROJECT_HTTP_PID=$!
 "$BIN_DIR/event-grpc" >"$BIN_DIR/event-grpc.log" 2>&1 &
 EVENT_GRPC_PID=$!
 "$BIN_DIR/event-http" >"$BIN_DIR/event-http.log" 2>&1 &
@@ -74,6 +80,7 @@ cleanup() {
   kill "$IDENTITY_HTTP_PID" "$IDENTITY_GRPC_PID" \
     "$TASK_HTTP_PID" "$TASK_GRPC_PID" \
     "$CALENDAR_HTTP_PID" "$CALENDAR_GRPC_PID" \
+    "$PROJECT_HTTP_PID" "$PROJECT_GRPC_PID" \
     "$EVENT_HTTP_PID" "$EVENT_GRPC_PID" \
     "$BACKLOG_HTTP_PID" "$BACKLOG_GRPC_PID" \
     "$ATTACHMENT_HTTP_PID" "$ATTACHMENT_GRPC_PID" \
@@ -93,7 +100,8 @@ for _ in $(seq 1 60); do
     && curl -sf localhost:8087/healthz >/dev/null 2>&1 \
     && curl -sf localhost:8084/healthz >/dev/null 2>&1 \
     && curl -sf localhost:8088/healthz >/dev/null 2>&1 \
-    && curl -sf localhost:8089/healthz >/dev/null 2>&1; then
+    && curl -sf localhost:8089/healthz >/dev/null 2>&1 \
+    && curl -sf localhost:8090/healthz >/dev/null 2>&1; then
     break
   fi
   sleep 0.25
@@ -107,12 +115,14 @@ if ! curl -sf localhost:8081/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8087/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8084/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8088/healthz >/dev/null 2>&1 \
-  || ! curl -sf localhost:8089/healthz >/dev/null 2>&1; then
+  || ! curl -sf localhost:8089/healthz >/dev/null 2>&1 \
+  || ! curl -sf localhost:8090/healthz >/dev/null 2>&1; then
   echo "Service không khởi động được. Log:" >&2
   tail -20 \
     "$BIN_DIR/identity-grpc.log" "$BIN_DIR/identity-http.log" \
     "$BIN_DIR/task-grpc.log" "$BIN_DIR/task-http.log" \
     "$BIN_DIR/calendar-grpc.log" "$BIN_DIR/calendar-http.log" \
+    "$BIN_DIR/project-grpc.log" "$BIN_DIR/project-http.log" \
     "$BIN_DIR/event-grpc.log" "$BIN_DIR/event-http.log" \
     "$BIN_DIR/backlog-grpc.log" "$BIN_DIR/backlog-http.log" \
     "$BIN_DIR/attachment-grpc.log" "$BIN_DIR/attachment-http.log" \

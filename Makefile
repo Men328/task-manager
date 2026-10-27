@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 # Mỗi thư mục trong service/ (và common/) là 1 Go module riêng, quản lý bằng go.work.
 # Vì root không phải module nên `go build ./...` không dùng được -> loop từng module.
-MODULES := common service/attachment service/backlog service/calendar service/event service/identity service/mail-provider service/notification service/report service/task tools/quality
+MODULES := common service/attachment service/backlog service/calendar service/event service/identity service/mail-provider service/notification service/project service/report service/task tools/quality
 
 GOBIN ?= $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(GOBIN):$(PATH)
@@ -18,6 +18,7 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
         up up-core up-tunnel tunnel-up tunnel-stop down logs tunnel-logs ps build-images web-install web-dev web-build \
         run-identity run-identity-grpc run-identity-http run-task run-task-grpc run-task-http \
         run-calendar run-calendar-grpc run-calendar-http \
+        run-project run-project-grpc run-project-http \
         run-event run-event-grpc run-event-http \
         run-backlog run-backlog-grpc run-backlog-http \
         run-attachment run-attachment-grpc run-attachment-http \
@@ -151,6 +152,15 @@ run-calendar-grpc: ## Chỉ chạy gRPC server calendar (:9083)
 
 run-calendar-http: ## Chỉ chạy HTTP gateway calendar (:8083)
 	cd service/calendar && go run ./cmd/http
+
+run-project: ## Chạy project local: gRPC :9090 + gateway :8090
+	bash scripts/run-service.sh project
+
+run-project-grpc: ## Chỉ chạy gRPC server project (:9090)
+	cd service/project && go run ./cmd/grpc
+
+run-project-http: ## Chỉ chạy HTTP gateway project (:8090)
+	cd service/project && go run ./cmd/http
 
 run-event: ## Chạy event local: gRPC :9085 + gateway :8085
 	bash scripts/run-service.sh event

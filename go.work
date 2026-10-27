@@ -9,6 +9,7 @@ use (
 	./service/identity
 	./service/mail-provider
 	./service/notification
+	./service/project
 	./service/report
 	./service/task
 	./tools/quality

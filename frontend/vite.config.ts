@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 // /api/identity/*  -> http://localhost:8081/*  (identity service)
 // /api/task/*      -> http://localhost:8082/*  (task service)
 // /api/calendar/*  -> http://localhost:8083/*  (calendar service)
+// /api/project/*   -> http://localhost:8090/*  (project service)
 // /api/event/*     -> http://localhost:8085/*  (event service)
 // /api/backlog/*   -> http://localhost:8086/*  (backlog service)
 // /api/report/*    -> http://localhost:8087/*  (report service)
@@ -30,6 +31,11 @@ export default defineConfig({
         target: 'http://localhost:8083',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/calendar/, ''),
+      },
+      '/api/project': {
+        target: 'http://localhost:8090',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/project/, ''),
       },
       '/api/event': {
         target: 'http://localhost:8085',
