@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { useProject } from '../../context';
+import { projectColor } from '../../lib/tokens';
 import { tokens } from '../../theme';
 import { ProjectFormModal } from '../project/ProjectFormModal';
 import classes from './ProjectSwitcher.module.css';
@@ -33,7 +34,7 @@ export function ProjectSwitcher() {
       >
         <Menu.Target>
           <UnstyledButton className={classes.trigger} aria-label={t('project.switcherLabel')}>
-            <span className={classes.dot} style={{ background: currentProject?.color || tokens.brand }} />
+            <span className={classes.dot} style={{ background: currentProject ? projectColor(currentProject) : tokens.brand }} />
             <span className={classes.name}>{currentProject?.name ?? t('project.none')}</span>
             <IconChevronDown size={14} className={classes.chevron} />
           </UnstyledButton>

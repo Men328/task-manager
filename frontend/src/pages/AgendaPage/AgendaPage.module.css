@@ -1,0 +1,25 @@
+.root {
+  min-height: 0;
+}
+
+.headerBar {
+  background: var(--tm-surface);
+  border-bottom: 1px solid var(--tm-border);
+}
+
+.scrollArea {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.content {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.sectionToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

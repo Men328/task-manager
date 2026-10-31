@@ -1,6 +1,7 @@
 import type {
   BacklogStatus,
   EventStatus,
+  Project,
   TaskPriority,
   TaskStatusCategory,
 } from '../types';
@@ -81,3 +82,22 @@ export const BACKLOG_CATEGORY_LABEL_KEY: Record<string, string> = {
   event: 'backlogCategory.event',
   other: 'backlogCategory.other',
 };
+
+/** Màu dự phòng cho project chưa đặt màu: cố ý bỏ màu brand vì nhiều project chọn đúng màu đó. */
+const PROJECT_FALLBACK_COLORS = ['#12b886', '#f59f00', '#e8590c', '#c026d3', '#0c8599', '#7048e8', '#e64980'];
+
+/**
+ * Màu hiển thị của project. Project chưa đặt màu lấy màu ổn định theo id, để các
+ * project không màu vẫn phân biệt được với nhau và với project dùng màu brand.
+ */
+export function projectColor(project: Pick<Project, 'id' | 'color'> | null | undefined): string {
+  if (project?.color) {
+    return project.color;
+  }
+  const seed = project?.id ?? '';
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) % 100000;
+  }
+  return PROJECT_FALLBACK_COLORS[hash % PROJECT_FALLBACK_COLORS.length]!;
+}
