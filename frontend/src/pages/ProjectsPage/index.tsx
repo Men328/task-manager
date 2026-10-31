@@ -21,6 +21,7 @@ import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/com
 import { ProjectFormModal } from '../../components/project/ProjectFormModal';
 import { useProject } from '../../context';
 import scrollClasses from '../../styles/scroll.module.css';
+import { projectColor } from '../../lib/tokens';
 import { tokens } from '../../theme';
 import type { Project } from '../../types';
 import classes from './ProjectsPage.module.css';
@@ -117,7 +118,7 @@ export function ProjectsPage() {
                 {rows.map((project) => (
                   <Table.Tr key={project.id}>
                     <Table.Td>
-                      <div className={classes.dot} style={{ background: project.color || tokens.brand }} />
+                      <div className={classes.dot} style={{ background: projectColor(project) }} />
                     </Table.Td>
                     <Table.Td>
                       <Group gap={8} wrap="nowrap">

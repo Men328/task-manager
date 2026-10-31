@@ -5,6 +5,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { useAppDispatch, useAppSelector } from './context';
 import { restoreSession } from './context/session/sessionSlice';
 import { readToken } from './lib/session';
+import { AgendaPage } from './pages/AgendaPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { BacklogPage } from './pages/BacklogPage';
 import { BoardPage } from './pages/BoardPage';
@@ -46,6 +47,7 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<BoardPage />} />
+          <Route path="/today" element={<AgendaPage />} />
           <Route path="/reports" element={<ReportPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/events" element={<EventPage />} />

@@ -4,6 +4,7 @@ import type { ComboboxItem } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import { useProject } from '../../context';
+import { projectColor } from '../../lib/tokens';
 import { tokens } from '../../theme';
 
 interface ProjectSelectProps {
@@ -42,7 +43,7 @@ export function ProjectSelect({
 
   const colorById = useMemo(() => {
     const map = new Map<string, string | null | undefined>();
-    projects.forEach((project) => map.set(project.id, project.color));
+    projects.forEach((project) => map.set(project.id, projectColor(project)));
     return map;
   }, [projects]);
 
