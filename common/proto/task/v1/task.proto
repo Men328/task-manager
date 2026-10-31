@@ -7,6 +7,18 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "taskmanager/common/gen/go/task/v1;taskv1";
 
+// Trường sắp xếp của ListTasks; UNSPECIFIED = POSITION.
+enum TaskSortField {
+  TASK_SORT_FIELD_UNSPECIFIED = 0;
+  TASK_SORT_FIELD_POSITION = 1;
+  // Task không có hạn luôn nằm cuối.
+  TASK_SORT_FIELD_DUE_AT = 2;
+  // Tăng dần: LOW -> URGENT.
+  TASK_SORT_FIELD_PRIORITY = 3;
+  TASK_SORT_FIELD_CREATED_AT = 4;
+  TASK_SORT_FIELD_UPDATED_AT = 5;
+}
+
 // Mapping DB: enum task_priority
 enum TaskPriority {
   TASK_PRIORITY_UNSPECIFIED = 0;
@@ -78,10 +90,27 @@ message ListTasksRequest {
   bool include_subtasks = 6;
   // Lọc theo dự án; rỗng = tất cả dự án.
   string project_id = 7;
+  // Các field 8–16 bắt buộc kèm profile_id.
+  // Lọc hạn theo khoảng nửa mở [due_from, due_to); bỏ qua task không có hạn.
+  google.protobuf.Timestamp due_from = 8;
+  google.protobuf.Timestamp due_to = 9;
+  // true: chỉ task có hạn; false: chỉ task không có hạn; bỏ trống = không lọc.
+  optional bool has_due_at = 10;
+  // Chỉ task có status không thuộc nhóm done/cancelled.
+  bool open_only = 11;
+  // Rỗng = mọi mức ưu tiên.
+  repeated TaskPriority priorities = 12;
+  TaskSortField sort_field = 13;
+  bool sort_desc = 14;
+  // 0 = không phân trang (trả toàn bộ); tối đa 500.
+  int32 page_size = 15;
+  string page_token = 16;
 }
 
 message ListTasksResponse {
   repeated Task tasks = 1;
+  // Rỗng = đã hết trang (hoặc không phân trang).
+  string next_page_token = 2;
 }
 
 message UpdateTaskRequest {

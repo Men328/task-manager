@@ -1,8 +1,10 @@
 package repository
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"sync"
 	"time"
@@ -82,10 +84,49 @@ func (r *InMemoryTaskRepository) List(_ context.Context, f model.TaskFilter) ([]
 		if !f.IncludeArchived && t.IsArchived {
 			continue
 		}
+		if !matchesListExtensions(t, f) {
+			continue
+		}
 		out = append(out, t)
 	}
-	sortTasks(out)
-	return out, nil
+	sortTasksBy(out, f.SortField, f.SortDesc)
+	return paginate(out, f.Limit, f.Offset), nil
+}
+
+func matchesListExtensions(t model.Task, f model.TaskFilter) bool {
+	if (f.DueFrom != nil || f.DueTo != nil) && t.DueAt == nil {
+		return false
+	}
+	if f.DueFrom != nil && t.DueAt.Before(*f.DueFrom) {
+		return false
+	}
+	if f.DueTo != nil && !t.DueAt.Before(*f.DueTo) {
+		return false
+	}
+	if f.HasDueAt != nil && *f.HasDueAt != (t.DueAt != nil) {
+		return false
+	}
+	if len(f.Priorities) > 0 && !slices.Contains(f.Priorities, t.Priority) {
+		return false
+	}
+	if slices.Contains(f.ExcludeStatusIDs, t.StatusID) {
+		return false
+	}
+	return true
+}
+
+func paginate(items []model.Task, limit, offset int) []model.Task {
+	if offset >= len(items) {
+		if offset > 0 {
+			return []model.Task{}
+		}
+		return items
+	}
+	items = items[offset:]
+	if limit > 0 && len(items) > limit {
+		items = items[:limit]
+	}
+	return items
 }
 
 func (r *InMemoryTaskRepository) ListChildren(_ context.Context, parentTaskID string) ([]model.Task, error) {
@@ -266,6 +307,43 @@ func (r *InMemoryTaskRepository) wouldCycle(taskID, newParentID string) bool {
 		current = parent.ParentTaskID
 	}
 	return false
+}
+
+func sortTasksBy(items []model.Task, field model.TaskSortField, desc bool) {
+	sort.SliceStable(items, func(i, j int) bool {
+		a, b := items[i], items[j]
+		if field == model.TaskSortDueAt && (a.DueAt == nil) != (b.DueAt == nil) {
+			return a.DueAt != nil
+		}
+		if c := compareTaskField(a, b, field); c != 0 {
+			if desc {
+				return c > 0
+			}
+			return c < 0
+		}
+		return a.ID < b.ID
+	})
+}
+
+func compareTaskField(a, b model.Task, field model.TaskSortField) int {
+	switch field {
+	case model.TaskSortDueAt:
+		if a.DueAt == nil || b.DueAt == nil {
+			return 0
+		}
+		return a.DueAt.Compare(*b.DueAt)
+	case model.TaskSortPriority:
+		return cmp.Compare(a.Priority, b.Priority)
+	case model.TaskSortCreatedAt:
+		return a.CreatedAt.Compare(b.CreatedAt)
+	case model.TaskSortUpdatedAt:
+		return a.UpdatedAt.Compare(b.UpdatedAt)
+	default:
+		if c := cmp.Compare(a.Position, b.Position); c != 0 {
+			return c
+		}
+		return a.CreatedAt.Compare(b.CreatedAt)
+	}
 }
 
 func sortTasks(items []model.Task) {

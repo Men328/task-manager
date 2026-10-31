@@ -252,12 +252,21 @@ export function asList<T>(payload: unknown, key: string): T[] {
   return [];
 }
 
-/** Build a query string from defined values only. */
-export function buildQuery(params: Record<string, string | number | boolean | undefined | null>): string {
+type QueryValue = string | number | boolean | undefined | null;
+
+/** Build a query string from defined values only; arrays repeat the key (grpc-gateway `repeated`). */
+export function buildQuery(params: Record<string, QueryValue | readonly QueryValue[]>): string {
   const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
+  const add = (key: string, value: QueryValue) => {
     if (value !== undefined && value !== null && value !== '') {
-      search.set(key, String(value));
+      search.append(key, String(value));
+    }
+  };
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      value.forEach((item) => add(key, item));
+    } else {
+      add(key, value as QueryValue);
     }
   }
   const query = search.toString();

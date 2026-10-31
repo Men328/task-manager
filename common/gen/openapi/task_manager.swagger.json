@@ -1585,6 +1585,89 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "dueFrom",
+            "description": "Các field 8–16 bắt buộc kèm profile_id.\nLọc hạn theo khoảng nửa mở [due_from, due_to); bỏ qua task không có hạn.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "dueTo",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "hasDueAt",
+            "description": "true: chỉ task có hạn; false: chỉ task không có hạn; bỏ trống = không lọc.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "openOnly",
+            "description": "Chỉ task có status không thuộc nhóm done/cancelled.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "priorities",
+            "description": "Rỗng = mọi mức ưu tiên.",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "TASK_PRIORITY_UNSPECIFIED",
+                "TASK_PRIORITY_LOW",
+                "TASK_PRIORITY_MEDIUM",
+                "TASK_PRIORITY_HIGH",
+                "TASK_PRIORITY_URGENT"
+              ]
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "sortField",
+            "description": " - TASK_SORT_FIELD_DUE_AT: Task không có hạn luôn nằm cuối.\n - TASK_SORT_FIELD_PRIORITY: Tăng dần: LOW -\u003e URGENT.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "TASK_SORT_FIELD_UNSPECIFIED",
+              "TASK_SORT_FIELD_POSITION",
+              "TASK_SORT_FIELD_DUE_AT",
+              "TASK_SORT_FIELD_PRIORITY",
+              "TASK_SORT_FIELD_CREATED_AT",
+              "TASK_SORT_FIELD_UPDATED_AT"
+            ],
+            "default": "TASK_SORT_FIELD_UNSPECIFIED"
+          },
+          {
+            "name": "sortDesc",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "pageSize",
+            "description": "0 = không phân trang (trả toàn bộ); tối đa 500.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -3040,6 +3123,10 @@
             "type": "object",
             "$ref": "#/definitions/v1Task"
           }
+        },
+        "nextPageToken": {
+          "type": "string",
+          "description": "Rỗng = đã hết trang (hoặc không phân trang)."
         }
       }
     },
@@ -3449,6 +3536,19 @@
       ],
       "default": "TASK_PRIORITY_UNSPECIFIED",
       "description": "Mapping DB: enum task_priority"
+    },
+    "v1TaskSortField": {
+      "type": "string",
+      "enum": [
+        "TASK_SORT_FIELD_UNSPECIFIED",
+        "TASK_SORT_FIELD_POSITION",
+        "TASK_SORT_FIELD_DUE_AT",
+        "TASK_SORT_FIELD_PRIORITY",
+        "TASK_SORT_FIELD_CREATED_AT",
+        "TASK_SORT_FIELD_UPDATED_AT"
+      ],
+      "default": "TASK_SORT_FIELD_UNSPECIFIED",
+      "description": "Trường sắp xếp của ListTasks; UNSPECIFIED = POSITION.\n\n - TASK_SORT_FIELD_DUE_AT: Task không có hạn luôn nằm cuối.\n - TASK_SORT_FIELD_PRIORITY: Tăng dần: LOW -\u003e URGENT."
     },
     "v1TaskStatus": {
       "type": "object",

@@ -21,12 +21,27 @@ type Task struct {
 }
 
 type TaskFilter struct {
-	ProfileID       string
-	ProjectID       string
-	ParentTaskID    string
-	RootOnly        bool
-	StatusID        string
-	IncludeArchived bool
+	ProfileID        string
+	ProjectID        string
+	ParentTaskID     string
+	RootOnly         bool
+	StatusID         string
+	IncludeArchived  bool
+	DueFrom          *time.Time
+	DueTo            *time.Time
+	HasDueAt         *bool
+	OpenOnly         bool
+	ExcludeStatusIDs []string
+	Priorities       []TaskPriority
+	SortField        TaskSortField
+	SortDesc         bool
+	Limit            int
+	Offset           int
+}
+
+type TaskPage struct {
+	Tasks      []Task
+	NextOffset int
 }
 
 type TaskUpdate struct {

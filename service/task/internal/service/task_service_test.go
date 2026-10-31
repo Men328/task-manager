@@ -13,8 +13,10 @@ import (
 // ------------------------------------------------------------------ fakes
 
 type fakeTaskRepo struct {
-	items  map[string]model.Task
-	nextID int
+	items      map[string]model.Task
+	nextID     int
+	listResult []model.Task
+	lastFilter model.TaskFilter
 }
 
 func newFakeTaskRepo() *fakeTaskRepo { return &fakeTaskRepo{items: map[string]model.Task{}} }
@@ -38,8 +40,13 @@ func (r *fakeTaskRepo) Get(_ context.Context, id string) (model.Task, error) {
 	return t, nil
 }
 
-func (r *fakeTaskRepo) List(context.Context, model.TaskFilter) ([]model.Task, error) {
-	return nil, nil
+func (r *fakeTaskRepo) List(_ context.Context, f model.TaskFilter) ([]model.Task, error) {
+	r.lastFilter = f
+	out := r.listResult
+	if f.Limit > 0 && len(out) > f.Limit {
+		out = out[:f.Limit]
+	}
+	return out, nil
 }
 
 func (r *fakeTaskRepo) ListChildren(_ context.Context, parentTaskID string) ([]model.Task, error) {
@@ -107,7 +114,11 @@ func (r *fakeTaskRepo) ListStatusLogs(context.Context, string) ([]model.StatusLo
 type fakeTaskStatusRepo struct{ StatusRepository }
 
 func (fakeTaskStatusRepo) List(_ context.Context, profileID string, _ bool) ([]model.Status, error) {
-	return []model.Status{{ID: "st-default", ProfileID: profileID, IsDefault: true}}, nil
+	return []model.Status{
+		{ID: "st-default", ProfileID: profileID, IsDefault: true, Category: model.TaskStatusCategoryTodo},
+		{ID: "st-done", ProfileID: profileID, Category: model.TaskStatusCategoryDone},
+		{ID: "st-cancelled", ProfileID: profileID, Category: model.TaskStatusCategoryCancelled, IsArchived: true},
+	}, nil
 }
 
 type fakeTaskTransitionRepo struct{ TransitionRepository }
@@ -329,5 +340,61 @@ func TestCreateSubtaskUnderArchivedProjectRejected(t *testing.T) {
 	}
 	if len(repo.items) != 1 {
 		t.Fatalf("subtask must not be created, repo has %d items", len(repo.items))
+	}
+}
+
+func TestListOpenOnlyExcludesDoneAndCancelledStatuses(t *testing.T) {
+	repo := newFakeTaskRepo()
+	svc := newTestTaskService(repo, &fakeProjectChecker{})
+
+	if _, err := svc.List(context.Background(), model.TaskFilter{ProfileID: "u1", OpenOnly: true}); err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	got := repo.lastFilter.ExcludeStatusIDs
+	if len(got) != 2 || got[0] != "st-done" || got[1] != "st-cancelled" {
+		t.Fatalf("ExcludeStatusIDs = %v, want [st-done st-cancelled]", got)
+	}
+}
+
+func TestListWithoutOpenOnlyKeepsAllStatuses(t *testing.T) {
+	repo := newFakeTaskRepo()
+	svc := newTestTaskService(repo, &fakeProjectChecker{})
+
+	if _, err := svc.List(context.Background(), model.TaskFilter{ProfileID: "u1"}); err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(repo.lastFilter.ExcludeStatusIDs) != 0 {
+		t.Fatalf("ExcludeStatusIDs = %v, want empty", repo.lastFilter.ExcludeStatusIDs)
+	}
+}
+
+func TestListPagination(t *testing.T) {
+	repo := newFakeTaskRepo()
+	for i := range 5 {
+		repo.listResult = append(repo.listResult, model.Task{ID: fmt.Sprintf("t%d", i)})
+	}
+	svc := newTestTaskService(repo, &fakeProjectChecker{})
+	ctx := context.Background()
+
+	page, err := svc.List(ctx, model.TaskFilter{ProfileID: "u1", Limit: 3, Offset: 6})
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if repo.lastFilter.Limit != 4 {
+		t.Fatalf("repo Limit = %d, want page size + 1 = 4", repo.lastFilter.Limit)
+	}
+	if len(page.Tasks) != 3 || page.NextOffset != 9 {
+		t.Fatalf("got %d tasks, NextOffset %d; want 3 tasks, NextOffset 9", len(page.Tasks), page.NextOffset)
+	}
+
+	repo.listResult = repo.listResult[:2]
+	page, _ = svc.List(ctx, model.TaskFilter{ProfileID: "u1", Limit: 3})
+	if len(page.Tasks) != 2 || page.NextOffset != 0 {
+		t.Fatalf("last page: got %d tasks, NextOffset %d; want 2, 0", len(page.Tasks), page.NextOffset)
+	}
+
+	page, _ = svc.List(ctx, model.TaskFilter{ProfileID: "u1"})
+	if repo.lastFilter.Limit != 0 || page.NextOffset != 0 {
+		t.Fatalf("no paging: repo Limit %d, NextOffset %d; want 0, 0", repo.lastFilter.Limit, page.NextOffset)
 	}
 }

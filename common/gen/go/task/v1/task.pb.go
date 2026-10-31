@@ -23,6 +23,67 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Trường sắp xếp của ListTasks; UNSPECIFIED = POSITION.
+type TaskSortField int32
+
+const (
+	TaskSortField_TASK_SORT_FIELD_UNSPECIFIED TaskSortField = 0
+	TaskSortField_TASK_SORT_FIELD_POSITION    TaskSortField = 1
+	// Task không có hạn luôn nằm cuối.
+	TaskSortField_TASK_SORT_FIELD_DUE_AT TaskSortField = 2
+	// Tăng dần: LOW -> URGENT.
+	TaskSortField_TASK_SORT_FIELD_PRIORITY   TaskSortField = 3
+	TaskSortField_TASK_SORT_FIELD_CREATED_AT TaskSortField = 4
+	TaskSortField_TASK_SORT_FIELD_UPDATED_AT TaskSortField = 5
+)
+
+// Enum value maps for TaskSortField.
+var (
+	TaskSortField_name = map[int32]string{
+		0: "TASK_SORT_FIELD_UNSPECIFIED",
+		1: "TASK_SORT_FIELD_POSITION",
+		2: "TASK_SORT_FIELD_DUE_AT",
+		3: "TASK_SORT_FIELD_PRIORITY",
+		4: "TASK_SORT_FIELD_CREATED_AT",
+		5: "TASK_SORT_FIELD_UPDATED_AT",
+	}
+	TaskSortField_value = map[string]int32{
+		"TASK_SORT_FIELD_UNSPECIFIED": 0,
+		"TASK_SORT_FIELD_POSITION":    1,
+		"TASK_SORT_FIELD_DUE_AT":      2,
+		"TASK_SORT_FIELD_PRIORITY":    3,
+		"TASK_SORT_FIELD_CREATED_AT":  4,
+		"TASK_SORT_FIELD_UPDATED_AT":  5,
+	}
+)
+
+func (x TaskSortField) Enum() *TaskSortField {
+	p := new(TaskSortField)
+	*p = x
+	return p
+}
+
+func (x TaskSortField) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskSortField) Descriptor() protoreflect.EnumDescriptor {
+	return file_task_v1_task_proto_enumTypes[0].Descriptor()
+}
+
+func (TaskSortField) Type() protoreflect.EnumType {
+	return &file_task_v1_task_proto_enumTypes[0]
+}
+
+func (x TaskSortField) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskSortField.Descriptor instead.
+func (TaskSortField) EnumDescriptor() ([]byte, []int) {
+	return file_task_v1_task_proto_rawDescGZIP(), []int{0}
+}
+
 // Mapping DB: enum task_priority
 type TaskPriority int32
 
@@ -63,11 +124,11 @@ func (x TaskPriority) String() string {
 }
 
 func (TaskPriority) Descriptor() protoreflect.EnumDescriptor {
-	return file_task_v1_task_proto_enumTypes[0].Descriptor()
+	return file_task_v1_task_proto_enumTypes[1].Descriptor()
 }
 
 func (TaskPriority) Type() protoreflect.EnumType {
-	return &file_task_v1_task_proto_enumTypes[0]
+	return &file_task_v1_task_proto_enumTypes[1]
 }
 
 func (x TaskPriority) Number() protoreflect.EnumNumber {
@@ -76,7 +137,7 @@ func (x TaskPriority) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TaskPriority.Descriptor instead.
 func (TaskPriority) EnumDescriptor() ([]byte, []int) {
-	return file_task_v1_task_proto_rawDescGZIP(), []int{0}
+	return file_task_v1_task_proto_rawDescGZIP(), []int{1}
 }
 
 // Task cá nhân, hỗ trợ task cha - con qua parent_task_id.
@@ -516,7 +577,22 @@ type ListTasksRequest struct {
 	IncludeArchived bool   `protobuf:"varint,5,opt,name=include_archived,json=includeArchived,proto3" json:"include_archived,omitempty"`
 	IncludeSubtasks bool   `protobuf:"varint,6,opt,name=include_subtasks,json=includeSubtasks,proto3" json:"include_subtasks,omitempty"`
 	// Lọc theo dự án; rỗng = tất cả dự án.
-	ProjectId     string `protobuf:"bytes,7,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,7,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// Các field 8–16 bắt buộc kèm profile_id.
+	// Lọc hạn theo khoảng nửa mở [due_from, due_to); bỏ qua task không có hạn.
+	DueFrom *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=due_from,json=dueFrom,proto3" json:"due_from,omitempty"`
+	DueTo   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=due_to,json=dueTo,proto3" json:"due_to,omitempty"`
+	// true: chỉ task có hạn; false: chỉ task không có hạn; bỏ trống = không lọc.
+	HasDueAt *bool `protobuf:"varint,10,opt,name=has_due_at,json=hasDueAt,proto3,oneof" json:"has_due_at,omitempty"`
+	// Chỉ task có status không thuộc nhóm done/cancelled.
+	OpenOnly bool `protobuf:"varint,11,opt,name=open_only,json=openOnly,proto3" json:"open_only,omitempty"`
+	// Rỗng = mọi mức ưu tiên.
+	Priorities []TaskPriority `protobuf:"varint,12,rep,packed,name=priorities,proto3,enum=task.v1.TaskPriority" json:"priorities,omitempty"`
+	SortField  TaskSortField  `protobuf:"varint,13,opt,name=sort_field,json=sortField,proto3,enum=task.v1.TaskSortField" json:"sort_field,omitempty"`
+	SortDesc   bool           `protobuf:"varint,14,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
+	// 0 = không phân trang (trả toàn bộ); tối đa 500.
+	PageSize      int32  `protobuf:"varint,15,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string `protobuf:"bytes,16,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -600,9 +676,74 @@ func (x *ListTasksRequest) GetProjectId() string {
 	return ""
 }
 
+func (x *ListTasksRequest) GetDueFrom() *timestamppb.Timestamp {
+	if x != nil {
+		return x.DueFrom
+	}
+	return nil
+}
+
+func (x *ListTasksRequest) GetDueTo() *timestamppb.Timestamp {
+	if x != nil {
+		return x.DueTo
+	}
+	return nil
+}
+
+func (x *ListTasksRequest) GetHasDueAt() bool {
+	if x != nil && x.HasDueAt != nil {
+		return *x.HasDueAt
+	}
+	return false
+}
+
+func (x *ListTasksRequest) GetOpenOnly() bool {
+	if x != nil {
+		return x.OpenOnly
+	}
+	return false
+}
+
+func (x *ListTasksRequest) GetPriorities() []TaskPriority {
+	if x != nil {
+		return x.Priorities
+	}
+	return nil
+}
+
+func (x *ListTasksRequest) GetSortField() TaskSortField {
+	if x != nil {
+		return x.SortField
+	}
+	return TaskSortField_TASK_SORT_FIELD_UNSPECIFIED
+}
+
+func (x *ListTasksRequest) GetSortDesc() bool {
+	if x != nil {
+		return x.SortDesc
+	}
+	return false
+}
+
+func (x *ListTasksRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListTasksRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 type ListTasksResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Tasks         []*Task                `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Tasks []*Task                `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
+	// Rỗng = đã hết trang (hoặc không phân trang).
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -642,6 +783,13 @@ func (x *ListTasksResponse) GetTasks() []*Task {
 		return x.Tasks
 	}
 	return nil
+}
+
+func (x *ListTasksResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 type UpdateTaskRequest struct {
@@ -1038,7 +1186,7 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12)\n" +
 	"\x10include_subtasks\x18\x02 \x01(\bR\x0fincludeSubtasks\"4\n" +
 	"\x0fGetTaskResponse\x12!\n" +
-	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"\x86\x02\n" +
+	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"\x86\x05\n" +
 	"\x10ListTasksRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12$\n" +
@@ -1048,9 +1196,26 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\x10include_archived\x18\x05 \x01(\bR\x0fincludeArchived\x12)\n" +
 	"\x10include_subtasks\x18\x06 \x01(\bR\x0fincludeSubtasks\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\a \x01(\tR\tprojectId\"8\n" +
+	"project_id\x18\a \x01(\tR\tprojectId\x125\n" +
+	"\bdue_from\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\adueFrom\x121\n" +
+	"\x06due_to\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x05dueTo\x12!\n" +
+	"\n" +
+	"has_due_at\x18\n" +
+	" \x01(\bH\x00R\bhasDueAt\x88\x01\x01\x12\x1b\n" +
+	"\topen_only\x18\v \x01(\bR\bopenOnly\x125\n" +
+	"\n" +
+	"priorities\x18\f \x03(\x0e2\x15.task.v1.TaskPriorityR\n" +
+	"priorities\x125\n" +
+	"\n" +
+	"sort_field\x18\r \x01(\x0e2\x16.task.v1.TaskSortFieldR\tsortField\x12\x1b\n" +
+	"\tsort_desc\x18\x0e \x01(\bR\bsortDesc\x12\x1b\n" +
+	"\tpage_size\x18\x0f \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x10 \x01(\tR\tpageTokenB\r\n" +
+	"\v_has_due_at\"`\n" +
 	"\x11ListTasksResponse\x12#\n" +
-	"\x05tasks\x18\x01 \x03(\v2\r.task.v1.TaskR\x05tasks\"\x83\x04\n" +
+	"\x05tasks\x18\x01 \x03(\v2\r.task.v1.TaskR\x05tasks\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x83\x04\n" +
 	"\x11UpdateTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12)\n" +
 	"\x0eparent_task_id\x18\x02 \x01(\tH\x00R\fparentTaskId\x88\x01\x01\x12\x19\n" +
@@ -1082,7 +1247,14 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\tstatus_id\x18\x02 \x01(\tR\bstatusId\x12\x12\n" +
 	"\x04note\x18\x03 \x01(\tR\x04note\"=\n" +
 	"\x18ChangeTaskStatusResponse\x12!\n" +
-	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task*\x90\x01\n" +
+	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task*\xc8\x01\n" +
+	"\rTaskSortField\x12\x1f\n" +
+	"\x1bTASK_SORT_FIELD_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\x18TASK_SORT_FIELD_POSITION\x10\x01\x12\x1a\n" +
+	"\x16TASK_SORT_FIELD_DUE_AT\x10\x02\x12\x1c\n" +
+	"\x18TASK_SORT_FIELD_PRIORITY\x10\x03\x12\x1e\n" +
+	"\x1aTASK_SORT_FIELD_CREATED_AT\x10\x04\x12\x1e\n" +
+	"\x1aTASK_SORT_FIELD_UPDATED_AT\x10\x05*\x90\x01\n" +
 	"\fTaskPriority\x12\x1d\n" +
 	"\x19TASK_PRIORITY_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11TASK_PRIORITY_LOW\x10\x01\x12\x18\n" +
@@ -1112,61 +1284,66 @@ func file_task_v1_task_proto_rawDescGZIP() []byte {
 	return file_task_v1_task_proto_rawDescData
 }
 
-var file_task_v1_task_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_task_v1_task_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_task_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_task_v1_task_proto_goTypes = []any{
-	(TaskPriority)(0),                // 0: task.v1.TaskPriority
-	(*Task)(nil),                     // 1: task.v1.Task
-	(*CreateTaskRequest)(nil),        // 2: task.v1.CreateTaskRequest
-	(*CreateTaskResponse)(nil),       // 3: task.v1.CreateTaskResponse
-	(*GetTaskRequest)(nil),           // 4: task.v1.GetTaskRequest
-	(*GetTaskResponse)(nil),          // 5: task.v1.GetTaskResponse
-	(*ListTasksRequest)(nil),         // 6: task.v1.ListTasksRequest
-	(*ListTasksResponse)(nil),        // 7: task.v1.ListTasksResponse
-	(*UpdateTaskRequest)(nil),        // 8: task.v1.UpdateTaskRequest
-	(*UpdateTaskResponse)(nil),       // 9: task.v1.UpdateTaskResponse
-	(*DeleteTaskRequest)(nil),        // 10: task.v1.DeleteTaskRequest
-	(*DeleteTaskResponse)(nil),       // 11: task.v1.DeleteTaskResponse
-	(*ChangeTaskStatusRequest)(nil),  // 12: task.v1.ChangeTaskStatusRequest
-	(*ChangeTaskStatusResponse)(nil), // 13: task.v1.ChangeTaskStatusResponse
-	(*timestamppb.Timestamp)(nil),    // 14: google.protobuf.Timestamp
+	(TaskSortField)(0),               // 0: task.v1.TaskSortField
+	(TaskPriority)(0),                // 1: task.v1.TaskPriority
+	(*Task)(nil),                     // 2: task.v1.Task
+	(*CreateTaskRequest)(nil),        // 3: task.v1.CreateTaskRequest
+	(*CreateTaskResponse)(nil),       // 4: task.v1.CreateTaskResponse
+	(*GetTaskRequest)(nil),           // 5: task.v1.GetTaskRequest
+	(*GetTaskResponse)(nil),          // 6: task.v1.GetTaskResponse
+	(*ListTasksRequest)(nil),         // 7: task.v1.ListTasksRequest
+	(*ListTasksResponse)(nil),        // 8: task.v1.ListTasksResponse
+	(*UpdateTaskRequest)(nil),        // 9: task.v1.UpdateTaskRequest
+	(*UpdateTaskResponse)(nil),       // 10: task.v1.UpdateTaskResponse
+	(*DeleteTaskRequest)(nil),        // 11: task.v1.DeleteTaskRequest
+	(*DeleteTaskResponse)(nil),       // 12: task.v1.DeleteTaskResponse
+	(*ChangeTaskStatusRequest)(nil),  // 13: task.v1.ChangeTaskStatusRequest
+	(*ChangeTaskStatusResponse)(nil), // 14: task.v1.ChangeTaskStatusResponse
+	(*timestamppb.Timestamp)(nil),    // 15: google.protobuf.Timestamp
 }
 var file_task_v1_task_proto_depIdxs = []int32{
-	0,  // 0: task.v1.Task.priority:type_name -> task.v1.TaskPriority
-	14, // 1: task.v1.Task.start_at:type_name -> google.protobuf.Timestamp
-	14, // 2: task.v1.Task.due_at:type_name -> google.protobuf.Timestamp
-	14, // 3: task.v1.Task.completed_at:type_name -> google.protobuf.Timestamp
-	14, // 4: task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
-	14, // 5: task.v1.Task.updated_at:type_name -> google.protobuf.Timestamp
-	1,  // 6: task.v1.Task.subtasks:type_name -> task.v1.Task
-	0,  // 7: task.v1.CreateTaskRequest.priority:type_name -> task.v1.TaskPriority
-	14, // 8: task.v1.CreateTaskRequest.start_at:type_name -> google.protobuf.Timestamp
-	14, // 9: task.v1.CreateTaskRequest.due_at:type_name -> google.protobuf.Timestamp
-	1,  // 10: task.v1.CreateTaskResponse.task:type_name -> task.v1.Task
-	1,  // 11: task.v1.GetTaskResponse.task:type_name -> task.v1.Task
-	1,  // 12: task.v1.ListTasksResponse.tasks:type_name -> task.v1.Task
-	0,  // 13: task.v1.UpdateTaskRequest.priority:type_name -> task.v1.TaskPriority
-	14, // 14: task.v1.UpdateTaskRequest.start_at:type_name -> google.protobuf.Timestamp
-	14, // 15: task.v1.UpdateTaskRequest.due_at:type_name -> google.protobuf.Timestamp
-	1,  // 16: task.v1.UpdateTaskResponse.task:type_name -> task.v1.Task
-	1,  // 17: task.v1.ChangeTaskStatusResponse.task:type_name -> task.v1.Task
-	2,  // 18: task.v1.TaskService.CreateTask:input_type -> task.v1.CreateTaskRequest
-	4,  // 19: task.v1.TaskService.GetTask:input_type -> task.v1.GetTaskRequest
-	6,  // 20: task.v1.TaskService.ListTasks:input_type -> task.v1.ListTasksRequest
-	8,  // 21: task.v1.TaskService.UpdateTask:input_type -> task.v1.UpdateTaskRequest
-	10, // 22: task.v1.TaskService.DeleteTask:input_type -> task.v1.DeleteTaskRequest
-	12, // 23: task.v1.TaskService.ChangeTaskStatus:input_type -> task.v1.ChangeTaskStatusRequest
-	3,  // 24: task.v1.TaskService.CreateTask:output_type -> task.v1.CreateTaskResponse
-	5,  // 25: task.v1.TaskService.GetTask:output_type -> task.v1.GetTaskResponse
-	7,  // 26: task.v1.TaskService.ListTasks:output_type -> task.v1.ListTasksResponse
-	9,  // 27: task.v1.TaskService.UpdateTask:output_type -> task.v1.UpdateTaskResponse
-	11, // 28: task.v1.TaskService.DeleteTask:output_type -> task.v1.DeleteTaskResponse
-	13, // 29: task.v1.TaskService.ChangeTaskStatus:output_type -> task.v1.ChangeTaskStatusResponse
-	24, // [24:30] is the sub-list for method output_type
-	18, // [18:24] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	1,  // 0: task.v1.Task.priority:type_name -> task.v1.TaskPriority
+	15, // 1: task.v1.Task.start_at:type_name -> google.protobuf.Timestamp
+	15, // 2: task.v1.Task.due_at:type_name -> google.protobuf.Timestamp
+	15, // 3: task.v1.Task.completed_at:type_name -> google.protobuf.Timestamp
+	15, // 4: task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
+	15, // 5: task.v1.Task.updated_at:type_name -> google.protobuf.Timestamp
+	2,  // 6: task.v1.Task.subtasks:type_name -> task.v1.Task
+	1,  // 7: task.v1.CreateTaskRequest.priority:type_name -> task.v1.TaskPriority
+	15, // 8: task.v1.CreateTaskRequest.start_at:type_name -> google.protobuf.Timestamp
+	15, // 9: task.v1.CreateTaskRequest.due_at:type_name -> google.protobuf.Timestamp
+	2,  // 10: task.v1.CreateTaskResponse.task:type_name -> task.v1.Task
+	2,  // 11: task.v1.GetTaskResponse.task:type_name -> task.v1.Task
+	15, // 12: task.v1.ListTasksRequest.due_from:type_name -> google.protobuf.Timestamp
+	15, // 13: task.v1.ListTasksRequest.due_to:type_name -> google.protobuf.Timestamp
+	1,  // 14: task.v1.ListTasksRequest.priorities:type_name -> task.v1.TaskPriority
+	0,  // 15: task.v1.ListTasksRequest.sort_field:type_name -> task.v1.TaskSortField
+	2,  // 16: task.v1.ListTasksResponse.tasks:type_name -> task.v1.Task
+	1,  // 17: task.v1.UpdateTaskRequest.priority:type_name -> task.v1.TaskPriority
+	15, // 18: task.v1.UpdateTaskRequest.start_at:type_name -> google.protobuf.Timestamp
+	15, // 19: task.v1.UpdateTaskRequest.due_at:type_name -> google.protobuf.Timestamp
+	2,  // 20: task.v1.UpdateTaskResponse.task:type_name -> task.v1.Task
+	2,  // 21: task.v1.ChangeTaskStatusResponse.task:type_name -> task.v1.Task
+	3,  // 22: task.v1.TaskService.CreateTask:input_type -> task.v1.CreateTaskRequest
+	5,  // 23: task.v1.TaskService.GetTask:input_type -> task.v1.GetTaskRequest
+	7,  // 24: task.v1.TaskService.ListTasks:input_type -> task.v1.ListTasksRequest
+	9,  // 25: task.v1.TaskService.UpdateTask:input_type -> task.v1.UpdateTaskRequest
+	11, // 26: task.v1.TaskService.DeleteTask:input_type -> task.v1.DeleteTaskRequest
+	13, // 27: task.v1.TaskService.ChangeTaskStatus:input_type -> task.v1.ChangeTaskStatusRequest
+	4,  // 28: task.v1.TaskService.CreateTask:output_type -> task.v1.CreateTaskResponse
+	6,  // 29: task.v1.TaskService.GetTask:output_type -> task.v1.GetTaskResponse
+	8,  // 30: task.v1.TaskService.ListTasks:output_type -> task.v1.ListTasksResponse
+	10, // 31: task.v1.TaskService.UpdateTask:output_type -> task.v1.UpdateTaskResponse
+	12, // 32: task.v1.TaskService.DeleteTask:output_type -> task.v1.DeleteTaskResponse
+	14, // 33: task.v1.TaskService.ChangeTaskStatus:output_type -> task.v1.ChangeTaskStatusResponse
+	28, // [28:34] is the sub-list for method output_type
+	22, // [22:28] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_task_v1_task_proto_init() }
@@ -1174,13 +1351,14 @@ func file_task_v1_task_proto_init() {
 	if File_task_v1_task_proto != nil {
 		return
 	}
+	file_task_v1_task_proto_msgTypes[5].OneofWrappers = []any{}
 	file_task_v1_task_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_v1_task_proto_rawDesc), len(file_task_v1_task_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,

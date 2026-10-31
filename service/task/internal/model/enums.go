@@ -10,6 +10,17 @@ const (
 	TaskPriorityUrgent      TaskPriority = 4
 )
 
+type TaskSortField int32
+
+const (
+	TaskSortUnspecified TaskSortField = 0
+	TaskSortPosition    TaskSortField = 1
+	TaskSortDueAt       TaskSortField = 2
+	TaskSortPriority    TaskSortField = 3
+	TaskSortCreatedAt   TaskSortField = 4
+	TaskSortUpdatedAt   TaskSortField = 5
+)
+
 type TaskStatusCategory int32
 
 const (
