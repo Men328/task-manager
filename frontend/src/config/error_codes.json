@@ -822,6 +822,24 @@
         "en": "The default project cannot be archived."
       }
     },
+    "PROJECT_NAME_TOO_LONG": {
+      "owner": "project",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Tên dự án tối đa 100 ký tự.",
+        "en": "Project name must be at most 100 characters."
+      }
+    },
+    "PROJECT_COLOR_INVALID": {
+      "owner": "project",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Màu dự án không hợp lệ (dạng #RRGGBB hoặc #RRGGBBAA).",
+        "en": "Project color is invalid (use #RRGGBB or #RRGGBBAA)."
+      }
+    },
     "TASK_SUBTASK_PROJECT_LOCKED": {
       "owner": "task",
       "grpcCode": "FailedPrecondition",

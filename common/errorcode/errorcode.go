@@ -108,6 +108,8 @@ const (
 	ProjectNotFound             = "PROJECT_NOT_FOUND"
 	ProjectArchived             = "PROJECT_ARCHIVED"
 	ProjectDefaultNotArchivable = "PROJECT_DEFAULT_NOT_ARCHIVABLE"
+	ProjectNameTooLong          = "PROJECT_NAME_TOO_LONG"
+	ProjectColorInvalid         = "PROJECT_COLOR_INVALID"
 	TaskSubtaskProjectLocked    = "TASK_SUBTASK_PROJECT_LOCKED"
 
 	EventProfileIDRequired = "EVENT_PROFILE_ID_REQUIRED"

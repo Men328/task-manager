@@ -42,7 +42,13 @@ func mapProjectError(err error) error {
 		case "23503", "22P02":
 			return model.ErrNotFound
 		case "23514":
+			if pgErr.ConstraintName == "ck_project_projects_color_format" {
+				return model.NewError(model.ErrorKindColorInvalid, "project color is invalid")
+			}
 			return model.ErrInvalid
+		case "22001":
+			// Chỉ cột name có giới hạn độ dài mà người dùng nhập vào.
+			return model.NewError(model.ErrorKindNameTooLong, "project name is too long")
 		}
 	}
 	return err

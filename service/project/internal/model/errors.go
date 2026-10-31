@@ -16,6 +16,8 @@ const (
 	ErrorKindNameDuplicate        ErrorKind = "name_duplicate"
 	ErrorKindArchived             ErrorKind = "archived"
 	ErrorKindDefaultNotArchivable ErrorKind = "default_not_archivable"
+	ErrorKindNameTooLong          ErrorKind = "name_too_long"
+	ErrorKindColorInvalid         ErrorKind = "color_invalid"
 )
 
 type Error struct {

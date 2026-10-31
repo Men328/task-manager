@@ -3,10 +3,38 @@ package service
 import (
 	"context"
 	"errors"
+	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"taskmanager/service/project/internal/model"
 )
+
+// maxProjectNameLength khớp cột project.projects.name varchar(100) (đếm theo ký tự).
+const maxProjectNameLength = 100
+
+// projectColorPattern khớp ràng buộc ck_project_projects_color_format: #RRGGBB hoặc #RRGGBBAA.
+var projectColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$`)
+
+// normalizeName cắt khoảng trắng và kiểm tra tên: bắt buộc, tối đa 100 ký tự.
+func normalizeName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "", model.ErrInvalid
+	}
+	if utf8.RuneCountInString(name) > maxProjectNameLength {
+		return "", model.NewError(model.ErrorKindNameTooLong, "project name must be at most %d characters", maxProjectNameLength)
+	}
+	return name, nil
+}
+
+// validateColor chấp nhận màu rỗng (không đặt màu) hoặc mã hex hợp lệ.
+func validateColor(color string) error {
+	if color == "" || projectColorPattern.MatchString(color) {
+		return nil
+	}
+	return model.NewError(model.ErrorKindColorInvalid, "project color is invalid")
+}
 
 type projectService struct {
 	projects ProjectRepository
@@ -17,9 +45,13 @@ func NewProjectService(projects ProjectRepository) ProjectService {
 }
 
 func (s *projectService) Create(ctx context.Context, p model.Project) (model.Project, error) {
-	p.Name = strings.TrimSpace(p.Name)
-	if p.Name == "" {
-		return model.Project{}, model.ErrInvalid
+	name, err := normalizeName(p.Name)
+	if err != nil {
+		return model.Project{}, err
+	}
+	p.Name = name
+	if err := validateColor(p.Color); err != nil {
+		return model.Project{}, err
 	}
 	// Đảm bảo project mặc định tồn tại trước để tên "Chung" do user tạo không chiếm chỗ.
 	if _, err := s.SeedDefault(ctx, p.ProfileID); err != nil {
@@ -50,11 +82,16 @@ func (s *projectService) Update(ctx context.Context, id string, upd model.Projec
 		return model.Project{}, model.NewError(model.ErrorKindArchived, "project is archived")
 	}
 	if upd.Name != nil {
-		name := strings.TrimSpace(*upd.Name)
-		if name == "" {
-			return model.Project{}, model.ErrInvalid
+		name, err := normalizeName(*upd.Name)
+		if err != nil {
+			return model.Project{}, err
 		}
 		upd.Name = &name
+	}
+	if upd.Color != nil {
+		if err := validateColor(*upd.Color); err != nil {
+			return model.Project{}, err
+		}
 	}
 	return s.projects.Update(ctx, id, upd)
 }

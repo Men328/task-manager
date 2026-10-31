@@ -31,6 +31,10 @@ func codeForKind(kind model.ErrorKind) string {
 		return errorcode.ProjectArchived
 	case model.ErrorKindDefaultNotArchivable:
 		return errorcode.ProjectDefaultNotArchivable
+	case model.ErrorKindNameTooLong:
+		return errorcode.ProjectNameTooLong
+	case model.ErrorKindColorInvalid:
+		return errorcode.ProjectColorInvalid
 	default:
 		return errorcode.CommonInternal
 	}

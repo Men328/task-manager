@@ -179,3 +179,48 @@ func TestUpdateArchivedProjectRejected(t *testing.T) {
 	_, err := svc.Update(ctx, p.ID, model.ProjectUpdate{Name: &n})
 	requireKind(t, err, model.ErrorKindArchived)
 }
+
+func TestCreateValidatesNameLength(t *testing.T) {
+	ctx := context.Background()
+	svc := NewProjectService(newFakeProjectRepository())
+	// 100 ký tự có dấu (rune) vẫn hợp lệ dù vượt 100 byte.
+	ok := strings.Repeat("ữ", 100)
+	if _, err := svc.Create(ctx, model.Project{ProfileID: "p1", Name: ok}); err != nil {
+		t.Fatalf("100 rune phải hợp lệ, nhận %v", err)
+	}
+	_, err := svc.Create(ctx, model.Project{ProfileID: "p1", Name: strings.Repeat("a", 101)})
+	requireKind(t, err, model.ErrorKindNameTooLong)
+}
+
+func TestCreateValidatesColor(t *testing.T) {
+	ctx := context.Background()
+	svc := NewProjectService(newFakeProjectRepository())
+	for i, color := range []string{"", "#aabbcc", "#AABBCC80"} {
+		if _, err := svc.Create(ctx, model.Project{ProfileID: "p1", Name: "Ok" + strconv.Itoa(i), Color: color}); err != nil {
+			t.Fatalf("màu %q phải hợp lệ, nhận %v", color, err)
+		}
+	}
+	for i, color := range []string{"red", "#abc", "#aabbccd", "aabbcc", "#gggggg"} {
+		_, err := svc.Create(ctx, model.Project{ProfileID: "p1", Name: "Bad" + strconv.Itoa(i), Color: color})
+		requireKind(t, err, model.ErrorKindColorInvalid)
+	}
+}
+
+func TestUpdateValidatesNameAndColor(t *testing.T) {
+	ctx := context.Background()
+	svc := NewProjectService(newFakeProjectRepository())
+	p, _ := svc.Create(ctx, model.Project{ProfileID: "p1", Name: "Web"})
+
+	long := strings.Repeat("b", 101)
+	_, err := svc.Update(ctx, p.ID, model.ProjectUpdate{Name: &long})
+	requireKind(t, err, model.ErrorKindNameTooLong)
+
+	bad := "#12345"
+	_, err = svc.Update(ctx, p.ID, model.ProjectUpdate{Color: &bad})
+	requireKind(t, err, model.ErrorKindColorInvalid)
+
+	empty := ""
+	if _, err := svc.Update(ctx, p.ID, model.ProjectUpdate{Color: &empty}); err != nil {
+		t.Fatalf("màu rỗng phải hợp lệ, nhận %v", err)
+	}
+}
