@@ -17,6 +17,15 @@ export type TaskPriority =
   | 'TASK_PRIORITY_HIGH'
   | 'TASK_PRIORITY_URGENT';
 
+/** Trường sắp xếp của ListTasks (UNSPECIFIED = POSITION). */
+export type TaskSortField =
+  | 'TASK_SORT_FIELD_UNSPECIFIED'
+  | 'TASK_SORT_FIELD_POSITION'
+  | 'TASK_SORT_FIELD_DUE_AT'
+  | 'TASK_SORT_FIELD_PRIORITY'
+  | 'TASK_SORT_FIELD_CREATED_AT'
+  | 'TASK_SORT_FIELD_UPDATED_AT';
+
 export type TaskStatusCategory =
   | 'TASK_STATUS_CATEGORY_UNSPECIFIED'
   | 'TASK_STATUS_CATEGORY_TODO'
@@ -176,6 +185,25 @@ export interface ListTasksParams {
   rootOnly?: boolean;
   includeArchived?: boolean;
   includeSubtasks?: boolean;
+  /** Các field dưới đây bắt buộc kèm profileId. Hạn lọc theo khoảng nửa mở [dueFrom, dueTo), ISO-8601. */
+  dueFrom?: string;
+  dueTo?: string;
+  /** true: chỉ task có hạn; false: chỉ task không có hạn. */
+  hasDueAt?: boolean;
+  /** Chỉ task có status không thuộc nhóm done/cancelled. */
+  openOnly?: boolean;
+  priorities?: TaskPriority[];
+  sortField?: TaskSortField;
+  sortDesc?: boolean;
+  /** 0/không truyền = trả toàn bộ; tối đa 500. */
+  pageSize?: number;
+  pageToken?: string;
+}
+
+/** Một trang kết quả ListTasks; nextPageToken rỗng = đã hết. */
+export interface TaskPage {
+  tasks: Task[];
+  nextPageToken: string;
 }
 
 export interface UpdateTaskInput {

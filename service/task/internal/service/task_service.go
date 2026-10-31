@@ -73,8 +73,44 @@ func (s *taskService) Get(ctx context.Context, id string) (model.Task, error) {
 	return s.tasks.Get(ctx, id)
 }
 
-func (s *taskService) List(ctx context.Context, f model.TaskFilter) ([]model.Task, error) {
-	return s.tasks.List(ctx, f)
+func (s *taskService) List(ctx context.Context, f model.TaskFilter) (model.TaskPage, error) {
+	if f.OpenOnly {
+		closed, err := s.closedStatusIDs(ctx, f.ProfileID)
+		if err != nil {
+			return model.TaskPage{}, err
+		}
+		f.ExcludeStatusIDs = append(f.ExcludeStatusIDs, closed...)
+	}
+
+	pageSize := f.Limit
+	if pageSize > 0 {
+		f.Limit = pageSize + 1
+	}
+	items, err := s.tasks.List(ctx, f)
+	if err != nil {
+		return model.TaskPage{}, err
+	}
+
+	page := model.TaskPage{Tasks: items}
+	if pageSize > 0 && len(items) > pageSize {
+		page.Tasks = items[:pageSize]
+		page.NextOffset = f.Offset + pageSize
+	}
+	return page, nil
+}
+
+func (s *taskService) closedStatusIDs(ctx context.Context, profileID string) ([]string, error) {
+	statuses, err := s.statuses.List(ctx, profileID, true)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(statuses))
+	for _, st := range statuses {
+		if st.Category == model.TaskStatusCategoryDone || st.Category == model.TaskStatusCategoryCancelled {
+			out = append(out, st.ID)
+		}
+	}
+	return out, nil
 }
 
 func (s *taskService) ListChildren(ctx context.Context, parentTaskID string) ([]model.Task, error) {

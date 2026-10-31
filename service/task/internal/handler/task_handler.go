@@ -53,13 +53,17 @@ func (h *TaskHandler) GetTask(ctx context.Context, req *taskv1.GetTaskRequest) (
 }
 
 func (h *TaskHandler) ListTasks(ctx context.Context, req *taskv1.ListTasksRequest) (*taskv1.ListTasksResponse, error) {
-	items, err := h.tasks.List(ctx, dependency.TaskFilterFromRequest(req))
+	filter, err := dependency.TaskFilterFromRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	page, err := h.tasks.List(ctx, filter)
 	if err != nil {
 		return nil, dependency.ToGRPCError(err)
 	}
 
-	out := make([]*taskv1.Task, 0, len(items))
-	for _, t := range items {
+	out := make([]*taskv1.Task, 0, len(page.Tasks))
+	for _, t := range page.Tasks {
 		protoTask := dependency.TaskToProto(t)
 		if req.GetIncludeSubtasks() {
 			children, err := h.tasks.ListChildren(ctx, t.ID)
@@ -72,7 +76,7 @@ func (h *TaskHandler) ListTasks(ctx context.Context, req *taskv1.ListTasksReques
 		}
 		out = append(out, protoTask)
 	}
-	return &taskv1.ListTasksResponse{Tasks: out}, nil
+	return &taskv1.ListTasksResponse{Tasks: out, NextPageToken: dependency.EncodePageToken(page.NextOffset)}, nil
 }
 
 func (h *TaskHandler) UpdateTask(ctx context.Context, req *taskv1.UpdateTaskRequest) (*taskv1.UpdateTaskResponse, error) {

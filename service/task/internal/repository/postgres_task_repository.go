@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -109,26 +111,8 @@ func (r *PostgresTaskRepository) Get(ctx context.Context, id string) (model.Task
 }
 
 func (r *PostgresTaskRepository) List(ctx context.Context, f model.TaskFilter) ([]model.Task, error) {
-	const query = `
-		SELECT ` + taskColumns + `
-		FROM task.tasks
-		WHERE deleted_at IS NULL
-		  AND ($1::uuid IS NULL OR profile_id = $1::uuid)
-		  AND ($2::uuid IS NULL OR status_id = $2::uuid)
-		  AND (CASE WHEN $3 THEN parent_task_id IS NULL
-		            ELSE ($4::uuid IS NULL OR parent_task_id = $4::uuid) END)
-		  AND ($5 OR NOT is_archived)
-		  AND ($6::uuid IS NULL OR project_id = $6::uuid)
-		ORDER BY position, created_at`
-
-	rows, err := r.pool.Query(ctx, query,
-		optionalUUID(f.ProfileID),
-		optionalUUID(f.StatusID),
-		f.RootOnly,
-		optionalUUID(f.ParentTaskID),
-		f.IncludeArchived,
-		optionalUUID(f.ProjectID),
-	)
+	query, args := buildTaskListQuery(f)
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, mapTaskError(err)
 	}
@@ -310,4 +294,81 @@ func (r *PostgresTaskRepository) ListStatusLogs(ctx context.Context, taskID stri
 		out = append(out, log)
 	}
 	return out, mapTaskError(rows.Err())
+}
+
+func buildTaskListQuery(f model.TaskFilter) (string, []any) {
+	conds := []string{"deleted_at IS NULL"}
+	args := make([]any, 0, 12)
+	where := func(cond string, value any) {
+		args = append(args, value)
+		conds = append(conds, strings.ReplaceAll(cond, "?", fmt.Sprintf("$%d", len(args))))
+	}
+
+	if f.ProfileID != "" {
+		where("profile_id = ?::uuid", f.ProfileID)
+	}
+	if f.StatusID != "" {
+		where("status_id = ?::uuid", f.StatusID)
+	}
+	if f.RootOnly {
+		conds = append(conds, "parent_task_id IS NULL")
+	} else if f.ParentTaskID != "" {
+		where("parent_task_id = ?::uuid", f.ParentTaskID)
+	}
+	if !f.IncludeArchived {
+		conds = append(conds, "NOT is_archived")
+	}
+	if f.ProjectID != "" {
+		where("project_id = ?::uuid", f.ProjectID)
+	}
+	if f.DueFrom != nil {
+		where("due_at >= ?", *f.DueFrom)
+	}
+	if f.DueTo != nil {
+		where("due_at < ?", *f.DueTo)
+	}
+	if f.HasDueAt != nil {
+		if *f.HasDueAt {
+			conds = append(conds, "due_at IS NOT NULL")
+		} else {
+			conds = append(conds, "due_at IS NULL")
+		}
+	}
+	if len(f.Priorities) > 0 {
+		values := make([]string, 0, len(f.Priorities))
+		for _, p := range f.Priorities {
+			values = append(values, priorityToDB(p))
+		}
+		where("priority = ANY(?::task.task_priority[])", values)
+	}
+	if len(f.ExcludeStatusIDs) > 0 {
+		where("NOT (status_id = ANY(?::uuid[]))", f.ExcludeStatusIDs)
+	}
+
+	query := `SELECT ` + taskColumns + ` FROM task.tasks WHERE ` + strings.Join(conds, " AND ") +
+		` ORDER BY ` + taskOrderBy(f.SortField, f.SortDesc)
+	if f.Limit > 0 {
+		args = append(args, f.Limit, f.Offset)
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)-1, len(args))
+	}
+	return query, args
+}
+
+func taskOrderBy(field model.TaskSortField, desc bool) string {
+	dir := "ASC"
+	if desc {
+		dir = "DESC"
+	}
+	switch field {
+	case model.TaskSortDueAt:
+		return "tasks.due_at " + dir + " NULLS LAST, tasks.id"
+	case model.TaskSortPriority:
+		return "tasks.priority " + dir + ", tasks.id"
+	case model.TaskSortCreatedAt:
+		return "tasks.created_at " + dir + ", tasks.id"
+	case model.TaskSortUpdatedAt:
+		return "tasks.updated_at " + dir + ", tasks.id"
+	default:
+		return "tasks.position " + dir + ", tasks.created_at " + dir + ", tasks.id"
+	}
 }

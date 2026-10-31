@@ -417,6 +417,33 @@
         "en": "That would create a task cycle."
       }
     },
+    "TASK_DUE_RANGE_INVALID": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Khoảng hạn không hợp lệ: due_from phải trước due_to và không dùng kèm has_due_at=false.",
+        "en": "Invalid due range: due_from must be before due_to and cannot be combined with has_due_at=false."
+      }
+    },
+    "TASK_PAGE_SIZE_INVALID": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Kích thước trang không hợp lệ.",
+        "en": "Page size is invalid."
+      }
+    },
+    "TASK_PAGE_TOKEN_INVALID": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Mã trang không hợp lệ.",
+        "en": "Page token is invalid."
+      }
+    },
     "TASK_STATUS_NAME_REQUIRED": {
       "owner": "task",
       "grpcCode": "InvalidArgument",

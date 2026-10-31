@@ -1,6 +1,8 @@
 package dependency
 
 import (
+	"encoding/base64"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,8 +52,19 @@ func TaskFromCreateRequest(req *taskv1.CreateTaskRequest) model.Task {
 	}
 }
 
-func TaskFilterFromRequest(req *taskv1.ListTasksRequest) model.TaskFilter {
-	return model.TaskFilter{
+const maxPageSize = 500
+
+const pageTokenPrefix = "o:"
+
+func usesListExtensions(req *taskv1.ListTasksRequest) bool {
+	return req.GetDueFrom() != nil || req.GetDueTo() != nil || req.HasDueAt != nil ||
+		req.GetOpenOnly() || len(req.GetPriorities()) > 0 ||
+		req.GetSortField() != taskv1.TaskSortField_TASK_SORT_FIELD_UNSPECIFIED || req.GetSortDesc() ||
+		req.GetPageSize() != 0 || req.GetPageToken() != ""
+}
+
+func TaskFilterFromRequest(req *taskv1.ListTasksRequest) (model.TaskFilter, error) {
+	f := model.TaskFilter{
 		ProfileID:       req.GetProfileId(),
 		ProjectID:       req.GetProjectId(),
 		ParentTaskID:    req.GetParentTaskId(),
@@ -59,6 +72,68 @@ func TaskFilterFromRequest(req *taskv1.ListTasksRequest) model.TaskFilter {
 		StatusID:        req.GetStatusId(),
 		IncludeArchived: req.GetIncludeArchived(),
 	}
+	if !usesListExtensions(req) {
+		return f, nil
+	}
+	if req.GetProfileId() == "" {
+		return model.TaskFilter{}, errorcode.Error(errorcode.TaskProfileIDRequired)
+	}
+
+	f.DueFrom = timePtr(req.GetDueFrom())
+	f.DueTo = timePtr(req.GetDueTo())
+	f.HasDueAt = req.HasDueAt
+	hasRange := f.DueFrom != nil || f.DueTo != nil
+	if f.DueFrom != nil && f.DueTo != nil && !f.DueFrom.Before(*f.DueTo) {
+		return model.TaskFilter{}, errorcode.Error(errorcode.TaskDueRangeInvalid)
+	}
+	if hasRange && f.HasDueAt != nil && !*f.HasDueAt {
+		return model.TaskFilter{}, errorcode.Error(errorcode.TaskDueRangeInvalid)
+	}
+
+	f.OpenOnly = req.GetOpenOnly()
+	for _, p := range req.GetPriorities() {
+		f.Priorities = append(f.Priorities, taskPriorityFromProto(p))
+	}
+	f.SortField = model.TaskSortField(req.GetSortField())
+	f.SortDesc = req.GetSortDesc()
+
+	size := int(req.GetPageSize())
+	if size < 0 {
+		return model.TaskFilter{}, errorcode.Error(errorcode.TaskPageSizeInvalid)
+	}
+	f.Limit = min(size, maxPageSize)
+
+	if token := req.GetPageToken(); token != "" {
+		offset, ok := decodePageToken(token)
+		if !ok {
+			return model.TaskFilter{}, errorcode.Error(errorcode.TaskPageTokenInvalid)
+		}
+		f.Offset = offset
+	}
+	return f, nil
+}
+
+func EncodePageToken(offset int) string {
+	if offset <= 0 {
+		return ""
+	}
+	return base64.RawURLEncoding.EncodeToString([]byte(pageTokenPrefix + strconv.Itoa(offset)))
+}
+
+func decodePageToken(token string) (int, bool) {
+	raw, err := base64.RawURLEncoding.DecodeString(token)
+	if err != nil {
+		return 0, false
+	}
+	value, found := strings.CutPrefix(string(raw), pageTokenPrefix)
+	if !found {
+		return 0, false
+	}
+	offset, err := strconv.Atoi(value)
+	if err != nil || offset < 0 {
+		return 0, false
+	}
+	return offset, true
 }
 
 func TaskUpdateFromRequest(req *taskv1.UpdateTaskRequest) model.TaskUpdate {

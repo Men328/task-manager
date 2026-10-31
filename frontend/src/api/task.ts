@@ -9,6 +9,7 @@ import type {
   ListTasksParams,
   StatusTransition,
   Task,
+  TaskPage,
   TaskStatus,
 } from '../types';
 
@@ -107,22 +108,58 @@ export function createTransition(input: CreateTransitionInput): Promise<StatusTr
   }).then((payload) => unwrap<StatusTransition>(payload, 'transition'));
 }
 
+function listTasksQuery(params: ListTasksParams): string {
+  return buildQuery({
+    profile_id: params.profileId,
+    project_id: params.projectId,
+    status_id: params.statusId,
+    parent_task_id: params.parentTaskId,
+    root_only: params.rootOnly,
+    include_archived: params.includeArchived,
+    include_subtasks: params.includeSubtasks,
+    due_from: params.dueFrom,
+    due_to: params.dueTo,
+    has_due_at: params.hasDueAt,
+    open_only: params.openOnly,
+    priorities: params.priorities,
+    sort_field: params.sortField,
+    sort_desc: params.sortDesc,
+    page_size: params.pageSize,
+    page_token: params.pageToken,
+  });
+}
+
 /** GET /v1/tasks?profile_id=... */
 export async function listTasks(params: ListTasksParams): Promise<Task[]> {
-  const payload = await request<unknown>(
-    taskApi,
-    `${TASKS_PATH}${buildQuery({
-      profile_id: params.profileId,
-      project_id: params.projectId,
-      status_id: params.statusId,
-      parent_task_id: params.parentTaskId,
-      root_only: params.rootOnly,
-      include_archived: params.includeArchived,
-      include_subtasks: params.includeSubtasks,
-    })}`,
-    { method: 'GET' },
-  );
+  const payload = await request<unknown>(taskApi, `${TASKS_PATH}${listTasksQuery(params)}`, { method: 'GET' });
   return asList<Task>(payload, 'tasks');
+}
+
+/** GET /v1/tasks có phân trang: trả một trang và token trang sau. */
+export async function listTasksPage(params: ListTasksParams): Promise<TaskPage> {
+  const payload = await request<unknown>(taskApi, `${TASKS_PATH}${listTasksQuery(params)}`, { method: 'GET' });
+  const nextPageToken =
+    payload !== null && typeof payload === 'object'
+      ? (payload as { nextPageToken?: unknown }).nextPageToken
+      : undefined;
+  return {
+    tasks: asList<Task>(payload, 'tasks'),
+    nextPageToken: typeof nextPageToken === 'string' ? nextPageToken : '',
+  };
+}
+
+const LIST_ALL_PAGE_SIZE = 200;
+
+/** Đi hết các trang của ListTasks (dùng cho màn gộp như agenda). */
+export async function listAllTasks(params: Omit<ListTasksParams, 'pageSize' | 'pageToken'>): Promise<Task[]> {
+  const all: Task[] = [];
+  let pageToken = '';
+  do {
+    const page = await listTasksPage({ ...params, pageSize: LIST_ALL_PAGE_SIZE, pageToken: pageToken || undefined });
+    all.push(...page.tasks);
+    pageToken = page.nextPageToken;
+  } while (pageToken);
+  return all;
 }
 
 /** GET /v1/tasks/{id}?include_subtasks=true */

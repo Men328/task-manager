@@ -48,7 +48,7 @@ type TransitionRepository interface {
 type TaskService interface {
 	Create(ctx context.Context, t model.Task) (model.Task, error)
 	Get(ctx context.Context, id string) (model.Task, error)
-	List(ctx context.Context, f model.TaskFilter) ([]model.Task, error)
+	List(ctx context.Context, f model.TaskFilter) (model.TaskPage, error)
 	ListChildren(ctx context.Context, parentTaskID string) ([]model.Task, error)
 	Update(ctx context.Context, id string, upd model.TaskUpdate) (model.Task, error)
 	Delete(ctx context.Context, id string) error
