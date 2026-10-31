@@ -18,7 +18,8 @@ deployments/
 ## Chạy
 
 ```bash
-make up            # docker compose up --build -d (từ root repo)
+make up            # build image theo batch (BATCH_SIZE=3) rồi docker compose up -d (từ root repo)
+make build-images BATCH_SIZE=1   # chỉ build image, mỗi lần 1 image (máy yếu)
 make up-tunnel     # kèm cloudflared (Cloudflare Tunnel; cần token trong deployments/docker/.env)
 make ps / make logs / make down
 make migrate-up    # chạy toàn bộ migration

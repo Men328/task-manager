@@ -10,13 +10,17 @@ WORKDIR /src
 # Layer cache: chỉ copy go.mod/go.sum trước
 COPY common/go.mod common/go.sum ./common/
 COPY service/identity/go.mod service/identity/go.sum ./service/identity/
-RUN cd service/identity && go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    cd service/identity && go mod download
 
 # Source
 COPY common/ ./common/
 COPY service/identity/ ./service/identity/
 
-RUN cd service/identity \
+# Cache mount: giữ module + build cache giữa các lần build, không phải compile lại từ đầu.
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    cd service/identity \
     && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/grpc ./cmd/grpc \
     && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/http ./cmd/http
 

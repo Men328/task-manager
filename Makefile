@@ -10,6 +10,8 @@ export PATH := $(GOBIN):$(PATH)
 COMPOSE := docker compose -f deployments/docker/docker-compose.yml
 # Kèm profile `tunnel` (cloudflared) cho ps/logs/down để không bỏ sót container.
 COMPOSE_ALL := $(COMPOSE) --profile tunnel
+BATCH_SIZE ?= 3
+SERVICES ?=
 DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
 
 .DEFAULT_GOAL := help
@@ -91,14 +93,14 @@ migrate-down: ## Rollback 1 migration
 	$(COMPOSE) run --rm migrate -path=/migrations -database "$(DATABASE_URL)" down 1
 
 # ------------------------------------------------------------------- docker
-up: ## docker compose up --build (postgres + migrate + *-grpc + gateway + frontend)
-	$(COMPOSE) up --build -d
+up: build-images ## Build image theo batch rồi up (postgres + migrate + *-grpc + gateway + frontend)
+	$(COMPOSE) up -d --no-build
 
-up-core: ## Chạy stack KHÔNG kèm cloudflared (tắt tunnel, bỏ qua COMPOSE_PROFILES)
-	COMPOSE_PROFILES= $(COMPOSE) up --build -d
+up-core: build-images ## Chạy stack KHÔNG kèm cloudflared (tắt tunnel, bỏ qua COMPOSE_PROFILES)
+	COMPOSE_PROFILES= $(COMPOSE) up -d --no-build
 
-up-tunnel: ## Như `up` nhưng kèm cloudflared (cần CLOUDFLARE_TUNNEL_TOKEN trong .env)
-	$(COMPOSE_ALL) up --build -d
+up-tunnel: build-images ## Như `up` nhưng kèm cloudflared (cần CLOUDFLARE_TUNNEL_TOKEN trong .env)
+	$(COMPOSE_ALL) up -d --no-build
 
 tunnel-up: ## Chỉ bật cloudflared (stack đang chạy sẵn)
 	$(COMPOSE_ALL) up -d cloudflared
@@ -121,8 +123,10 @@ tunnel-logs: ## Xem log cloudflared
 ps: ## Trạng thái compose (kèm cloudflared nếu đang chạy)
 	$(COMPOSE_ALL) ps
 
-build-images: ## Chỉ build image
-	$(COMPOSE) build
+# Build theo batch (BATCH_SIZE image/lần, mặc định 3) thay vì build tất cả cùng lúc.
+# VD: make build-images BATCH_SIZE=1 | make build-images SERVICES="task-grpc frontend"
+build-images: ## Build image theo batch (BATCH_SIZE, SERVICES)
+	BATCH_SIZE=$(BATCH_SIZE) SERVICES="$(SERVICES)" bash scripts/build-images.sh
 
 # --------------------------------------------------------------------- local
 # Mỗi service gồm 2 binary: cmd/grpc (gRPC server) + cmd/http (grpc-gateway).

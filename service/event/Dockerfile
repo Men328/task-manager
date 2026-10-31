@@ -10,13 +10,17 @@ WORKDIR /src
 # Layer cache: chỉ copy go.mod/go.sum trước
 COPY common/go.mod common/go.sum ./common/
 COPY service/event/go.mod service/event/go.sum ./service/event/
-RUN cd service/event && go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    cd service/event && go mod download
 
 # Source
 COPY common/ ./common/
 COPY service/event/ ./service/event/
 
-RUN cd service/event \
+# Cache mount: giữ module + build cache giữa các lần build, không phải compile lại từ đầu.
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    cd service/event \
     && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/grpc ./cmd/grpc \
     && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/http ./cmd/http
 
