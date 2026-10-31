@@ -29,6 +29,7 @@ func (c *taskClient) Create(ctx context.Context, in model.TaskInput) (model.Task
 
 	request := &taskv1.CreateTaskRequest{
 		ProfileId:   in.ProfileID,
+		ProjectId:   in.ProjectID,
 		Title:       in.Title,
 		Description: in.Description,
 		Priority:    taskv1.TaskPriority(in.Priority),

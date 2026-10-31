@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 
 import i18n from '../../i18n';
 import type { CreateScheduleInput, UpdateScheduleInput } from '../../types';
+import { selectCurrentProjectId } from '../project/projectSlice';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import {
   fetchSchedules,
@@ -22,21 +23,22 @@ export function useCalendar() {
   const loading = useAppSelector(selectCalendarLoading);
   const error = useAppSelector(selectCalendarError);
   const profileId = useAppSelector((state) => state.session.profileId);
+  const projectId = useAppSelector(selectCurrentProjectId);
 
   const loadRange = useCallback(
     (from: string, to: string) => {
       if (profileId) {
-        void dispatch(fetchSchedules({ profileId, from, to }));
+        void dispatch(fetchSchedules({ profileId, projectId, from, to }));
       }
     },
-    [dispatch, profileId],
+    [dispatch, profileId, projectId],
   );
 
   const refresh = useCallback(() => {
     if (profileId) {
-      void dispatch(fetchSchedules({ profileId, from: range.from, to: range.to }));
+      void dispatch(fetchSchedules({ profileId, projectId, from: range.from, to: range.to }));
     }
-  }, [dispatch, profileId, range.from, range.to]);
+  }, [dispatch, profileId, projectId, range.from, range.to]);
 
   const requireProfile = () => {
     if (!profileId) {
@@ -50,6 +52,7 @@ export function useCalendar() {
     loading,
     error,
     profileId,
+    projectId,
     loadRange,
     refresh,
     create: async (input: NewScheduleInput) => {

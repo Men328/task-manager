@@ -2,16 +2,18 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"taskmanager/service/event/internal/model"
 )
 
 type eventService struct {
-	events EventRepository
+	events   EventRepository
+	projects ProjectChecker
 }
 
-func NewEventService(events EventRepository) EventService {
-	return &eventService{events: events}
+func NewEventService(events EventRepository, projects ProjectChecker) EventService {
+	return &eventService{events: events, projects: projects}
 }
 
 func (s *eventService) Create(ctx context.Context, e model.Event) (model.Event, error) {
@@ -23,6 +25,12 @@ func (s *eventService) Create(ctx context.Context, e model.Event) (model.Event, 
 		return model.Event{}, err
 	}
 	e.Status = status
+	if strings.TrimSpace(e.ProjectID) == "" {
+		return model.Event{}, model.NewError(model.ErrorKindProjectRequired, "project_id is required")
+	}
+	if err := s.projects.CheckAssignable(ctx, e.ProfileID, e.ProjectID); err != nil {
+		return model.Event{}, err
+	}
 	return s.events.Create(ctx, e)
 }
 
@@ -57,6 +65,15 @@ func (s *eventService) Update(ctx context.Context, id string, upd model.Update) 
 			return model.Event{}, err
 		}
 		upd.Status = &status
+	}
+
+	if upd.ProjectID != nil {
+		if strings.TrimSpace(*upd.ProjectID) == "" {
+			return model.Event{}, model.NewError(model.ErrorKindProjectRequired, "project_id must not be empty")
+		}
+		if err := s.projects.CheckAssignable(ctx, current.ProfileID, *upd.ProjectID); err != nil {
+			return model.Event{}, err
+		}
 	}
 
 	return s.events.Update(ctx, id, upd)

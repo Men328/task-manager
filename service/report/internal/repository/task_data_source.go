@@ -55,12 +55,13 @@ func (s *TaskDataSource) FetchStatuses(ctx context.Context, profileID string) ([
 	return out, nil
 }
 
-func (s *TaskDataSource) FetchTasks(ctx context.Context, profileID string, includeArchived bool) ([]model.Task, error) {
+func (s *TaskDataSource) FetchTasks(ctx context.Context, profileID, projectID string, includeArchived bool) ([]model.Task, error) {
 	callCtx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	response, err := s.tasks.ListTasks(callCtx, &taskv1.ListTasksRequest{
 		ProfileId:       profileID,
+		ProjectId:       projectID,
 		IncludeArchived: includeArchived,
 	})
 	if err != nil {

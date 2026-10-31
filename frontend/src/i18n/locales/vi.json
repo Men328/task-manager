@@ -7,7 +7,8 @@
     "soon": "Chưa có trong base",
     "cancel": "Huỷ",
     "remove": "Xoá",
-    "retry": "Thử lại"
+    "retry": "Thử lại",
+    "save": "Lưu"
   },
   "nav": {
     "groups": {
@@ -21,7 +22,8 @@
     "events": "Sự kiện",
     "backlog": "Backlog",
     "reports": "Báo cáo",
-    "statusesLifecycle": "Trạng thái & vòng đời"
+    "statusesLifecycle": "Trạng thái & vòng đời",
+    "projects": "Project"
   },
   "sidebar": {
     "brand": "Quản lý công việc"
@@ -260,6 +262,11 @@
     "deleteConfirm": "Xoá sự kiện này?"
   },
   "backlogPage": {
+    "convert": "Chuyển thành…",
+    "convertTask": "Chuyển thành task",
+    "convertSchedule": "Chuyển thành lịch",
+    "convertEvent": "Chuyển thành sự kiện",
+    "markTriagedFailed": "Đã tạo mục nhưng không đánh dấu được backlog là đã xử lý",
     "breadcrumb": "Kế hoạch",
     "title": "Backlog",
     "subtitle": "Email không thuộc task/lịch/sự kiện được mail worker đẩy về đây",
@@ -393,7 +400,8 @@
     "loadCalendar": "Không tải được dữ liệu lịch",
     "loadEvents": "Không tải được dữ liệu sự kiện",
     "loadBacklog": "Không tải được dữ liệu backlog",
-    "loadReport": "Không tải được dữ liệu báo cáo"
+    "loadReport": "Không tải được dữ liệu báo cáo",
+    "loadProjects": "Không tải được danh sách project"
   },
   "login": {
     "title": "Đăng nhập",
@@ -408,5 +416,46 @@
   },
   "authCallback": {
     "signingIn": "Đang hoàn tất đăng nhập…"
+  },
+  "project": {
+    "switcherLabel": "Chọn project",
+    "none": "Chưa có project",
+    "filterPlaceholder": "Tìm project",
+    "noMatch": "Không có project phù hợp",
+    "createAction": "Tạo project",
+    "manage": "Quản lý project",
+    "createTitle": "Tạo project",
+    "editTitle": "Sửa project",
+    "create": "Tạo",
+    "nameLabel": "Tên project",
+    "namePlaceholder": "Ví dụ: ACME",
+    "nameRequired": "Vui lòng nhập tên project",
+    "descriptionLabel": "Mô tả",
+    "descriptionHint": "Mô tả rõ phạm vi, người liên quan, từ khoá — hệ thống dùng đoạn này để tự xếp email vào project.",
+    "colorLabel": "Màu",
+    "saveFailed": "Không lưu được project",
+    "archiveFailed": "Không cập nhật được trạng thái lưu trữ",
+    "pageTitle": "Quản lý project",
+    "pageSubtitle": "Gom công việc, lịch và sự kiện theo từng project.",
+    "tabActive": "Đang hoạt động",
+    "tabArchived": "Đã lưu trữ",
+    "colColor": "Màu",
+    "colName": "Tên",
+    "colDescription": "Mô tả",
+    "badgeDefault": "Mặc định",
+    "badgeArchived": "Đã lưu trữ",
+    "edit": "Sửa",
+    "archive": "Lưu trữ",
+    "unarchive": "Khôi phục",
+    "emptyTitle": "Chưa có project",
+    "emptyActive": "Chưa có project đang hoạt động.",
+    "emptyArchived": "Chưa có project nào được lưu trữ.",
+    "selectLabel": "Project",
+    "selectPlaceholder": "Chọn project",
+    "movedNotice": "Đã chuyển sang project \"{{name}}\".",
+    "goTo": "Đến project",
+    "subtaskLocked": "Subtask theo project của task cha",
+    "moveFailed": "Không chuyển được project",
+    "moved": "Đã chuyển project"
   }
 }

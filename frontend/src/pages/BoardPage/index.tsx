@@ -18,7 +18,7 @@ import TaskTable from '../../components/board/TaskTable';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
 import TaskDetailModal from '../../components/task/TaskDetailModal';
 import TaskFormModal from '../../components/task/TaskFormModal';
-import { useAppDispatch, useBoard, useNoticeFocus, useSession } from '../../context';
+import { useAppDispatch, useBoard, useNoticeFocus, useProject, useSession } from '../../context';
 import { fetchBoard } from '../../context/board/boardSlice';
 import { tokens } from '../../theme';
 import type { Task } from '../../types';
@@ -29,6 +29,7 @@ export function BoardPage() {
   const dispatch = useAppDispatch();
   const session = useSession();
   const board = useBoard();
+  const { currentProjectId } = useProject();
 
   const [view, setView] = useState<BoardView>('kanban');
   const [modalOpened, setModalOpened] = useState(false);
@@ -39,9 +40,9 @@ export function BoardPage() {
 
   useEffect(() => {
     if (session.profileId) {
-      void dispatch(fetchBoard({ profileId: session.profileId }));
+      void dispatch(fetchBoard({ profileId: session.profileId, projectId: currentProjectId }));
     }
-  }, [session.profileId, dispatch]);
+  }, [session.profileId, currentProjectId, dispatch]);
 
   const openTaskDetail = (task: Task) => {
     setDetailTask(task);
@@ -51,6 +52,7 @@ export function BoardPage() {
   useNoticeFocus<Task>(
     async (id) => board.taskById.get(id) ?? (await getTask(id).catch(() => null)),
     openTaskDetail,
+    (task) => task.projectId,
   );
 
   const loading = session.loading || board.loading;

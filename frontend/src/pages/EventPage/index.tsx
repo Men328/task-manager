@@ -38,13 +38,14 @@ export function EventPage() {
   const [deleting, setDeleting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  const { profileId, refresh } = eventState;
+  const { profileId, projectId, refresh } = eventState;
 
+  // refresh đổi identity khi profile hoặc project đổi.
   useEffect(() => {
-    if (profileId) {
+    if (profileId && projectId) {
       refresh();
     }
-  }, [profileId, refresh]);
+  }, [profileId, projectId, refresh]);
 
   const locale = i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-GB';
 
@@ -82,6 +83,7 @@ export function EventPage() {
   useNoticeFocus<Event>(
     async (id) => eventState.events.find((item) => item.id === id) ?? (await getEvent(id).catch(() => null)),
     (item) => openEdit(item),
+    (item) => item.projectId,
   );
 
   const handleDelete = async (item: Event) => {

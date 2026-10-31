@@ -16,3 +16,15 @@ func seedDefaultLifecycle(ctx context.Context, seeder DefaultLifecycleSeeder, pr
 		)
 	}
 }
+
+func seedDefaultProject(ctx context.Context, seeder DefaultProjectSeeder, profileID string) {
+	if seeder == nil {
+		return
+	}
+	if err := seeder.SeedDefaultProject(ctx, profileID); err != nil {
+		slog.Warn("tạo project mặc định thất bại; project service sẽ tự tạo khi cần",
+			"profile_id", profileID,
+			"error", err,
+		)
+	}
+}

@@ -18,6 +18,7 @@ export interface DateRange {
 
 interface FetchSchedulesArgs {
   profileId: string;
+  projectId: string | null;
   from?: string;
   to?: string;
 }
@@ -30,6 +31,7 @@ export const fetchSchedules = createAsyncThunk<
   try {
     return await listSchedules({
       profileId: params.profileId,
+      projectId: params.projectId ?? undefined,
       from: params.from,
       to: params.to,
     });
@@ -50,7 +52,9 @@ export const saveSchedule = createAsyncThunk<
       await createScheduleApi({ ...(input as CreateScheduleInput), profileId });
     }
     const { range } = getState().calendar;
-    await dispatch(fetchSchedules({ profileId, from: range.from, to: range.to })).unwrap();
+    await dispatch(
+      fetchSchedules({ profileId, projectId: getState().project.currentId, from: range.from, to: range.to }),
+    ).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
@@ -64,7 +68,9 @@ export const removeSchedule = createAsyncThunk<
   try {
     await deleteScheduleApi(id);
     const { range } = getState().calendar;
-    await dispatch(fetchSchedules({ profileId, from: range.from, to: range.to })).unwrap();
+    await dispatch(
+      fetchSchedules({ profileId, projectId: getState().project.currentId, from: range.from, to: range.to }),
+    ).unwrap();
   } catch (cause) {
     return rejectWithValue(getErrorMessage(cause));
   }
@@ -75,6 +81,7 @@ export interface CalendarState {
   range: DateRange;
   loading: boolean;
   error: string | null;
+  latestRequestId: string | null;
 }
 
 const initialState: CalendarState = {
@@ -82,6 +89,7 @@ const initialState: CalendarState = {
   range: {},
   loading: false,
   error: null,
+  latestRequestId: null,
 };
 
 const calendarSlice = createSlice({
@@ -90,16 +98,23 @@ const calendarSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchSchedules.pending, (state) => {
+      .addCase(fetchSchedules.pending, (state, action) => {
+        state.latestRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchSchedules.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) {
+          return;
+        }
         state.loading = false;
         state.schedules = action.payload;
         state.range = { from: action.meta.arg.from, to: action.meta.arg.to };
       })
       .addCase(fetchSchedules.rejected, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) {
+          return;
+        }
         state.loading = false;
         state.error = action.payload ?? action.error.message ?? i18n.t('errors.loadCalendar');
       });

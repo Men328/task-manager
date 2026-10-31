@@ -33,7 +33,7 @@ var isoTimePattern = regexp.MustCompile(`(\d{4})-(\d{1,2})-(\d{1,2})(?:[ t](\d{1
 
 var dayFirstTimePattern = regexp.MustCompile(`\b(\d{1,2})[/](\d{1,2})(?:[/](\d{2,4}))?(?:\s+(\d{1,2}):(\d{2}))?`)
 
-func classifyByRules(message model.EmailMessage) model.MailDraft {
+func classifyByRules(message model.EmailMessage, projects []model.ProjectCandidate) model.MailDraft {
 	subject := strings.ToLower(strings.TrimSpace(message.Subject))
 	text := strings.ToLower(strings.Join([]string{message.Subject, message.Snippet, message.Body}, "\n"))
 
@@ -59,6 +59,7 @@ func classifyByRules(message model.EmailMessage) model.MailDraft {
 		Title:       draftTitle(message),
 		Description: draftDescription(message),
 	}
+	draft.ProjectID, draft.ProjectConfidence = matchProjectByRules(message.Subject+" "+message.Snippet+" "+message.Body, projects)
 	if category == model.CategoryOther {
 		draft.Reason = "no_rule_matched"
 		return draft

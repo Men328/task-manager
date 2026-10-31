@@ -33,15 +33,16 @@ export function CalendarPage() {
   const [deleting, setDeleting] = useState(false);
 
   const rangeRef = useRef<{ from: string; to: string } | null>(null);
-  const loadedProfileRef = useRef<string | null>(null);
-  const { profileId, loadRange } = calendar;
+  const loadedKeyRef = useRef<string | null>(null);
+  const { profileId, projectId, loadRange } = calendar;
+  const loadKey = profileId && projectId ? `${profileId}:${projectId}` : null;
 
   useEffect(() => {
-    if (profileId && rangeRef.current && loadedProfileRef.current !== profileId) {
-      loadedProfileRef.current = profileId;
+    if (loadKey && rangeRef.current && loadedKeyRef.current !== loadKey) {
+      loadedKeyRef.current = loadKey;
       loadRange(rangeRef.current.from, rangeRef.current.to);
     }
-  }, [profileId, loadRange]);
+  }, [loadKey, loadRange]);
 
   const events = useMemo<EventInput[]>(
     () =>
@@ -80,8 +81,8 @@ export function CalendarPage() {
 
   const handleDatesSet = (arg: DatesSetArg) => {
     rangeRef.current = { from: arg.startStr, to: arg.endStr };
-    if (profileId) {
-      loadedProfileRef.current = profileId;
+    if (loadKey) {
+      loadedKeyRef.current = loadKey;
       loadRange(arg.startStr, arg.endStr);
     }
   };
@@ -108,6 +109,7 @@ export function CalendarPage() {
       setDefaultAllDay(false);
       setModalOpened(true);
     },
+    (schedule) => schedule.projectId,
   );
 
   const handleEventChange = async (arg: EventChangeArg) => {

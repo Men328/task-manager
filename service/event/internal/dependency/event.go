@@ -34,6 +34,7 @@ func ValidateEventID(id string) error {
 func EventFromCreateRequest(req *eventv1.CreateEventRequest) model.Event {
 	return model.Event{
 		ProfileID:   req.GetProfileId(),
+		ProjectID:   req.GetProjectId(),
 		Title:       req.GetTitle(),
 		Description: req.GetDescription(),
 		Location:    req.GetLocation(),
@@ -49,6 +50,7 @@ func EventFromCreateRequest(req *eventv1.CreateEventRequest) model.Event {
 func EventFilterFromRequest(req *eventv1.ListEventsRequest) model.Filter {
 	return model.Filter{
 		ProfileID: req.GetProfileId(),
+		ProjectID: req.GetProjectId(),
 		From:      timePtr(req.GetFrom()),
 		To:        timePtr(req.GetTo()),
 		Status:    statusFromProto(req.GetStatus()),
@@ -57,6 +59,7 @@ func EventFilterFromRequest(req *eventv1.ListEventsRequest) model.Filter {
 
 func EventUpdateFromRequest(req *eventv1.UpdateEventRequest) model.Update {
 	return model.Update{
+		ProjectID:   req.ProjectId,
 		Title:       req.Title,
 		Description: req.Description,
 		Location:    req.Location,
@@ -72,6 +75,7 @@ func EventToProto(e model.Event) *eventv1.Event {
 	return &eventv1.Event{
 		Id:          e.ID,
 		ProfileId:   e.ProfileID,
+		ProjectId:   e.ProjectID,
 		Title:       e.Title,
 		Description: e.Description,
 		Location:    e.Location,

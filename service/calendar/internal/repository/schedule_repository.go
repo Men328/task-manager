@@ -55,6 +55,9 @@ func (r *InMemoryScheduleRepository) List(_ context.Context, f model.ScheduleFil
 		if f.ProfileID != "" && s.ProfileID != f.ProfileID {
 			continue
 		}
+		if f.ProjectID != "" && s.ProjectID != f.ProjectID {
+			continue
+		}
 		if !overlaps(s, f.From, f.To) {
 			continue
 		}
@@ -71,6 +74,9 @@ func (r *InMemoryScheduleRepository) Update(_ context.Context, id string, upd mo
 	s, ok := r.items[id]
 	if !ok {
 		return model.Schedule{}, fmt.Errorf("%w: schedule %s", model.ErrNotFound, id)
+	}
+	if upd.ProjectID != nil {
+		s.ProjectID = *upd.ProjectID
 	}
 	if upd.Title != nil {
 		s.Title = *upd.Title

@@ -63,10 +63,10 @@ export function ReportPage() {
   const [interval, setInterval] = useState<ReportInterval>('REPORT_INTERVAL_DAY');
   const [includeArchived, setIncludeArchived] = useState(false);
 
-  const { profileId, applyRange, refresh } = report;
+  const { profileId, projectId, applyRange, refresh } = report;
 
   useEffect(() => {
-    if (!profileId) {
+    if (!profileId || !projectId) {
       return;
     }
     applyRange({
@@ -77,7 +77,7 @@ export function ReportPage() {
     });
     // applyRange đổi identity khi store.range đổi; chỉ chạy lại theo filter người dùng.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileId, from, to, interval, includeArchived]);
+  }, [profileId, projectId, from, to, interval, includeArchived]);
 
   const applyPreset = (days: string) => {
     setPreset(days);

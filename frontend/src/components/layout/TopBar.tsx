@@ -16,6 +16,7 @@ import { avatarColor, initials } from '../../lib/format';
 import { tokens } from '../../theme';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { NotificationMenu } from './NotificationMenu';
+import { ProjectSwitcher } from './ProjectSwitcher';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import classes from './TopBar.module.css';
 
@@ -36,6 +37,8 @@ export function TopBar({ navOpened, onToggleNav }: { navOpened: boolean; onToggl
           size="sm"
           aria-label={t('topbar.openMenu')}
         />
+
+        <ProjectSwitcher />
 
         <TextInput
           value={query}

@@ -27,6 +27,9 @@ type Config struct {
 	TaskGRPCDialAddr string
 	TaskTimeout      time.Duration
 
+	ProjectGRPCDialAddr string
+	ProjectTimeout      time.Duration
+
 	FrontendBaseURL string
 
 	SessionSecret string
@@ -55,6 +58,9 @@ func Load() Config {
 		MailGRPCDialAddr: os.Getenv("MAIL_GRPC_DIAL_ADDR"),
 		TaskGRPCDialAddr: os.Getenv("TASK_GRPC_DIAL_ADDR"),
 		TaskTimeout:      getduration("TASK_TIMEOUT", 10*time.Second),
+
+		ProjectGRPCDialAddr: os.Getenv("PROJECT_GRPC_DIAL_ADDR"),
+		ProjectTimeout:      getduration("PROJECT_TIMEOUT", 10*time.Second),
 
 		FrontendBaseURL: strings.TrimRight(getenv("FRONTEND_BASE_URL", "http://localhost:5173"), "/"),
 
@@ -115,6 +121,13 @@ func (c Config) TaskDialTarget() string {
 		return c.TaskGRPCDialAddr
 	}
 	return "127.0.0.1:9082"
+}
+
+func (c Config) ProjectDialTarget() string {
+	if c.ProjectGRPCDialAddr != "" {
+		return c.ProjectGRPCDialAddr
+	}
+	return "127.0.0.1:9090"
 }
 
 func getenv(key, fallback string) string {

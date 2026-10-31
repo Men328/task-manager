@@ -99,7 +99,9 @@ type Task struct {
 	CreatedAt    *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt    *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// chỉ được fill khi request yêu cầu include_subtasks
-	Subtasks      []*Task `protobuf:"bytes,15,rep,name=subtasks,proto3" json:"subtasks,omitempty"`
+	Subtasks []*Task `protobuf:"bytes,15,rep,name=subtasks,proto3" json:"subtasks,omitempty"`
+	// Dự án chứa mục này.
+	ProjectId     string `protobuf:"bytes,16,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -239,17 +241,26 @@ func (x *Task) GetSubtasks() []*Task {
 	return nil
 }
 
+func (x *Task) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
 type CreateTaskRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProfileId     string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
-	ParentTaskId  string                 `protobuf:"bytes,2,opt,name=parent_task_id,json=parentTaskId,proto3" json:"parent_task_id,omitempty"`
-	StatusId      string                 `protobuf:"bytes,3,opt,name=status_id,json=statusId,proto3" json:"status_id,omitempty"`
-	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
-	Priority      TaskPriority           `protobuf:"varint,6,opt,name=priority,proto3,enum=task.v1.TaskPriority" json:"priority,omitempty"`
-	Position      int32                  `protobuf:"varint,7,opt,name=position,proto3" json:"position,omitempty"`
-	StartAt       *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
-	DueAt         *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=due_at,json=dueAt,proto3" json:"due_at,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	ProfileId    string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	ParentTaskId string                 `protobuf:"bytes,2,opt,name=parent_task_id,json=parentTaskId,proto3" json:"parent_task_id,omitempty"`
+	StatusId     string                 `protobuf:"bytes,3,opt,name=status_id,json=statusId,proto3" json:"status_id,omitempty"`
+	Title        string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	Description  string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	Priority     TaskPriority           `protobuf:"varint,6,opt,name=priority,proto3,enum=task.v1.TaskPriority" json:"priority,omitempty"`
+	Position     int32                  `protobuf:"varint,7,opt,name=position,proto3" json:"position,omitempty"`
+	StartAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
+	DueAt        *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=due_at,json=dueAt,proto3" json:"due_at,omitempty"`
+	// Dự án chứa mục này.
+	ProjectId     string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -345,6 +356,13 @@ func (x *CreateTaskRequest) GetDueAt() *timestamppb.Timestamp {
 		return x.DueAt
 	}
 	return nil
+}
+
+func (x *CreateTaskRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
 }
 
 type CreateTaskResponse struct {
@@ -497,8 +515,10 @@ type ListTasksRequest struct {
 	StatusId        string `protobuf:"bytes,4,opt,name=status_id,json=statusId,proto3" json:"status_id,omitempty"`
 	IncludeArchived bool   `protobuf:"varint,5,opt,name=include_archived,json=includeArchived,proto3" json:"include_archived,omitempty"`
 	IncludeSubtasks bool   `protobuf:"varint,6,opt,name=include_subtasks,json=includeSubtasks,proto3" json:"include_subtasks,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Lọc theo dự án; rỗng = tất cả dự án.
+	ProjectId     string `protobuf:"bytes,7,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListTasksRequest) Reset() {
@@ -573,6 +593,13 @@ func (x *ListTasksRequest) GetIncludeSubtasks() bool {
 	return false
 }
 
+func (x *ListTasksRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
 type ListTasksResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Tasks         []*Task                `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
@@ -626,9 +653,11 @@ type UpdateTaskRequest struct {
 	Priority     *TaskPriority          `protobuf:"varint,5,opt,name=priority,proto3,enum=task.v1.TaskPriority,oneof" json:"priority,omitempty"`
 	Position     *int32                 `protobuf:"varint,6,opt,name=position,proto3,oneof" json:"position,omitempty"`
 	// message field đã có sẵn presence (nil = không đổi) nên không cần `optional`
-	StartAt       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
-	DueAt         *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=due_at,json=dueAt,proto3" json:"due_at,omitempty"`
-	IsArchived    *bool                  `protobuf:"varint,9,opt,name=is_archived,json=isArchived,proto3,oneof" json:"is_archived,omitempty"`
+	StartAt    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
+	DueAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=due_at,json=dueAt,proto3" json:"due_at,omitempty"`
+	IsArchived *bool                  `protobuf:"varint,9,opt,name=is_archived,json=isArchived,proto3,oneof" json:"is_archived,omitempty"`
+	// Chuyển sang dự án khác; rỗng = không đổi.
+	ProjectId     *string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3,oneof" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -724,6 +753,13 @@ func (x *UpdateTaskRequest) GetIsArchived() bool {
 		return *x.IsArchived
 	}
 	return false
+}
+
+func (x *UpdateTaskRequest) GetProjectId() string {
+	if x != nil && x.ProjectId != nil {
+		return *x.ProjectId
+	}
+	return ""
 }
 
 type UpdateTaskResponse struct {
@@ -958,7 +994,7 @@ var File_task_v1_task_proto protoreflect.FileDescriptor
 
 const file_task_v1_task_proto_rawDesc = "" +
 	"\n" +
-	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xea\x04\n" +
+	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x89\x05\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -979,7 +1015,9 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12)\n" +
-	"\bsubtasks\x18\x0f \x03(\v2\r.task.v1.TaskR\bsubtasks\"\xe6\x02\n" +
+	"\bsubtasks\x18\x0f \x03(\v2\r.task.v1.TaskR\bsubtasks\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x10 \x01(\tR\tprojectId\"\x85\x03\n" +
 	"\x11CreateTaskRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12$\n" +
@@ -990,14 +1028,17 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\bpriority\x18\x06 \x01(\x0e2\x15.task.v1.TaskPriorityR\bpriority\x12\x1a\n" +
 	"\bposition\x18\a \x01(\x05R\bposition\x125\n" +
 	"\bstart_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x121\n" +
-	"\x06due_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x05dueAt\"7\n" +
+	"\x06due_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x05dueAt\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\n" +
+	" \x01(\tR\tprojectId\"7\n" +
 	"\x12CreateTaskResponse\x12!\n" +
 	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"K\n" +
 	"\x0eGetTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12)\n" +
 	"\x10include_subtasks\x18\x02 \x01(\bR\x0fincludeSubtasks\"4\n" +
 	"\x0fGetTaskResponse\x12!\n" +
-	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"\xe7\x01\n" +
+	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"\x86\x02\n" +
 	"\x10ListTasksRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12$\n" +
@@ -1005,9 +1046,11 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\troot_only\x18\x03 \x01(\bR\brootOnly\x12\x1b\n" +
 	"\tstatus_id\x18\x04 \x01(\tR\bstatusId\x12)\n" +
 	"\x10include_archived\x18\x05 \x01(\bR\x0fincludeArchived\x12)\n" +
-	"\x10include_subtasks\x18\x06 \x01(\bR\x0fincludeSubtasks\"8\n" +
+	"\x10include_subtasks\x18\x06 \x01(\bR\x0fincludeSubtasks\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\a \x01(\tR\tprojectId\"8\n" +
 	"\x11ListTasksResponse\x12#\n" +
-	"\x05tasks\x18\x01 \x03(\v2\r.task.v1.TaskR\x05tasks\"\xd0\x03\n" +
+	"\x05tasks\x18\x01 \x03(\v2\r.task.v1.TaskR\x05tasks\"\x83\x04\n" +
 	"\x11UpdateTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12)\n" +
 	"\x0eparent_task_id\x18\x02 \x01(\tH\x00R\fparentTaskId\x88\x01\x01\x12\x19\n" +
@@ -1018,13 +1061,17 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\bstart_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x121\n" +
 	"\x06due_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x05dueAt\x12$\n" +
 	"\vis_archived\x18\t \x01(\bH\x05R\n" +
-	"isArchived\x88\x01\x01B\x11\n" +
+	"isArchived\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"project_id\x18\n" +
+	" \x01(\tH\x06R\tprojectId\x88\x01\x01B\x11\n" +
 	"\x0f_parent_task_idB\b\n" +
 	"\x06_titleB\x0e\n" +
 	"\f_descriptionB\v\n" +
 	"\t_priorityB\v\n" +
 	"\t_positionB\x0e\n" +
-	"\f_is_archived\"7\n" +
+	"\f_is_archivedB\r\n" +
+	"\v_project_id\"7\n" +
 	"\x12UpdateTaskResponse\x12!\n" +
 	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"#\n" +
 	"\x11DeleteTaskRequest\x12\x0e\n" +

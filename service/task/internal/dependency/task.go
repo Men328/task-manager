@@ -38,6 +38,7 @@ func ValidateChangeTaskStatus(req *taskv1.ChangeTaskStatusRequest) error {
 func TaskFromCreateRequest(req *taskv1.CreateTaskRequest) model.Task {
 	return model.Task{
 		ProfileID:    req.GetProfileId(),
+		ProjectID:    req.GetProjectId(),
 		ParentTaskID: req.GetParentTaskId(),
 		StatusID:     req.GetStatusId(),
 		Title:        req.GetTitle(),
@@ -52,6 +53,7 @@ func TaskFromCreateRequest(req *taskv1.CreateTaskRequest) model.Task {
 func TaskFilterFromRequest(req *taskv1.ListTasksRequest) model.TaskFilter {
 	return model.TaskFilter{
 		ProfileID:       req.GetProfileId(),
+		ProjectID:       req.GetProjectId(),
 		ParentTaskID:    req.GetParentTaskId(),
 		RootOnly:        req.GetRootOnly(),
 		StatusID:        req.GetStatusId(),
@@ -61,6 +63,7 @@ func TaskFilterFromRequest(req *taskv1.ListTasksRequest) model.TaskFilter {
 
 func TaskUpdateFromRequest(req *taskv1.UpdateTaskRequest) model.TaskUpdate {
 	return model.TaskUpdate{
+		ProjectID:    req.ProjectId,
 		ParentTaskID: req.ParentTaskId,
 		Title:        req.Title,
 		Description:  req.Description,
@@ -76,6 +79,7 @@ func TaskToProto(t model.Task) *taskv1.Task {
 	return &taskv1.Task{
 		Id:           t.ID,
 		ProfileId:    t.ProfileID,
+		ProjectId:    t.ProjectID,
 		ParentTaskId: t.ParentTaskID,
 		StatusId:     t.StatusID,
 		Title:        t.Title,

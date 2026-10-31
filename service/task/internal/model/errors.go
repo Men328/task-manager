@@ -27,6 +27,10 @@ const (
 	ErrorKindTaskHasSubtasks         ErrorKind = "task_has_subtasks"
 	ErrorKindStatusInUse             ErrorKind = "status_in_use"
 	ErrorKindStatusSlugAlreadyExists ErrorKind = "status_slug_already_exists"
+	ErrorKindProjectRequired         ErrorKind = "project_required"
+	ErrorKindProjectNotFound         ErrorKind = "project_not_found"
+	ErrorKindProjectArchived         ErrorKind = "project_archived"
+	ErrorKindSubtaskProjectLocked    ErrorKind = "subtask_project_locked"
 )
 
 type Error struct {

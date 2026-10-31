@@ -10,7 +10,9 @@ deployments/migrations/
 ├── 000006_init_calendar.up.sql   / .down.sql   # schema calendar: SCHEDULES
 ├── 000007_init_event.up.sql      / .down.sql   # schema event: EVENTS
 ├── 000008_init_backlog.up.sql    / .down.sql   # schema backlog: BACKLOGS
-└── 000009_init_notification.up.sql / .down.sql # schema notification: NOTICES
+├── 000009_init_notification.up.sql / .down.sql # schema notification: NOTICES
+├── 000010_init_attachment.up.sql / .down.sql # schema attachment: ATTACHMENTS
+└── 000011_init_project.up.sql    / .down.sql   # schema project: PROJECTS + project_id trên TASKS/schedules/events
 ```
 
 > Migration `000003`/`000004` (workspace) đã bị xoá cùng tính năng workspace. Repo không còn

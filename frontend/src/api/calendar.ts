@@ -15,6 +15,7 @@ const SCHEDULES_PATH = '/v1/schedules';
 function toCreateBody(input: CreateScheduleInput): Record<string, unknown> {
   return {
     profile_id: input.profileId,
+    project_id: input.projectId,
     title: input.title,
     description: input.description,
     location: input.location,
@@ -31,6 +32,9 @@ function toCreateBody(input: CreateScheduleInput): Record<string, unknown> {
  */
 function toUpdateBody(input: UpdateScheduleInput): Record<string, unknown> {
   const body: Record<string, unknown> = {};
+  if (input.projectId !== undefined) {
+    body.project_id = input.projectId;
+  }
   if (input.title !== undefined) {
     body.title = input.title;
   }
@@ -61,6 +65,7 @@ export async function listSchedules(params: ListSchedulesParams): Promise<Schedu
     calendarApi,
     `${SCHEDULES_PATH}${buildQuery({
       profile_id: params.profileId,
+      project_id: params.projectId,
       from: params.from,
       to: params.to,
     })}`,

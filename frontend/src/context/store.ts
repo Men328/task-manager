@@ -5,6 +5,7 @@ import { boardReducer } from './board/boardSlice';
 import { calendarReducer } from './calendar/calendarSlice';
 import { eventReducer } from './event/eventSlice';
 import { noticeReducer } from './notification/noticeSlice';
+import { projectReducer } from './project/projectSlice';
 import { reportReducer } from './report/reportSlice';
 import { sessionReducer } from './session/sessionSlice';
 import { statusesPageReducer } from './statuses/statusesSlice';
@@ -16,6 +17,7 @@ export const store = configureStore({
     calendar: calendarReducer,
     event: eventReducer,
     backlog: backlogReducer,
+    project: projectReducer,
     report: reportReducer,
     statusesPage: statusesPageReducer,
     notices: noticeReducer,

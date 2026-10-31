@@ -11,6 +11,7 @@
  *   CALENDAR_URL=http://127.0.0.1:3000/api/calendar \
  *   EVENT_URL=http://127.0.0.1:3000/api/event \
  *   BACKLOG_URL=http://127.0.0.1:3000/api/backlog \
+ *   PROJECT_URL=http://127.0.0.1:3000/api/project \
  *   node scripts/seed-demo.mjs
  */
 const ID = process.env.IDENTITY_URL ?? 'http://localhost:8081';
@@ -18,6 +19,7 @@ const TK = process.env.TASK_URL ?? 'http://localhost:8082';
 const CAL = process.env.CALENDAR_URL ?? 'http://localhost:8083';
 const EV = process.env.EVENT_URL ?? 'http://localhost:8085';
 const BL = process.env.BACKLOG_URL ?? 'http://localhost:8086';
+const PJ = process.env.PROJECT_URL ?? 'http://localhost:8090';
 
 async function req(method, url, body) {
   const res = await fetch(url, {
@@ -48,6 +50,15 @@ const profile = (
   })
 ).profile;
 const pid = profile.id;
+
+// Task/lịch/sự kiện bắt buộc có project_id: lấy project mặc định ("Chung") của profile.
+const defaultProject = ((await req('GET', `${PJ}/v1/projects?profile_id=${pid}`)).projects ?? []).find(
+  (project) => project.isDefault,
+);
+if (!defaultProject) {
+  throw new Error(`profile ${pid} chưa có project mặc định`);
+}
+const projectId = defaultProject.id;
 
 const defs = [
   ['To Do', 'todo', '#9aa0ae', 'TASK_STATUS_CATEGORY_TODO', true, false],
@@ -111,6 +122,7 @@ const inDays = (n) => {
 async function makeTask({ title, status, priority, dueAt, subtasks }) {
   const created = await req('POST', `${TK}/v1/tasks`, {
     profile_id: pid,
+    project_id: projectId,
     title,
     status_id: S[status],
     priority,
@@ -124,6 +136,7 @@ async function makeTask({ title, status, priority, dueAt, subtasks }) {
     for (let i = 0; i < total; i += 1) {
       await req('POST', `${TK}/v1/tasks`, {
         profile_id: pid,
+        project_id: projectId,
         title: `${title} — bước ${i + 1}`,
         // tạo thẳng ở status đích để không phải đi qua transition
         status_id: i < done ? S.completed : S.todo,
@@ -163,6 +176,7 @@ for (const [title, location, day, hour, allDay] of [
 ]) {
   await req('POST', `${CAL}/v1/schedules`, {
     profile_id: pid,
+    project_id: projectId,
     title,
     description: DESC,
     ...(location ? { location } : {}),
@@ -179,6 +193,7 @@ for (const [title, location, day, hour, status] of [
 ]) {
   await req('POST', `${EV}/v1/events`, {
     profile_id: pid,
+    project_id: projectId,
     title,
     description: DESC,
     location,

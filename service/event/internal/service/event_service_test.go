@@ -37,9 +37,12 @@ func (r *fakeEventRepository) Get(_ context.Context, id string) (model.Event, er
 	return e, nil
 }
 
-func (r *fakeEventRepository) List(_ context.Context, _ model.Filter) ([]model.Event, error) {
+func (r *fakeEventRepository) List(_ context.Context, f model.Filter) ([]model.Event, error) {
 	out := make([]model.Event, 0, len(r.items))
 	for _, item := range r.items {
+		if f.ProjectID != "" && item.ProjectID != f.ProjectID {
+			continue
+		}
 		out = append(out, item)
 	}
 	return out, nil
@@ -49,6 +52,9 @@ func (r *fakeEventRepository) Update(_ context.Context, id string, upd model.Upd
 	e, ok := r.items[id]
 	if !ok {
 		return model.Event{}, model.ErrNotFound
+	}
+	if upd.ProjectID != nil {
+		e.ProjectID = *upd.ProjectID
 	}
 	if upd.StartAt != nil {
 		e.StartAt = *upd.StartAt
@@ -71,6 +77,18 @@ func (r *fakeEventRepository) Delete(_ context.Context, id string) error {
 	return nil
 }
 
+type fakeProjectChecker struct {
+	assignable map[string]error
+}
+
+func newFakeProjectChecker() *fakeProjectChecker {
+	return &fakeProjectChecker{assignable: make(map[string]error)}
+}
+
+func (c *fakeProjectChecker) CheckAssignable(_ context.Context, _, projectID string) error {
+	return c.assignable[projectID]
+}
+
 func mustEventTime(t *testing.T, value string) time.Time {
 	t.Helper()
 	parsed, err := time.Parse(time.RFC3339, value)
@@ -83,10 +101,11 @@ func mustEventTime(t *testing.T, value string) time.Time {
 func eventTimePtr(t time.Time) *time.Time { return &t }
 
 func TestEventCreateDefaultsStatusToPlanned(t *testing.T) {
-	svc := NewEventService(newFakeEventRepository())
+	svc := NewEventService(newFakeEventRepository(), newFakeProjectChecker())
 
 	created, err := svc.Create(context.Background(), model.Event{
 		ProfileID: "p1",
+		ProjectID: "proj1",
 		Title:     "Hội thảo",
 		StartAt:   mustEventTime(t, "2026-11-12T07:00:00Z"),
 	})
@@ -99,11 +118,12 @@ func TestEventCreateDefaultsStatusToPlanned(t *testing.T) {
 }
 
 func TestEventCreateRejectsEndBeforeStart(t *testing.T) {
-	svc := NewEventService(newFakeEventRepository())
+	svc := NewEventService(newFakeEventRepository(), newFakeProjectChecker())
 	start := mustEventTime(t, "2026-11-12T07:00:00Z")
 
 	_, err := svc.Create(context.Background(), model.Event{
 		ProfileID: "p1",
+		ProjectID: "proj1",
 		Title:     "Sai giờ",
 		StartAt:   start,
 		EndAt:     eventTimePtr(start.Add(-time.Hour)),
@@ -119,10 +139,11 @@ func TestEventCreateRejectsEndBeforeStart(t *testing.T) {
 }
 
 func TestEventCreateRejectsUnknownStatus(t *testing.T) {
-	svc := NewEventService(newFakeEventRepository())
+	svc := NewEventService(newFakeEventRepository(), newFakeProjectChecker())
 
 	_, err := svc.Create(context.Background(), model.Event{
 		ProfileID: "p1",
+		ProjectID: "proj1",
 		Title:     "Lạ",
 		StartAt:   mustEventTime(t, "2026-11-12T07:00:00Z"),
 		Status:    model.Status("BOGUS"),
@@ -146,7 +167,7 @@ func TestEventUpdateRejectsUnknownStatus(t *testing.T) {
 		StartAt:   start,
 		Status:    model.StatusConfirmed,
 	})
-	svc := NewEventService(repo)
+	svc := NewEventService(repo, newFakeProjectChecker())
 	bogus := model.Status("BOGUS")
 
 	_, err := svc.Update(context.Background(), "e1", model.Update{Status: &bogus})
@@ -161,10 +182,125 @@ func TestEventUpdateRejectsUnknownStatus(t *testing.T) {
 }
 
 func TestEventGetPropagatesNotFound(t *testing.T) {
-	svc := NewEventService(newFakeEventRepository())
+	svc := NewEventService(newFakeEventRepository(), newFakeProjectChecker())
 
 	_, err := svc.Get(context.Background(), "missing")
 	if err != model.ErrNotFound {
 		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func kindOf(t *testing.T, err error) model.ErrorKind {
+	t.Helper()
+	var domainErr *model.Error
+	if !errors.As(err, &domainErr) {
+		t.Fatalf("expected domain error, got %v", err)
+	}
+	return domainErr.Kind
+}
+
+func TestCreateRequiresProject(t *testing.T) {
+	repo := newFakeEventRepository()
+	svc := NewEventService(repo, newFakeProjectChecker())
+
+	_, err := svc.Create(context.Background(), model.Event{
+		ProfileID: "p1", Title: "x", StartAt: mustEventTime(t, "2026-11-12T07:00:00Z"),
+	})
+	if err == nil || kindOf(t, err) != model.ErrorKindProjectRequired {
+		t.Fatalf("expected project_required, got %v", err)
+	}
+	if len(repo.items) != 0 {
+		t.Fatal("repo must stay empty")
+	}
+}
+
+func TestCreateRejectsArchivedProject(t *testing.T) {
+	repo := newFakeEventRepository()
+	checker := newFakeProjectChecker()
+	checker.assignable["proj1"] = model.NewError(model.ErrorKindProjectArchived, "archived")
+	svc := NewEventService(repo, checker)
+
+	_, err := svc.Create(context.Background(), model.Event{
+		ProfileID: "p1", ProjectID: "proj1", Title: "x", StartAt: mustEventTime(t, "2026-11-12T07:00:00Z"),
+	})
+	if err == nil || kindOf(t, err) != model.ErrorKindProjectArchived {
+		t.Fatalf("expected project_archived, got %v", err)
+	}
+	if len(repo.items) != 0 {
+		t.Fatal("repo must stay empty")
+	}
+}
+
+func TestUpdateMovesEventToProject(t *testing.T) {
+	repo := newFakeEventRepository(model.Event{ID: "e1", ProfileID: "p1", ProjectID: "p1proj", Title: "x"})
+	svc := NewEventService(repo, newFakeProjectChecker())
+	target := "p2"
+
+	if _, err := svc.Update(context.Background(), "e1", model.Update{ProjectID: &target}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if repo.items["e1"].ProjectID != "p2" {
+		t.Fatalf("expected project p2, got %s", repo.items["e1"].ProjectID)
+	}
+}
+
+func TestUpdateRejectsUnassignableProject(t *testing.T) {
+	repo := newFakeEventRepository(model.Event{ID: "e1", ProfileID: "p1", ProjectID: "p1proj", Title: "x"})
+	checker := newFakeProjectChecker()
+	checker.assignable["p2"] = model.NewError(model.ErrorKindProjectNotFound, "not found")
+	svc := NewEventService(repo, checker)
+	target := "p2"
+
+	_, err := svc.Update(context.Background(), "e1", model.Update{ProjectID: &target})
+	if err == nil || kindOf(t, err) != model.ErrorKindProjectNotFound {
+		t.Fatalf("expected project_not_found, got %v", err)
+	}
+	if repo.items["e1"].ProjectID != "p1proj" {
+		t.Fatalf("project must be unchanged, got %s", repo.items["e1"].ProjectID)
+	}
+}
+
+func TestUpdateRejectsEmptyProject(t *testing.T) {
+	repo := newFakeEventRepository(model.Event{ID: "e1", ProfileID: "p1", ProjectID: "p1proj", Title: "x"})
+	svc := NewEventService(repo, newFakeProjectChecker())
+	empty := "  "
+
+	_, err := svc.Update(context.Background(), "e1", model.Update{ProjectID: &empty})
+	if err == nil || kindOf(t, err) != model.ErrorKindProjectRequired {
+		t.Fatalf("expected project_required, got %v", err)
+	}
+	if repo.items["e1"].ProjectID != "p1proj" {
+		t.Fatalf("project must be unchanged, got %s", repo.items["e1"].ProjectID)
+	}
+}
+
+func TestListFiltersByProject(t *testing.T) {
+	repo := newFakeEventRepository(
+		model.Event{ID: "a", ProfileID: "p1", ProjectID: "p1"},
+		model.Event{ID: "b", ProfileID: "p1", ProjectID: "p2"},
+	)
+	svc := NewEventService(repo, newFakeProjectChecker())
+
+	got, err := svc.List(context.Background(), model.Filter{ProfileID: "p1", ProjectID: "p1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 1 || got[0].ID != "a" {
+		t.Fatalf("expected only event a, got %+v", got)
+	}
+}
+
+func TestCreateRejectsBlankProject(t *testing.T) {
+	repo := newFakeEventRepository()
+	svc := NewEventService(repo, newFakeProjectChecker())
+
+	_, err := svc.Create(context.Background(), model.Event{
+		ProfileID: "p1", ProjectID: "  ", Title: "x", StartAt: mustEventTime(t, "2026-11-12T07:00:00Z"),
+	})
+	if err == nil || kindOf(t, err) != model.ErrorKindProjectRequired {
+		t.Fatalf("expected project_required, got %v", err)
+	}
+	if len(repo.items) != 0 {
+		t.Fatal("repo must stay empty")
 	}
 }

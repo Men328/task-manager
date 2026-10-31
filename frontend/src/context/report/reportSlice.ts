@@ -26,6 +26,7 @@ export interface ReportRange {
 
 interface FetchReportArgs extends ReportRange {
   profileId: string;
+  projectId: string | null;
 }
 
 interface ReportData {
@@ -40,6 +41,7 @@ export const fetchReport = createAsyncThunk<ReportData, FetchReportArgs, { rejec
   async (params, { rejectWithValue }) => {
     const common = {
       profileId: params.profileId,
+      projectId: params.projectId ?? undefined,
       from: params.from,
       to: params.to,
       includeArchived: params.includeArchived,
@@ -66,6 +68,7 @@ export interface ReportState {
   range: ReportRange;
   loading: boolean;
   error: string | null;
+  latestRequestId: string | null;
 }
 
 const initialState: ReportState = {
@@ -79,6 +82,7 @@ const initialState: ReportState = {
   },
   loading: false,
   error: null,
+  latestRequestId: null,
 };
 
 const reportSlice = createSlice({
@@ -87,11 +91,15 @@ const reportSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchReport.pending, (state) => {
+      .addCase(fetchReport.pending, (state, action) => {
+        state.latestRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchReport.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) {
+          return;
+        }
         state.loading = false;
         state.overview = action.payload.overview;
         state.breakdown = action.payload.breakdown;
@@ -105,6 +113,9 @@ const reportSlice = createSlice({
         };
       })
       .addCase(fetchReport.rejected, (state, action) => {
+        if (action.meta.requestId !== state.latestRequestId) {
+          return;
+        }
         state.loading = false;
         state.error = action.payload ?? action.error.message ?? i18n.t('errors.loadReport');
       });

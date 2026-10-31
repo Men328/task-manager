@@ -16,10 +16,12 @@ import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
 import AttachmentSection from '../attachment/AttachmentSection';
-import { useEvent } from '../../context';
+import { useEvent, useProject } from '../../context';
 import type { NewEventInput } from '../../context/event/useEvent';
 import { EVENT_STATUS_LABEL_KEY } from '../../lib/tokens';
 import { tokens } from '../../theme';
+import ProjectSelect from '../common/ProjectSelect';
+import { useProjectMoveNotice } from '../common/useProjectMoveNotice';
 import { EVENT_STATUSES, type Event, type EventStatus } from '../../types';
 
 const DEFAULT_COLOR = '#4353e8';
@@ -30,6 +32,10 @@ interface EventFormModalProps {
   event: Event | null;
   onDelete?: (event: Event) => void;
   deleting?: boolean;
+  /** Điền sẵn tiêu đề/mô tả khi tạo mới (vd. từ backlog). */
+  prefill?: { title?: string; description?: string };
+  /** Gọi sau khi tạo mới thành công. */
+  onCreated?: () => void;
 }
 
 function pad(value: number): string {
@@ -55,9 +61,19 @@ function toInput(iso: string, allDay: boolean): string {
   return allDay ? localDate(date) : localDateTime(date);
 }
 
-export function EventFormModal({ opened, onClose, event, onDelete, deleting }: EventFormModalProps) {
+export function EventFormModal({
+  opened,
+  onClose,
+  event,
+  onDelete,
+  deleting,
+  prefill,
+  onCreated,
+}: EventFormModalProps) {
   const { t } = useTranslation();
   const { create, update } = useEvent();
+  const { currentProjectId } = useProject();
+  const notifyProjectMove = useProjectMoveNotice();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -67,6 +83,7 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
   const [endAt, setEndAt] = useState('');
   const [color, setColor] = useState(DEFAULT_COLOR);
   const [status, setStatus] = useState<EventStatus>('EVENT_STATUS_PLANNED');
+  const [projectId, setProjectId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -84,17 +101,19 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
       setEndAt(event.endAt ?? '');
       setColor(event.color || DEFAULT_COLOR);
       setStatus(event.status);
+      setProjectId(event.projectId);
       return;
     }
-    setTitle('');
-    setDescription('');
+    setTitle(prefill?.title ?? '');
+    setDescription(prefill?.description ?? '');
     setLocation('');
     setAllDay(false);
     setStartAt(new Date().toISOString());
     setEndAt('');
     setColor(DEFAULT_COLOR);
     setStatus('EVENT_STATUS_PLANNED');
-  }, [opened, event]);
+    setProjectId(currentProjectId ?? '');
+  }, [opened, event, currentProjectId, prefill]);
 
   const handleStartChange = (value: string) => {
     if (!value) {
@@ -121,6 +140,9 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
       });
       return;
     }
+    if (!projectId) {
+      return;
+    }
     if (!startAt) {
       notifications.show({
         title: t('eventForm.saveFailed'),
@@ -131,6 +153,7 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
     }
 
     const payload: NewEventInput = {
+      projectId,
       title: title.trim(),
       description,
       location,
@@ -144,7 +167,11 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
     setSubmitting(true);
     try {
       if (event) {
-        await update(event.id, payload);
+        const { projectId: nextProjectId, ...rest } = payload;
+        await update(event.id, {
+          ...rest,
+          ...(nextProjectId !== event.projectId ? { projectId: nextProjectId } : {}),
+        });
       } else {
         await create(payload);
       }
@@ -154,6 +181,10 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
         color: 'teal',
       });
       onClose();
+      if (!event) {
+        onCreated?.();
+      }
+      notifyProjectMove(projectId);
     } catch (cause) {
       notifications.show({
         title: t('eventForm.saveFailed'),
@@ -181,6 +212,8 @@ export function EventFormModal({ opened, onClose, event, onDelete, deleting }: E
           data-autofocus
           required
         />
+
+        <ProjectSelect value={projectId} onChange={setProjectId} required />
 
         <Group grow align="flex-start">
           <Select

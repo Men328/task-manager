@@ -12,7 +12,7 @@ import (
 	"taskmanager/service/task/internal/model"
 )
 
-const taskColumns = `id::text, profile_id::text, COALESCE(parent_task_id::text, ''), status_id::text, title, COALESCE(description, ''), priority::text, position, start_at, due_at, completed_at, is_archived, created_at, updated_at`
+const taskColumns = `id::text, profile_id::text, project_id::text, COALESCE(parent_task_id::text, ''), status_id::text, title, COALESCE(description, ''), priority::text, position, start_at, due_at, completed_at, is_archived, created_at, updated_at`
 
 const statusLogColumns = `id, task_id::text, profile_id::text, COALESCE(from_status_id::text, ''), to_status_id::text, COALESCE(note, ''), changed_at`
 
@@ -51,6 +51,7 @@ func scanTask(row pgx.Row) (model.Task, error) {
 	if err := row.Scan(
 		&t.ID,
 		&t.ProfileID,
+		&t.ProjectID,
 		&t.ParentTaskID,
 		&t.StatusID,
 		&t.Title,
@@ -90,16 +91,16 @@ func (r *PostgresTaskRepository) Create(ctx context.Context, t model.Task) (mode
 	const query = `
 		INSERT INTO task.tasks
 			(id, profile_id, parent_task_id, status_id, title, description,
-			 priority, position, start_at, due_at, completed_at, is_archived)
+			 priority, position, start_at, due_at, completed_at, is_archived, project_id)
 		VALUES
 			(COALESCE(NULLIF($1, '')::uuid, gen_random_uuid()), $2::uuid,
 			 NULLIF($3, '')::uuid, $4::uuid, $5, NULLIF($6, ''), $7::task.task_priority,
-			 $8, $9, $10, $11, $12)
+			 $8, $9, $10, $11, $12, $13::uuid)
 		RETURNING ` + taskColumns
 
 	return scanTask(r.pool.QueryRow(ctx, query,
 		t.ID, t.ProfileID, t.ParentTaskID, t.StatusID, t.Title, t.Description,
-		priorityToDB(t.Priority), t.Position, t.StartAt, t.DueAt, t.CompletedAt, t.IsArchived))
+		priorityToDB(t.Priority), t.Position, t.StartAt, t.DueAt, t.CompletedAt, t.IsArchived, t.ProjectID))
 }
 
 func (r *PostgresTaskRepository) Get(ctx context.Context, id string) (model.Task, error) {
@@ -117,6 +118,7 @@ func (r *PostgresTaskRepository) List(ctx context.Context, f model.TaskFilter) (
 		  AND (CASE WHEN $3 THEN parent_task_id IS NULL
 		            ELSE ($4::uuid IS NULL OR parent_task_id = $4::uuid) END)
 		  AND ($5 OR NOT is_archived)
+		  AND ($6::uuid IS NULL OR project_id = $6::uuid)
 		ORDER BY position, created_at`
 
 	rows, err := r.pool.Query(ctx, query,
@@ -125,6 +127,7 @@ func (r *PostgresTaskRepository) List(ctx context.Context, f model.TaskFilter) (
 		f.RootOnly,
 		optionalUUID(f.ParentTaskID),
 		f.IncludeArchived,
+		optionalUUID(f.ProjectID),
 	)
 	if err != nil {
 		return nil, mapTaskError(err)
@@ -204,6 +207,34 @@ func (r *PostgresTaskRepository) Update(ctx context.Context, id string, upd mode
 		upd.DueAt != nil, dueAt,
 		upd.IsArchived,
 	))
+}
+
+// SetProjectForSubtree đổi project của task rootID và mọi hậu duệ (theo
+// parent_task_id) trong một câu UPDATE, giới hạn trong profile của task gốc.
+func (r *PostgresTaskRepository) SetProjectForSubtree(ctx context.Context, rootID, projectID string) error {
+	const query = `
+		WITH RECURSIVE subtree AS (
+			SELECT id, profile_id
+			FROM task.tasks
+			WHERE id = $1::uuid AND deleted_at IS NULL
+			UNION
+			SELECT c.id, c.profile_id
+			FROM task.tasks c
+			JOIN subtree s ON c.parent_task_id = s.id AND c.profile_id = s.profile_id
+			WHERE c.deleted_at IS NULL
+		)
+		UPDATE task.tasks
+		SET project_id = $2::uuid
+		WHERE id IN (SELECT id FROM subtree)`
+
+	tag, err := r.pool.Exec(ctx, query, rootID, projectID)
+	if err != nil {
+		return mapTaskError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return model.ErrNotFound
+	}
+	return nil
 }
 
 func (r *PostgresTaskRepository) Delete(ctx context.Context, id string) error {

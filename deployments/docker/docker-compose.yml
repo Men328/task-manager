@@ -1,8 +1,9 @@
 name: task-manager
 
 # Chạy từ root repo:
-#   docker compose -f deployments/docker/docker-compose.yml up --build -d
-# hoặc: make up
+#   make up   (build image theo batch qua scripts/build-images.sh rồi up --no-build)
+# hoặc: docker compose -f deployments/docker/docker-compose.yml up --build -d
+#   (build tất cả cùng lúc -> nặng máy; nên dùng `make up`).
 #
 # Build context của mọi service là root repo (`../..`) để Dockerfile copy được
 # cả `common/` (module dùng chung) và thư mục service tương ứng.
@@ -10,6 +11,7 @@ name: task-manager
 # Mỗi service Go gồm 2 container:
 #   <svc>-grpc  -> binary /usr/local/bin/grpc  (gRPC server, nội bộ)
 #   <svc>       -> binary /usr/local/bin/http  (grpc-gateway, HTTP nội bộ)
+# Cả 2 dùng chung image `task-manager/<svc>:latest` nên chỉ cần build 1 lần.
 # Gateway dial gRPC qua GRPC_DIAL_ADDR=<svc>-grpc:<port>. Tên service HTTP giữ
 # nguyên (`identity`/`task`) để nginx của frontend không phải đổi.
 #
@@ -114,17 +116,21 @@ services:
     build:
       context: ../..
       dockerfile: service/identity/Dockerfile
+    image: task-manager/identity:latest
     container_name: tm-identity-grpc
     entrypoint: ["/usr/local/bin/grpc"]
     environment:
       SERVICE_NAME: identity
       GRPC_ADDR: ":9081"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       # Repository Postgres: bỏ trống biến này thì identity quay về in-memory stub.
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
       # Khi tạo profile mới, identity gọi task service để tạo bộ status + lifecycle mặc định.
       TASK_GRPC_DIAL_ADDR: "task-grpc:9082"
     depends_on:
+      project-grpc:
+        condition: service_started
       postgres:
         condition: service_healthy
       migrate:
@@ -137,6 +143,7 @@ services:
     build:
       context: ../..
       dockerfile: service/identity/Dockerfile
+    image: task-manager/identity:latest
     container_name: tm-identity
     entrypoint: ["/usr/local/bin/http"]
     environment:
@@ -183,14 +190,18 @@ services:
     build:
       context: ../..
       dockerfile: service/task/Dockerfile
+    image: task-manager/task:latest
     container_name: tm-task-grpc
     entrypoint: ["/usr/local/bin/grpc"]
     environment:
       SERVICE_NAME: task
       GRPC_ADDR: ":9082"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
     depends_on:
+      project-grpc:
+        condition: service_started
       postgres:
         condition: service_healthy
       migrate:
@@ -201,6 +212,7 @@ services:
     build:
       context: ../..
       dockerfile: service/task/Dockerfile
+    image: task-manager/task:latest
     container_name: tm-task
     entrypoint: ["/usr/local/bin/http"]
     environment:
@@ -224,14 +236,18 @@ services:
     build:
       context: ../..
       dockerfile: service/calendar/Dockerfile
+    image: task-manager/calendar:latest
     container_name: tm-calendar-grpc
     entrypoint: ["/usr/local/bin/grpc"]
     environment:
       SERVICE_NAME: calendar
       GRPC_ADDR: ":9083"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
     depends_on:
+      project-grpc:
+        condition: service_started
       postgres:
         condition: service_healthy
       migrate:
@@ -242,6 +258,7 @@ services:
     build:
       context: ../..
       dockerfile: service/calendar/Dockerfile
+    image: task-manager/calendar:latest
     container_name: tm-calendar
     entrypoint: ["/usr/local/bin/http"]
     environment:
@@ -260,20 +277,67 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # --------------------------------------------------------------- project
+  project-grpc:
+    build:
+      context: ../..
+      dockerfile: service/project/Dockerfile
+    image: task-manager/project:latest
+    container_name: tm-project-grpc
+    entrypoint: ["/usr/local/bin/grpc"]
+    environment:
+      SERVICE_NAME: project
+      GRPC_ADDR: ":9090"
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  project:
+    build:
+      context: ../..
+      dockerfile: service/project/Dockerfile
+    image: task-manager/project:latest
+    container_name: tm-project
+    entrypoint: ["/usr/local/bin/http"]
+    environment:
+      SERVICE_NAME: project
+      HTTP_ADDR: ":8090"
+      GRPC_DIAL_ADDR: "project-grpc:9090"
+      LOG_LEVEL: info
+    depends_on:
+      project-grpc:
+        condition: service_started
+    healthcheck:
+      # /healthz chỉ 200 khi gateway gọi được gRPC health service.
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   # ------------------------------------------------------------------ event
   # Sự kiện cá nhân (EVENT.events): giống lịch nhưng có status + source.
   event-grpc:
     build:
       context: ../..
       dockerfile: service/event/Dockerfile
+    image: task-manager/event:latest
     container_name: tm-event-grpc
     entrypoint: ["/usr/local/bin/grpc"]
     environment:
       SERVICE_NAME: event
       GRPC_ADDR: ":9085"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
     depends_on:
+      project-grpc:
+        condition: service_started
       postgres:
         condition: service_healthy
       migrate:
@@ -284,6 +348,7 @@ services:
     build:
       context: ../..
       dockerfile: service/event/Dockerfile
+    image: task-manager/event:latest
     container_name: tm-event
     entrypoint: ["/usr/local/bin/http"]
     environment:
@@ -307,6 +372,7 @@ services:
     build:
       context: ../..
       dockerfile: service/backlog/Dockerfile
+    image: task-manager/backlog:latest
     container_name: tm-backlog-grpc
     entrypoint: ["/usr/local/bin/grpc"]
     environment:
@@ -325,6 +391,7 @@ services:
     build:
       context: ../..
       dockerfile: service/backlog/Dockerfile
+    image: task-manager/backlog:latest
     container_name: tm-backlog
     entrypoint: ["/usr/local/bin/http"]
     environment:
@@ -351,6 +418,7 @@ services:
     build:
       context: ../..
       dockerfile: service/attachment/Dockerfile
+    image: task-manager/attachment:latest
     container_name: tm-attachment-grpc
     entrypoint: ["/usr/local/bin/grpc"]
     environment:
@@ -380,6 +448,7 @@ services:
     build:
       context: ../..
       dockerfile: service/attachment/Dockerfile
+    image: task-manager/attachment:latest
     container_name: tm-attachment
     entrypoint: ["/usr/local/bin/http"]
     environment:
@@ -404,17 +473,21 @@ services:
     build:
       context: ../..
       dockerfile: service/report/Dockerfile
+    image: task-manager/report:latest
     container_name: tm-report-grpc
     entrypoint: ["/usr/local/bin/grpc"]
     environment:
       SERVICE_NAME: report
       GRPC_ADDR: ":9087"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       TASK_GRPC_DIAL_ADDR: "task-grpc:9082"
       EVENT_GRPC_DIAL_ADDR: "event-grpc:9085"
       CALENDAR_GRPC_DIAL_ADDR: "calendar-grpc:9083"
       BACKLOG_GRPC_DIAL_ADDR: "backlog-grpc:9086"
     depends_on:
+      project-grpc:
+        condition: service_started
       task-grpc:
         condition: service_started
       event-grpc:
@@ -429,6 +502,7 @@ services:
     build:
       context: ../..
       dockerfile: service/report/Dockerfile
+    image: task-manager/report:latest
     container_name: tm-report
     entrypoint: ["/usr/local/bin/http"]
     environment:
@@ -454,12 +528,14 @@ services:
     build:
       context: ../..
       dockerfile: service/mail-provider/Dockerfile
+    image: task-manager/mail-provider:latest
     container_name: tm-mail-provider-grpc
     entrypoint: ["/usr/local/bin/grpc"]
     environment:
       SERVICE_NAME: mail-provider
       GRPC_ADDR: ":9084"
       LOG_LEVEL: info
+      PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
       TASK_GRPC_DIAL_ADDR: "task-grpc:9082"
       # Worker phân loại email rồi gọi service tương ứng (schedule/event) và
@@ -514,6 +590,8 @@ services:
     volumes:
       - /root/secrets:/secrets:ro
     depends_on:
+      project-grpc:
+        condition: service_started
       postgres:
         condition: service_healthy
       migrate:
@@ -536,6 +614,7 @@ services:
     build:
       context: ../..
       dockerfile: service/mail-provider/Dockerfile
+    image: task-manager/mail-provider:latest
     container_name: tm-mail-provider
     entrypoint: ["/usr/local/bin/http"]
     environment:
@@ -567,6 +646,7 @@ services:
     build:
       context: ../..
       dockerfile: service/notification/Dockerfile
+    image: task-manager/notification:latest
     container_name: tm-notification-grpc
     entrypoint: ["/usr/local/bin/grpc"]
     environment:
@@ -593,6 +673,7 @@ services:
     build:
       context: ../..
       dockerfile: service/notification/Dockerfile
+    image: task-manager/notification:latest
     container_name: tm-notification
     entrypoint: ["/usr/local/bin/http"]
     environment:
@@ -627,6 +708,7 @@ services:
         VITE_SOKETI_WS_PATH: ${SOKETI_WS_PATH:-/api/soketi}
         VITE_SOKETI_CLUSTER: ${SOKETI_CLUSTER:-mt1}
         VITE_NOTIFICATION_API_URL: ${VITE_NOTIFICATION_API_URL:-/api/notification}
+    image: task-manager/frontend:latest
     container_name: tm-frontend
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
@@ -636,6 +718,8 @@ services:
       task:
         condition: service_healthy
       calendar:
+        condition: service_healthy
+      project:
         condition: service_healthy
       event:
         condition: service_healthy

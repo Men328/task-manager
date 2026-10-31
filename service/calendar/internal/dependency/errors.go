@@ -27,6 +27,12 @@ func codeForKind(kind model.ErrorKind) string {
 	switch kind {
 	case model.ErrorKindTimeRangeInvalid:
 		return errorcode.CalendarTimeRangeInvalid
+	case model.ErrorKindProjectRequired:
+		return errorcode.ProjectIDRequired
+	case model.ErrorKindProjectNotFound:
+		return errorcode.ProjectNotFound
+	case model.ErrorKindProjectArchived:
+		return errorcode.ProjectArchived
 	default:
 		return errorcode.CommonInternal
 	}

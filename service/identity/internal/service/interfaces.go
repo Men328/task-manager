@@ -26,6 +26,10 @@ type DefaultLifecycleSeeder interface {
 	SeedDefaultStatuses(ctx context.Context, profileID string) error
 }
 
+type DefaultProjectSeeder interface {
+	SeedDefaultProject(ctx context.Context, profileID string) error
+}
+
 type ProfileService interface {
 	Create(ctx context.Context, p model.Profile) (model.Profile, error)
 	Get(ctx context.Context, id string) (model.Profile, error)

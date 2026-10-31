@@ -28,6 +28,9 @@
       "name": "NoticeService"
     },
     {
+      "name": "ProjectService"
+    },
+    {
       "name": "ReportService"
     },
     {
@@ -406,6 +409,13 @@
               "EVENT_STATUS_CANCELLED"
             ],
             "default": "EVENT_STATUS_UNSPECIFIED"
+          },
+          {
+            "name": "projectId",
+            "description": "Lọc theo dự án; rỗng = tất cả dự án.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -698,6 +708,215 @@
         ]
       }
     },
+    "/v1/projects": {
+      "get": {
+        "operationId": "ProjectService_ListProjects",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListProjectsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "includeArchived",
+            "description": "false = ẩn các dự án đã lưu trữ.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "ProjectService"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectService_CreateProject",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateProjectResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateProjectRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ProjectService"
+        ]
+      }
+    },
+    "/v1/projects/{id}": {
+      "get": {
+        "operationId": "ProjectService_GetProject",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetProjectResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ProjectService"
+        ]
+      },
+      "patch": {
+        "operationId": "ProjectService_UpdateProject",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateProjectResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProjectServiceUpdateProjectBody"
+            }
+          }
+        ],
+        "tags": [
+          "ProjectService"
+        ]
+      }
+    },
+    "/v1/projects/{id}/archive": {
+      "post": {
+        "operationId": "ProjectService_ArchiveProject",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ArchiveProjectResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProjectServiceArchiveProjectBody"
+            }
+          }
+        ],
+        "tags": [
+          "ProjectService"
+        ]
+      }
+    },
+    "/v1/projects/{id}/unarchive": {
+      "post": {
+        "operationId": "ProjectService_UnarchiveProject",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UnarchiveProjectResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProjectServiceUnarchiveProjectBody"
+            }
+          }
+        ],
+        "tags": [
+          "ProjectService"
+        ]
+      }
+    },
     "/v1/reports/activity": {
       "get": {
         "operationId": "ReportService_GetActivityReport",
@@ -736,6 +955,13 @@
             "required": false,
             "type": "string",
             "format": "date-time"
+          },
+          {
+            "name": "projectId",
+            "description": "Lọc theo dự án; rỗng = tất cả dự án.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -787,6 +1013,13 @@
             "in": "query",
             "required": false,
             "type": "boolean"
+          },
+          {
+            "name": "projectId",
+            "description": "Lọc theo dự án; rỗng = tất cả dự án.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -837,6 +1070,13 @@
             "in": "query",
             "required": false,
             "type": "boolean"
+          },
+          {
+            "name": "projectId",
+            "description": "Lọc theo dự án; rỗng = tất cả dự án.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -901,6 +1141,13 @@
             "in": "query",
             "required": false,
             "type": "boolean"
+          },
+          {
+            "name": "projectId",
+            "description": "Lọc theo dự án; rỗng = tất cả dự án.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -946,6 +1193,13 @@
             "required": false,
             "type": "string",
             "format": "date-time"
+          },
+          {
+            "name": "projectId",
+            "description": "Lọc theo dự án; rỗng = tất cả dự án.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -1324,6 +1578,13 @@
             "in": "query",
             "required": false,
             "type": "boolean"
+          },
+          {
+            "name": "projectId",
+            "description": "Lọc theo dự án; rỗng = tất cả dự án.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -1738,6 +1999,10 @@
         },
         "color": {
           "type": "string"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Chuyển sang dự án khác; rỗng = không đổi."
         }
       }
     },
@@ -1770,6 +2035,10 @@
         },
         "status": {
           "$ref": "#/definitions/v1EventStatus"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Chuyển sang dự án khác; rỗng = không đổi."
         }
       }
     },
@@ -1793,6 +2062,26 @@
         }
       },
       "description": "Chỉ update các field được set (proto3 optional = field presence)."
+    },
+    "ProjectServiceArchiveProjectBody": {
+      "type": "object"
+    },
+    "ProjectServiceUnarchiveProjectBody": {
+      "type": "object"
+    },
+    "ProjectServiceUpdateProjectBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        }
+      }
     },
     "StatusTransitionServiceUpdateStatusTransitionBody": {
       "type": "object",
@@ -1849,6 +2138,10 @@
         },
         "isArchived": {
           "type": "boolean"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Chuyển sang dự án khác; rỗng = không đổi."
         }
       }
     },
@@ -1907,6 +2200,14 @@
             "type": "object",
             "$ref": "#/definitions/protobufAny"
           }
+        }
+      }
+    },
+    "v1ArchiveProjectResponse": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "$ref": "#/definitions/v1Project"
         }
       }
     },
@@ -2131,6 +2432,10 @@
         },
         "source": {
           "type": "string"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Dự án chứa mục này."
         }
       }
     },
@@ -2170,6 +2475,31 @@
         }
       }
     },
+    "v1CreateProjectRequest": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        }
+      }
+    },
+    "v1CreateProjectResponse": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "$ref": "#/definitions/v1Project"
+        }
+      }
+    },
     "v1CreateScheduleRequest": {
       "type": "object",
       "properties": {
@@ -2198,6 +2528,10 @@
         },
         "color": {
           "type": "string"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Dự án chứa mục này."
         }
       }
     },
@@ -2269,6 +2603,10 @@
         "dueAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Dự án chứa mục này."
         }
       }
     },
@@ -2394,6 +2732,10 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Dự án chứa mục này."
         }
       },
       "title": "Sự kiện (event) cá nhân thuộc 1 profile.\nKhác `schedule` ở chỗ có `status` + `source` để theo dõi sự kiện đến từ email.\nMapping DB: event.events"
@@ -2500,6 +2842,14 @@
       "properties": {
         "profile": {
           "$ref": "#/definitions/v1Profile"
+        }
+      }
+    },
+    "v1GetProjectResponse": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "$ref": "#/definitions/v1Project"
         }
       }
     },
@@ -2633,6 +2983,18 @@
         }
       }
     },
+    "v1ListProjectsResponse": {
+      "type": "object",
+      "properties": {
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Project"
+          }
+        }
+      }
+    },
     "v1ListSchedulesResponse": {
       "type": "object",
       "properties": {
@@ -2719,6 +3081,43 @@
         }
       },
       "title": "Profile là hồ sơ của một identity.\nMapping DB: identity.PROFILES"
+    },
+    "v1Project": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "profileId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string",
+          "description": "Màu hiển thị `#RRGGBB`; rỗng = dùng màu mặc định của UI."
+        },
+        "isDefault": {
+          "type": "boolean",
+          "description": "Dự án mặc định của profile (không thể lưu trữ)."
+        },
+        "isArchived": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Dự án: nhóm task / lịch / sự kiện của 1 profile.\nMapping DB: project.projects"
     },
     "v1ReportInterval": {
       "type": "string",
@@ -2847,6 +3246,10 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Dự án chứa mục này."
         }
       },
       "title": "Lịch (schedule) cá nhân thuộc 1 profile.\nMapping DB: calendar.schedules"
@@ -3027,6 +3430,10 @@
             "$ref": "#/definitions/v1Task"
           },
           "title": "chỉ được fill khi request yêu cầu include_subtasks"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Dự án chứa mục này."
         }
       },
       "title": "Task cá nhân, hỗ trợ task cha - con qua parent_task_id.\nMapping DB: task.TASKS"
@@ -3125,6 +3532,14 @@
       },
       "description": "1 điểm trên line chart: số task tạo mới / hoàn thành trong bucket."
     },
+    "v1UnarchiveProjectResponse": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "$ref": "#/definitions/v1Project"
+        }
+      }
+    },
     "v1UpdateBacklogResponse": {
       "type": "object",
       "properties": {
@@ -3146,6 +3561,14 @@
       "properties": {
         "profile": {
           "$ref": "#/definitions/v1Profile"
+        }
+      }
+    },
+    "v1UpdateProjectResponse": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "$ref": "#/definitions/v1Project"
         }
       }
     },

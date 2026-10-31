@@ -13,7 +13,7 @@ import (
 	"taskmanager/service/event/internal/model"
 )
 
-const eventColumns = `id::text, profile_id::text, title, COALESCE(description, ''), COALESCE(location, ''), start_at, end_at, all_day, COALESCE(color, ''), status, COALESCE(source, ''), created_at, updated_at`
+const eventColumns = `id::text, profile_id::text, project_id::text, title, COALESCE(description, ''), COALESCE(location, ''), start_at, end_at, all_day, COALESCE(color, ''), status, COALESCE(source, ''), created_at, updated_at`
 
 type PostgresEventRepository struct {
 	pool *pgxpool.Pool
@@ -55,6 +55,7 @@ func scanEvent(row pgx.Row) (model.Event, error) {
 	if err := row.Scan(
 		&e.ID,
 		&e.ProfileID,
+		&e.ProjectID,
 		&e.Title,
 		&e.Description,
 		&e.Location,
@@ -97,15 +98,15 @@ func optionalStatus(status model.Status) any {
 func (r *PostgresEventRepository) Create(ctx context.Context, e model.Event) (model.Event, error) {
 	const query = `
 		INSERT INTO event.events
-			(id, profile_id, title, description, location, start_at, end_at, all_day, color, status, source)
+			(id, profile_id, project_id, title, description, location, start_at, end_at, all_day, color, status, source)
 		VALUES
-			(COALESCE(NULLIF($1, '')::uuid, gen_random_uuid()), $2::uuid, $3,
-			 NULLIF($4, ''), NULLIF($5, ''), $6, $7, $8, NULLIF($9, ''),
-			 COALESCE(NULLIF($10, ''), 'PLANNED'), NULLIF($11, ''))
+			(COALESCE(NULLIF($1, '')::uuid, gen_random_uuid()), $2::uuid, $3::uuid, $4,
+			 NULLIF($5, ''), NULLIF($6, ''), $7, $8, $9, NULLIF($10, ''),
+			 COALESCE(NULLIF($11, ''), 'PLANNED'), NULLIF($12, ''))
 		RETURNING ` + eventColumns
 
 	return scanEvent(r.pool.QueryRow(ctx, query,
-		e.ID, e.ProfileID, e.Title, e.Description, e.Location,
+		e.ID, e.ProfileID, e.ProjectID, e.Title, e.Description, e.Location,
 		e.StartAt, e.EndAt, e.AllDay, e.Color, string(e.Status), e.Source))
 }
 
@@ -119,13 +120,15 @@ func (r *PostgresEventRepository) List(ctx context.Context, f model.Filter) ([]m
 		SELECT ` + eventColumns + `
 		FROM event.events
 		WHERE ($1::uuid IS NULL OR profile_id = $1::uuid)
-		  AND ($2::timestamptz IS NULL OR COALESCE(end_at, start_at) >= $2::timestamptz)
-		  AND ($3::timestamptz IS NULL OR start_at < $3::timestamptz)
-		  AND ($4::text IS NULL OR status = $4::text)
+		  AND ($2::uuid IS NULL OR project_id = $2::uuid)
+		  AND ($3::timestamptz IS NULL OR COALESCE(end_at, start_at) >= $3::timestamptz)
+		  AND ($4::timestamptz IS NULL OR start_at < $4::timestamptz)
+		  AND ($5::text IS NULL OR status = $5::text)
 		ORDER BY start_at, created_at`
 
 	rows, err := r.pool.Query(ctx, query,
 		optionalUUID(f.ProfileID),
+		optionalUUID(f.ProjectID),
 		optionalTime(f.From),
 		optionalTime(f.To),
 		optionalStatus(f.Status),
@@ -156,7 +159,8 @@ func (r *PostgresEventRepository) Update(ctx context.Context, id string, upd mod
 		    end_at      = COALESCE($6::timestamptz, end_at),
 		    all_day     = COALESCE($7, all_day),
 		    color       = COALESCE(NULLIF($8, ''), color),
-		    status      = COALESCE(NULLIF($9, ''), status)
+		    status      = COALESCE(NULLIF($9, ''), status),
+		    project_id  = COALESCE($10::uuid, project_id)
 		WHERE id = $1::uuid
 		RETURNING ` + eventColumns
 
@@ -170,6 +174,7 @@ func (r *PostgresEventRepository) Update(ctx context.Context, id string, upd mod
 		upd.AllDay,
 		upd.Color,
 		optionalStatusValue(upd.Status),
+		upd.ProjectID,
 	))
 }
 

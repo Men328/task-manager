@@ -5,6 +5,7 @@ import type {
   CreateStatusInput,
   CreateTaskInput,
   CreateTransitionInput,
+  UpdateTaskInput,
   ListTasksParams,
   StatusTransition,
   Task,
@@ -38,6 +39,7 @@ function toStatusBody(input: CreateStatusInput): Record<string, unknown> {
 function toTaskBody(input: CreateTaskInput): Record<string, unknown> {
   return {
     profile_id: input.profileId,
+    project_id: input.projectId,
     title: input.title,
     status_id: input.statusId,
     description: input.description,
@@ -111,6 +113,7 @@ export async function listTasks(params: ListTasksParams): Promise<Task[]> {
     taskApi,
     `${TASKS_PATH}${buildQuery({
       profile_id: params.profileId,
+      project_id: params.projectId,
       status_id: params.statusId,
       parent_task_id: params.parentTaskId,
       root_only: params.rootOnly,
@@ -136,6 +139,18 @@ export function createTask(input: CreateTaskInput): Promise<Task> {
   return request<Task>(taskApi, TASKS_PATH, {
     method: 'POST',
     body: JSON.stringify(toTaskBody(input)),
+  }).then((payload) => unwrap<Task>(payload, 'task'));
+}
+
+/** PATCH /v1/tasks/{id} — hiện chỉ dùng để chuyển project. */
+export function updateTask(id: string, input: UpdateTaskInput): Promise<Task> {
+  const body: Record<string, unknown> = {};
+  if (input.projectId !== undefined) {
+    body.project_id = input.projectId;
+  }
+  return request<Task>(taskApi, `${TASKS_PATH}/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
   }).then((payload) => unwrap<Task>(payload, 'task'));
 }
 

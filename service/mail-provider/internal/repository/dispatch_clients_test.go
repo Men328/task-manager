@@ -14,6 +14,7 @@ import (
 	backlogv1 "taskmanager/common/gen/go/backlog/v1"
 	calendarv1 "taskmanager/common/gen/go/calendar/v1"
 	eventv1 "taskmanager/common/gen/go/event/v1"
+	projectv1 "taskmanager/common/gen/go/project/v1"
 	taskv1 "taskmanager/common/gen/go/task/v1"
 	"taskmanager/service/mail-provider/internal/model"
 )
@@ -105,6 +106,7 @@ func TestTaskClientSendsDraftAndReturnsRef(t *testing.T) {
 
 	ref, err := client.Create(context.Background(), model.TaskInput{
 		ProfileID:   "p1",
+		ProjectID:   "pr1",
 		Title:       "Nộp báo cáo",
 		Description: "Gửi trước thứ sáu",
 		Priority:    model.PriorityHigh,
@@ -116,6 +118,9 @@ func TestTaskClientSendsDraftAndReturnsRef(t *testing.T) {
 	}
 	if ref.ID != "task-1" || ref.Title != "Nộp báo cáo" {
 		t.Fatalf("ref sai: %+v", ref)
+	}
+	if server.request.GetProjectId() != "pr1" {
+		t.Fatalf("project_id sai: %q", server.request.GetProjectId())
 	}
 	if server.request.GetProfileId() != "p1" || server.request.GetTitle() != "Nộp báo cáo" {
 		t.Fatalf("request sai: %+v", server.request)
@@ -148,6 +153,7 @@ func TestScheduleClientSendsSchedule(t *testing.T) {
 
 	ref, err := client.Create(context.Background(), model.ScheduleInput{
 		ProfileID:   "p1",
+		ProjectID:   "pr1",
 		Title:       "Họp nhóm",
 		Description: "Standup",
 		Location:    "Zoom",
@@ -160,6 +166,9 @@ func TestScheduleClientSendsSchedule(t *testing.T) {
 	}
 	if ref.ID != "schedule-1" {
 		t.Fatalf("ref sai: %+v", ref)
+	}
+	if server.request.GetProjectId() != "pr1" {
+		t.Fatalf("project_id sai: %q", server.request.GetProjectId())
 	}
 	if server.request.GetProfileId() != "p1" || server.request.GetLocation() != "Zoom" {
 		t.Fatalf("request sai: %+v", server.request)
@@ -177,6 +186,7 @@ func TestEventClientSendsPlannedEventWithSource(t *testing.T) {
 
 	ref, err := client.Create(context.Background(), model.EventInput{
 		ProfileID: "p1",
+		ProjectID: "pr1",
 		Title:     "Hội thảo AI",
 		Location:  "Hà Nội",
 		StartAt:   start,
@@ -190,6 +200,9 @@ func TestEventClientSendsPlannedEventWithSource(t *testing.T) {
 	}
 	if server.request.GetStatus() != eventv1.EventStatus_EVENT_STATUS_PLANNED {
 		t.Fatalf("status phải PLANNED, nhận %v", server.request.GetStatus())
+	}
+	if server.request.GetProjectId() != "pr1" {
+		t.Fatalf("project_id sai: %q", server.request.GetProjectId())
 	}
 	if server.request.GetSource() != "m1" {
 		t.Fatalf("source phải là message id, nhận %q", server.request.GetSource())
@@ -236,5 +249,36 @@ func TestBacklogClientWrapsServerError(t *testing.T) {
 	_, err := client.Create(context.Background(), model.BacklogInput{ProfileID: "p1", Title: "x"})
 	if !errors.Is(err, model.ErrBacklogCreate) {
 		t.Fatalf("phải bọc ErrBacklogCreate, nhận %v", err)
+	}
+}
+
+type captureProjectServer struct {
+	projectv1.UnimplementedProjectServiceServer
+	request *projectv1.ListProjectsRequest
+}
+
+func (s *captureProjectServer) ListProjects(_ context.Context, req *projectv1.ListProjectsRequest) (*projectv1.ListProjectsResponse, error) {
+	s.request = req
+	return &projectv1.ListProjectsResponse{Projects: []*projectv1.Project{
+		{Id: "def", Name: "Mặc định", IsDefault: true},
+		{Id: "arc", Name: "Cũ", IsArchived: true},
+		{Id: "pr1", Name: "ACME", Description: "website"},
+	}}, nil
+}
+
+func TestProjectClientFiltersDefaultAndArchived(t *testing.T) {
+	server := &captureProjectServer{}
+	conn := startBufconnServer(t, func(s *grpc.Server) { projectv1.RegisterProjectServiceServer(s, server) })
+	client := NewProjectClient(projectv1.NewProjectServiceClient(conn), time.Second)
+
+	got, err := client.ListDetectable(context.Background(), "p1")
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if server.request.GetProfileId() != "p1" || server.request.GetIncludeArchived() {
+		t.Fatalf("request sai: %+v", server.request)
+	}
+	if len(got) != 1 || got[0].ID != "pr1" || got[0].Description != "website" {
+		t.Fatalf("phải chỉ còn project thường: %+v", got)
 	}
 }

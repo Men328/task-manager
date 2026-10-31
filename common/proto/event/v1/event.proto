@@ -39,6 +39,8 @@ message Event {
   string source = 11;
   google.protobuf.Timestamp created_at = 12;
   google.protobuf.Timestamp updated_at = 13;
+  // Dự án chứa mục này.
+  string project_id = 14;
 }
 
 message CreateEventRequest {
@@ -53,6 +55,8 @@ message CreateEventRequest {
   // Bỏ trống = EVENT_STATUS_PLANNED.
   EventStatus status = 9;
   string source = 10;
+  // Dự án chứa mục này.
+  string project_id = 11;
 }
 
 message CreateEventResponse {
@@ -74,6 +78,8 @@ message ListEventsRequest {
   google.protobuf.Timestamp to = 3;
   // Lọc theo trạng thái (optional).
   EventStatus status = 4;
+  // Lọc theo dự án; rỗng = tất cả dự án.
+  string project_id = 5;
 }
 
 message ListEventsResponse {
@@ -91,6 +97,8 @@ message UpdateEventRequest {
   optional bool all_day = 7;
   optional string color = 8;
   optional EventStatus status = 9;
+  // Chuyển sang dự án khác; rỗng = không đổi.
+  optional string project_id = 10;
 }
 
 message UpdateEventResponse {

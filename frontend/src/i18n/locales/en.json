@@ -7,7 +7,8 @@
     "soon": "Not in the base yet",
     "cancel": "Cancel",
     "remove": "Delete",
-    "retry": "Retry"
+    "retry": "Retry",
+    "save": "Save"
   },
   "nav": {
     "groups": {
@@ -21,7 +22,8 @@
     "events": "Events",
     "backlog": "Backlog",
     "reports": "Reports",
-    "statusesLifecycle": "Statuses & Lifecycle"
+    "statusesLifecycle": "Statuses & Lifecycle",
+    "projects": "Projects"
   },
   "sidebar": {
     "brand": "Task Manager"
@@ -260,6 +262,11 @@
     "deleteConfirm": "Delete this event?"
   },
   "backlogPage": {
+    "convert": "Convert to…",
+    "convertTask": "Convert to task",
+    "convertSchedule": "Convert to schedule",
+    "convertEvent": "Convert to event",
+    "markTriagedFailed": "Item created but the backlog could not be marked as triaged",
     "breadcrumb": "Planning",
     "title": "Backlog",
     "subtitle": "Email that is not task/schedule/event is pushed here by the mail worker",
@@ -393,7 +400,8 @@
     "loadCalendar": "Could not load schedule data",
     "loadEvents": "Could not load event data",
     "loadBacklog": "Could not load backlog data",
-    "loadReport": "Could not load report data"
+    "loadReport": "Could not load report data",
+    "loadProjects": "Could not load projects"
   },
   "login": {
     "title": "Sign in",
@@ -408,5 +416,46 @@
   },
   "authCallback": {
     "signingIn": "Finishing sign-in…"
+  },
+  "project": {
+    "switcherLabel": "Select project",
+    "none": "No project",
+    "filterPlaceholder": "Search projects",
+    "noMatch": "No matching project",
+    "createAction": "Create project",
+    "manage": "Manage projects",
+    "createTitle": "Create project",
+    "editTitle": "Edit project",
+    "create": "Create",
+    "nameLabel": "Project name",
+    "namePlaceholder": "e.g. ACME",
+    "nameRequired": "Please enter a project name",
+    "descriptionLabel": "Description",
+    "descriptionHint": "Describe the scope, people involved and keywords — the system uses this text to file incoming email into the project automatically.",
+    "colorLabel": "Color",
+    "saveFailed": "Could not save the project",
+    "archiveFailed": "Could not update archive state",
+    "pageTitle": "Manage projects",
+    "pageSubtitle": "Group tasks, schedules and events by project.",
+    "tabActive": "Active",
+    "tabArchived": "Archived",
+    "colColor": "Color",
+    "colName": "Name",
+    "colDescription": "Description",
+    "badgeDefault": "Default",
+    "badgeArchived": "Archived",
+    "edit": "Edit",
+    "archive": "Archive",
+    "unarchive": "Restore",
+    "emptyTitle": "No projects",
+    "emptyActive": "There are no active projects.",
+    "emptyArchived": "No projects have been archived.",
+    "selectLabel": "Project",
+    "selectPlaceholder": "Select a project",
+    "movedNotice": "Moved to project \"{{name}}\".",
+    "goTo": "Go to project",
+    "subtaskLocked": "Subtasks follow their parent task's project",
+    "moveFailed": "Could not change project",
+    "moved": "Project changed"
   }
 }

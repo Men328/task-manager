@@ -253,8 +253,10 @@ type GetReportOverviewRequest struct {
 	From            *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
 	To              *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
 	IncludeArchived bool                   `protobuf:"varint,4,opt,name=include_archived,json=includeArchived,proto3" json:"include_archived,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Lọc theo dự án; rỗng = tất cả dự án.
+	ProjectId     string `protobuf:"bytes,5,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetReportOverviewRequest) Reset() {
@@ -313,6 +315,13 @@ func (x *GetReportOverviewRequest) GetIncludeArchived() bool {
 		return x.IncludeArchived
 	}
 	return false
+}
+
+func (x *GetReportOverviewRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
 }
 
 type GetReportOverviewResponse struct {
@@ -460,8 +469,10 @@ type GetStatusBreakdownRequest struct {
 	From            *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
 	To              *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
 	IncludeArchived bool                   `protobuf:"varint,4,opt,name=include_archived,json=includeArchived,proto3" json:"include_archived,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Lọc theo dự án; rỗng = tất cả dự án.
+	ProjectId     string `protobuf:"bytes,5,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetStatusBreakdownRequest) Reset() {
@@ -520,6 +531,13 @@ func (x *GetStatusBreakdownRequest) GetIncludeArchived() bool {
 		return x.IncludeArchived
 	}
 	return false
+}
+
+func (x *GetStatusBreakdownRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
 }
 
 type GetStatusBreakdownResponse struct {
@@ -652,8 +670,10 @@ type GetTaskTimeSeriesRequest struct {
 	// Bỏ trống = REPORT_INTERVAL_DAY.
 	Interval        ReportInterval `protobuf:"varint,4,opt,name=interval,proto3,enum=report.v1.ReportInterval" json:"interval,omitempty"`
 	IncludeArchived bool           `protobuf:"varint,5,opt,name=include_archived,json=includeArchived,proto3" json:"include_archived,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Lọc theo dự án; rỗng = tất cả dự án.
+	ProjectId     string `protobuf:"bytes,6,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetTaskTimeSeriesRequest) Reset() {
@@ -719,6 +739,13 @@ func (x *GetTaskTimeSeriesRequest) GetIncludeArchived() bool {
 		return x.IncludeArchived
 	}
 	return false
+}
+
+func (x *GetTaskTimeSeriesRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
 }
 
 type GetTaskTimeSeriesResponse struct {
@@ -1082,8 +1109,10 @@ type GetActivityReportRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	ProfileId string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
 	// Bỏ trống = mặc định 30 ngày gần nhất.
-	From          *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
-	To            *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
+	From *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
+	To   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
+	// Lọc theo dự án; rỗng = tất cả dự án.
+	ProjectId     string `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1137,6 +1166,13 @@ func (x *GetActivityReportRequest) GetTo() *timestamppb.Timestamp {
 		return x.To
 	}
 	return nil
+}
+
+func (x *GetActivityReportRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
 }
 
 type GetActivityReportResponse struct {
@@ -1250,13 +1286,15 @@ const file_report_v1_report_proto_rawDesc = "" +
 	"\x10created_in_range\x18\r \x01(\x05R\x0ecreatedInRange\x12,\n" +
 	"\x12completed_in_range\x18\x0e \x01(\x05R\x10completedInRange\x12'\n" +
 	"\x0fcompletion_rate\x18\x0f \x01(\x01R\x0ecompletionRate\x12!\n" +
-	"\foverdue_rate\x18\x10 \x01(\x01R\voverdueRate\"\xc0\x01\n" +
+	"\foverdue_rate\x18\x10 \x01(\x01R\voverdueRate\"\xdf\x01\n" +
 	"\x18GetReportOverviewRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12.\n" +
 	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
 	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12)\n" +
-	"\x10include_archived\x18\x04 \x01(\bR\x0fincludeArchived\"R\n" +
+	"\x10include_archived\x18\x04 \x01(\bR\x0fincludeArchived\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x05 \x01(\tR\tprojectId\"R\n" +
 	"\x19GetReportOverviewResponse\x125\n" +
 	"\boverview\x18\x01 \x01(\v2\x19.report.v1.ReportOverviewR\boverview\"\xdc\x01\n" +
 	"\x13StatusBreakdownItem\x12\x1b\n" +
@@ -1270,13 +1308,15 @@ const file_report_v1_report_proto_rawDesc = "" +
 	"\x05count\x18\x06 \x01(\x05R\x05count\x12\x1e\n" +
 	"\n" +
 	"percentage\x18\a \x01(\x01R\n" +
-	"percentage\"\xc1\x01\n" +
+	"percentage\"\xe0\x01\n" +
 	"\x19GetStatusBreakdownRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12.\n" +
 	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
 	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12)\n" +
-	"\x10include_archived\x18\x04 \x01(\bR\x0fincludeArchived\"h\n" +
+	"\x10include_archived\x18\x04 \x01(\bR\x0fincludeArchived\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x05 \x01(\tR\tprojectId\"h\n" +
 	"\x1aGetStatusBreakdownResponse\x124\n" +
 	"\x05items\x18\x01 \x03(\v2\x1e.report.v1.StatusBreakdownItemR\x05items\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\"\xa0\x01\n" +
@@ -1284,14 +1324,16 @@ const file_report_v1_report_proto_rawDesc = "" +
 	"\fbucket_start\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\vbucketStart\x12\x16\n" +
 	"\x06bucket\x18\x02 \x01(\tR\x06bucket\x12\x18\n" +
 	"\acreated\x18\x03 \x01(\x05R\acreated\x12\x1c\n" +
-	"\tcompleted\x18\x04 \x01(\x05R\tcompleted\"\xf7\x01\n" +
+	"\tcompleted\x18\x04 \x01(\x05R\tcompleted\"\x96\x02\n" +
 	"\x18GetTaskTimeSeriesRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12.\n" +
 	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
 	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x125\n" +
 	"\binterval\x18\x04 \x01(\x0e2\x19.report.v1.ReportIntervalR\binterval\x12)\n" +
-	"\x10include_archived\x18\x05 \x01(\bR\x0fincludeArchived\"\xd4\x01\n" +
+	"\x10include_archived\x18\x05 \x01(\bR\x0fincludeArchived\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x06 \x01(\tR\tprojectId\"\xd4\x01\n" +
 	"\x19GetTaskTimeSeriesResponse\x125\n" +
 	"\binterval\x18\x01 \x01(\x0e2\x19.report.v1.ReportIntervalR\binterval\x122\n" +
 	"\x06points\x18\x02 \x03(\v2\x1a.report.v1.TimeSeriesPointR\x06points\x12#\n" +
@@ -1319,12 +1361,14 @@ const file_report_v1_report_proto_rawDesc = "" +
 	"\x10triaged_backlogs\x18\x03 \x01(\x05R\x0ftriagedBacklogs\x12+\n" +
 	"\x11archived_backlogs\x18\x04 \x01(\x05R\x10archivedBacklogs\x129\n" +
 	"\vby_category\x18\x05 \x03(\v2\x18.report.v1.CategoryCountR\n" +
-	"byCategory\"\x95\x01\n" +
+	"byCategory\"\xb4\x01\n" +
 	"\x18GetActivityReportRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12.\n" +
 	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
-	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"\xb2\x02\n" +
+	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x04 \x01(\tR\tprojectId\"\xb2\x02\n" +
 	"\x19GetActivityReportResponse\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12.\n" +

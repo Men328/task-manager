@@ -17,6 +17,7 @@ import (
 	calendarv1 "taskmanager/common/gen/go/calendar/v1"
 	eventv1 "taskmanager/common/gen/go/event/v1"
 	notificationv1 "taskmanager/common/gen/go/notification/v1"
+	projectv1 "taskmanager/common/gen/go/project/v1"
 	taskv1 "taskmanager/common/gen/go/task/v1"
 	"taskmanager/service/mail-provider/internal/config"
 	"taskmanager/service/mail-provider/internal/model"
@@ -134,6 +135,18 @@ func newBacklogCreator(client backlogv1.BacklogServiceClient, cfg config.Config)
 	return repository.NewBacklogClient(client, cfg.BacklogTimeout)
 }
 
+func newProjectLister(client projectv1.ProjectServiceClient, cfg config.Config) service.ProjectLister {
+	return repository.NewProjectClient(client, cfg.ProjectTimeout)
+}
+
+func newProjectConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
+	return dialGRPC(lc, cfg.ProjectDialTarget(), "project")
+}
+
+func newProjectServiceClient(conn *grpc.ClientConn) projectv1.ProjectServiceClient {
+	return projectv1.NewProjectServiceClient(conn)
+}
+
 func newNoticePublisher(client notificationv1.NoticeServiceClient, cfg config.Config) service.NoticePublisher {
 	return repository.NewNotificationClient(client, cfg.NotificationTimeout)
 }
@@ -211,6 +224,8 @@ func newOptions(cfg config.Config) service.Options {
 		PullRetryDelay:      cfg.PullRetryDelay,
 		PullSubscription:    cfg.PullSubscription,
 		HeartbeatInterval:   cfg.PullHeartbeat,
+
+		ProjectMatchThreshold: cfg.ProjectMatchThreshold,
 	}
 }
 

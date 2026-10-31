@@ -109,10 +109,20 @@ type MailDraft struct {
 	AllDay      bool
 	Location    string
 	Reason      string
+
+	ProjectID         string
+	ProjectConfidence float64
+}
+
+type ProjectCandidate struct {
+	ID          string
+	Name        string
+	Description string
 }
 
 type TaskInput struct {
 	ProfileID   string
+	ProjectID   string
 	Title       string
 	Description string
 	Priority    Priority
@@ -127,6 +137,7 @@ type TaskRef struct {
 
 type ScheduleInput struct {
 	ProfileID   string
+	ProjectID   string
 	Title       string
 	Description string
 	Location    string
@@ -142,6 +153,7 @@ type ScheduleRef struct {
 
 type EventInput struct {
 	ProfileID   string
+	ProjectID   string
 	Title       string
 	Description string
 	Location    string

@@ -34,6 +34,11 @@ pids+=("$!")
 go run ./service/calendar/cmd/http &
 pids+=("$!")
 
+go run ./service/project/cmd/grpc &
+pids+=("$!")
+go run ./service/project/cmd/http &
+pids+=("$!")
+
 go run ./service/event/cmd/grpc &
 pids+=("$!")
 go run ./service/event/cmd/http &
@@ -62,6 +67,7 @@ pids+=("$!")
 echo "==> identity:  http://localhost:8081  (gRPC :9081)"
 echo "==> task:      http://localhost:8082  (gRPC :9082)"
 echo "==> calendar:  http://localhost:8083  (gRPC :9083)"
+echo "==> project:   http://localhost:8090  (gRPC :9090)"
 echo "==> event:     http://localhost:8085  (gRPC :9085)"
 echo "==> backlog:   http://localhost:8086  (gRPC :9086)"
 echo "==> mail:      http://localhost:8084  (gRPC :9084)"

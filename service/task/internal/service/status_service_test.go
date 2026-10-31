@@ -153,7 +153,8 @@ func (stubTaskRepo) ListChildren(_ context.Context, _ string) ([]model.Task, err
 func (stubTaskRepo) Update(_ context.Context, _ string, _ model.TaskUpdate) (model.Task, error) {
 	return model.Task{}, nil
 }
-func (stubTaskRepo) Delete(_ context.Context, _ string) error { return nil }
+func (stubTaskRepo) SetProjectForSubtree(_ context.Context, _, _ string) error { return nil }
+func (stubTaskRepo) Delete(_ context.Context, _ string) error                  { return nil }
 func (stubTaskRepo) ChangeStatus(_ context.Context, _, _ string, _ *time.Time) (model.Task, error) {
 	return model.Task{}, nil
 }

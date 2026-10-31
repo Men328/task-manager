@@ -13,6 +13,7 @@ const (
 type Event struct {
 	ID          string
 	ProfileID   string
+	ProjectID   string
 	Title       string
 	Description string
 	Location    string
@@ -28,12 +29,14 @@ type Event struct {
 
 type Filter struct {
 	ProfileID string
+	ProjectID string
 	From      *time.Time
 	To        *time.Time
 	Status    Status
 }
 
 type Update struct {
+	ProjectID   *string
 	Title       *string
 	Description *string
 	Location    *string

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActionIcon,
   Badge,
@@ -6,20 +6,31 @@ import {
   Button,
   Flex,
   Group,
+  Menu,
   SegmentedControl,
   Table,
   Text,
   ThemeIcon,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconArchive, IconChevronRight, IconPencil, IconPlus } from '@tabler/icons-react';
+import {
+  IconArchive,
+  IconChevronDown,
+  IconChevronRight,
+  IconPencil,
+  IconPlus,
+} from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
-import { getBacklog } from '../../api/backlog';
+import { getBacklog, updateBacklog } from '../../api/backlog';
 import BacklogFormModal from '../../components/backlog/BacklogFormModal';
+import ScheduleFormModal from '../../components/calendar/ScheduleFormModal';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
-import { useBacklog, useNoticeFocus, useSession } from '../../context';
+import EventFormModal from '../../components/event/EventFormModal';
+import TaskFormModal from '../../components/task/TaskFormModal';
+import { useAppDispatch, useBacklog, useNoticeFocus, useProject, useSession } from '../../context';
+import { fetchBoard } from '../../context/board/boardSlice';
 import {
   BACKLOG_CATEGORY_LABEL_KEY,
   BACKLOG_STATUS_COLOR,
@@ -31,9 +42,25 @@ import { BACKLOG_STATUSES, type Backlog, type BacklogStatus } from '../../types'
 import classes from './BacklogPage.module.css';
 
 type StatusFilter = 'all' | BacklogStatus;
+type ConvertKind = 'task' | 'schedule' | 'event';
+
+const CONVERT_KINDS: ConvertKind[] = ['task', 'schedule', 'event'];
+const CONVERT_LABEL_KEY: Record<ConvertKind, string> = {
+  task: 'backlogPage.convertTask',
+  schedule: 'backlogPage.convertSchedule',
+  event: 'backlogPage.convertEvent',
+};
+
+/** Mục ứng với category của backlog đứng đầu; category khác (vd. other) giữ thứ tự mặc định. */
+function convertOrder(category: string): ConvertKind[] {
+  return CONVERT_KINDS.includes(category as ConvertKind)
+    ? [category as ConvertKind, ...CONVERT_KINDS.filter((kind) => kind !== category)]
+    : CONVERT_KINDS;
+}
 
 export function BacklogPage() {
   const { t, i18n } = useTranslation();
+  const dispatch = useAppDispatch();
   const session = useSession();
   const backlogState = useBacklog();
 
@@ -41,6 +68,8 @@ export function BacklogPage() {
   const [editing, setEditing] = useState<Backlog | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [converting, setConverting] = useState<{ kind: ConvertKind; item: Backlog } | null>(null);
+  const [convertOpened, setConvertOpened] = useState(false);
 
   const { profileId, applyFilter } = backlogState;
 
@@ -49,6 +78,14 @@ export function BacklogPage() {
       applyFilter({ status: statusFilter === 'all' ? undefined : statusFilter });
     }
   }, [profileId, statusFilter, applyFilter]);
+
+  // Form tạo task cần danh sách status của board (project hiện tại).
+  const { currentProjectId } = useProject();
+  useEffect(() => {
+    if (profileId && currentProjectId) {
+      void dispatch(fetchBoard({ profileId, projectId: currentProjectId }));
+    }
+  }, [profileId, currentProjectId, dispatch]);
 
   const locale = i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-GB';
   const loading = session.loading || backlogState.loading;
@@ -73,6 +110,35 @@ export function BacklogPage() {
     setModalOpened(false);
     setEditing(null);
   };
+
+  const startConvert = (kind: ConvertKind, item: Backlog) => {
+    setConverting({ kind, item });
+    setConvertOpened(true);
+  };
+
+  const closeConvert = () => setConvertOpened(false);
+
+  const handleConverted = async () => {
+    const item = converting?.item;
+    if (!item) {
+      return;
+    }
+    try {
+      await updateBacklog(item.id, { status: 'BACKLOG_STATUS_TRIAGED' });
+    } catch (cause) {
+      notifications.show({
+        title: t('backlogPage.markTriagedFailed'),
+        message: getErrorMessage(cause),
+        color: 'red',
+      });
+    }
+    applyFilter({ status: statusFilter === 'all' ? undefined : statusFilter });
+  };
+
+  const convertPrefill = useMemo(
+    () => ({ title: converting?.item.title, description: converting?.item.description || undefined }),
+    [converting],
+  );
 
   useNoticeFocus<Backlog>(
     async (id) => backlogState.items.find((item) => item.id === id) ?? (await getBacklog(id).catch(() => null)),
@@ -235,7 +301,7 @@ export function BacklogPage() {
                   <Table.Th w={180}>{t('backlogPage.colReason')}</Table.Th>
                   <Table.Th w={150}>{t('backlogPage.colCreated')}</Table.Th>
                   <Table.Th w={130}>{t('backlogPage.colStatus')}</Table.Th>
-                  <Table.Th w={70} />
+                  <Table.Th w={90} />
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -279,9 +345,32 @@ export function BacklogPage() {
                         </Badge>
                       </Table.Td>
                       <Table.Td>
-                        <ActionIcon variant="subtle" color="gray" onClick={() => openEdit(item)}>
-                          <IconPencil size={15} />
-                        </ActionIcon>
+                        <Group gap={2} wrap="nowrap" justify="flex-end">
+                          {item.status !== 'BACKLOG_STATUS_TRIAGED' ? (
+                            <Menu position="bottom-end" withinPortal>
+                              <Menu.Target>
+                                <ActionIcon
+                                  variant="subtle"
+                                  color="brand"
+                                  aria-label={t('backlogPage.convert')}
+                                  title={t('backlogPage.convert')}
+                                >
+                                  <IconChevronDown size={15} />
+                                </ActionIcon>
+                              </Menu.Target>
+                              <Menu.Dropdown>
+                                {convertOrder(item.category).map((kind) => (
+                                  <Menu.Item key={kind} onClick={() => startConvert(kind, item)}>
+                                    {t(CONVERT_LABEL_KEY[kind])}
+                                  </Menu.Item>
+                                ))}
+                              </Menu.Dropdown>
+                            </Menu>
+                          ) : null}
+                          <ActionIcon variant="subtle" color="gray" onClick={() => openEdit(item)}>
+                            <IconPencil size={15} />
+                          </ActionIcon>
+                        </Group>
                       </Table.Td>
                     </Table.Tr>
                   );
@@ -298,6 +387,27 @@ export function BacklogPage() {
         item={editing}
         onDelete={handleDelete}
         deleting={deleting}
+      />
+
+      <TaskFormModal
+        opened={convertOpened && converting?.kind === 'task'}
+        onClose={closeConvert}
+        prefill={convertPrefill}
+        onCreated={handleConverted}
+      />
+      <ScheduleFormModal
+        opened={convertOpened && converting?.kind === 'schedule'}
+        onClose={closeConvert}
+        schedule={null}
+        prefill={convertPrefill}
+        onCreated={handleConverted}
+      />
+      <EventFormModal
+        opened={convertOpened && converting?.kind === 'event'}
+        onClose={closeConvert}
+        event={null}
+        prefill={convertPrefill}
+        onCreated={handleConverted}
       />
     </Flex>
   );

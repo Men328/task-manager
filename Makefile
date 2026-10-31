@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 # Mỗi thư mục trong service/ (và common/) là 1 Go module riêng, quản lý bằng go.work.
 # Vì root không phải module nên `go build ./...` không dùng được -> loop từng module.
-MODULES := common service/attachment service/backlog service/calendar service/event service/identity service/mail-provider service/notification service/report service/task tools/quality
+MODULES := common service/attachment service/backlog service/calendar service/event service/identity service/mail-provider service/notification service/project service/report service/task tools/quality
 
 GOBIN ?= $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(GOBIN):$(PATH)
@@ -10,6 +10,8 @@ export PATH := $(GOBIN):$(PATH)
 COMPOSE := docker compose -f deployments/docker/docker-compose.yml
 # Kèm profile `tunnel` (cloudflared) cho ps/logs/down để không bỏ sót container.
 COMPOSE_ALL := $(COMPOSE) --profile tunnel
+BATCH_SIZE ?= 3
+SERVICES ?=
 DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
 
 .DEFAULT_GOAL := help
@@ -18,6 +20,7 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
         up up-core up-tunnel tunnel-up tunnel-stop down logs tunnel-logs ps build-images web-install web-dev web-build \
         run-identity run-identity-grpc run-identity-http run-task run-task-grpc run-task-http \
         run-calendar run-calendar-grpc run-calendar-http \
+        run-project run-project-grpc run-project-http \
         run-event run-event-grpc run-event-http \
         run-backlog run-backlog-grpc run-backlog-http \
         run-attachment run-attachment-grpc run-attachment-http \
@@ -90,14 +93,14 @@ migrate-down: ## Rollback 1 migration
 	$(COMPOSE) run --rm migrate -path=/migrations -database "$(DATABASE_URL)" down 1
 
 # ------------------------------------------------------------------- docker
-up: ## docker compose up --build (postgres + migrate + *-grpc + gateway + frontend)
-	$(COMPOSE) up --build -d
+up: build-images ## Build image theo batch rồi up (postgres + migrate + *-grpc + gateway + frontend)
+	$(COMPOSE) up -d --no-build
 
-up-core: ## Chạy stack KHÔNG kèm cloudflared (tắt tunnel, bỏ qua COMPOSE_PROFILES)
-	COMPOSE_PROFILES= $(COMPOSE) up --build -d
+up-core: build-images ## Chạy stack KHÔNG kèm cloudflared (tắt tunnel, bỏ qua COMPOSE_PROFILES)
+	COMPOSE_PROFILES= $(COMPOSE) up -d --no-build
 
-up-tunnel: ## Như `up` nhưng kèm cloudflared (cần CLOUDFLARE_TUNNEL_TOKEN trong .env)
-	$(COMPOSE_ALL) up --build -d
+up-tunnel: build-images ## Như `up` nhưng kèm cloudflared (cần CLOUDFLARE_TUNNEL_TOKEN trong .env)
+	$(COMPOSE_ALL) up -d --no-build
 
 tunnel-up: ## Chỉ bật cloudflared (stack đang chạy sẵn)
 	$(COMPOSE_ALL) up -d cloudflared
@@ -120,8 +123,10 @@ tunnel-logs: ## Xem log cloudflared
 ps: ## Trạng thái compose (kèm cloudflared nếu đang chạy)
 	$(COMPOSE_ALL) ps
 
-build-images: ## Chỉ build image
-	$(COMPOSE) build
+# Build theo batch (BATCH_SIZE image/lần, mặc định 3) thay vì build tất cả cùng lúc.
+# VD: make build-images BATCH_SIZE=1 | make build-images SERVICES="task-grpc frontend"
+build-images: ## Build image theo batch (BATCH_SIZE, SERVICES)
+	BATCH_SIZE=$(BATCH_SIZE) SERVICES="$(SERVICES)" bash scripts/build-images.sh
 
 # --------------------------------------------------------------------- local
 # Mỗi service gồm 2 binary: cmd/grpc (gRPC server) + cmd/http (grpc-gateway).
@@ -151,6 +156,15 @@ run-calendar-grpc: ## Chỉ chạy gRPC server calendar (:9083)
 
 run-calendar-http: ## Chỉ chạy HTTP gateway calendar (:8083)
 	cd service/calendar && go run ./cmd/http
+
+run-project: ## Chạy project local: gRPC :9090 + gateway :8090
+	bash scripts/run-service.sh project
+
+run-project-grpc: ## Chỉ chạy gRPC server project (:9090)
+	cd service/project && go run ./cmd/grpc
+
+run-project-http: ## Chỉ chạy HTTP gateway project (:8090)
+	cd service/project && go run ./cmd/http
 
 run-event: ## Chạy event local: gRPC :9085 + gateway :8085
 	bash scripts/run-service.sh event

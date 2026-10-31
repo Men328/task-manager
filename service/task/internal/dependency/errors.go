@@ -47,6 +47,14 @@ func codeForKind(kind model.ErrorKind) string {
 		return errorcode.TaskStatusInUse
 	case model.ErrorKindStatusSlugAlreadyExists:
 		return errorcode.TaskStatusSlugAlreadyExists
+	case model.ErrorKindProjectRequired:
+		return errorcode.ProjectIDRequired
+	case model.ErrorKindProjectNotFound:
+		return errorcode.ProjectNotFound
+	case model.ErrorKindProjectArchived:
+		return errorcode.ProjectArchived
+	case model.ErrorKindSubtaskProjectLocked:
+		return errorcode.TaskSubtaskProjectLocked
 	default:
 		return errorcode.CommonInternal
 	}

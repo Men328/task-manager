@@ -12,6 +12,7 @@
 const IDENTITY = process.env.IDENTITY_URL ?? 'http://localhost:8081';
 const TASK = process.env.TASK_URL ?? 'http://localhost:8082';
 const CALENDAR = process.env.CALENDAR_URL ?? 'http://localhost:8083';
+const PROJECT = process.env.PROJECT_URL ?? 'http://localhost:8090';
 const EVENT = process.env.EVENT_URL ?? 'http://localhost:8085';
 const BACKLOG = process.env.BACKLOG_URL ?? 'http://localhost:8086';
 const REPORT = process.env.REPORT_URL ?? 'http://localhost:8087';
@@ -63,6 +64,7 @@ function checkCode(label, r, expectedStatus, expectedCode, extra) {
 check('GET /healthz (identity)', await req('GET', `${IDENTITY}/healthz`), 200);
 check('GET /healthz (task)', await req('GET', `${TASK}/healthz`), 200);
 check('GET /healthz (calendar)', await req('GET', `${CALENDAR}/healthz`), 200);
+check('GET /healthz (project)', await req('GET', `${PROJECT}/healthz`), 200);
 check('GET /healthz (event)', await req('GET', `${EVENT}/healthz`), 200);
 check('GET /healthz (backlog)', await req('GET', `${BACKLOG}/healthz`), 200);
 
@@ -83,6 +85,12 @@ checkCode('GET profile không tồn tại -> 404 + IDENTITY_PROFILE_NOT_FOUND',
   await req('GET', `${IDENTITY}/v1/profiles/khong-ton-tai`), 404, 'IDENTITY_PROFILE_NOT_FOUND');
 checkCode('POST profile thiếu email -> 400 + IDENTITY_EMAIL_REQUIRED',
   await req('POST', `${IDENTITY}/v1/profiles`, { display_name: 'x' }), 400, 'IDENTITY_EMAIL_REQUIRED');
+
+// ---------------------------------------------------------------- project
+const projectList = check('GET /v1/projects?profile_id=... (auto-seed project mặc định "Chung")',
+  await req('GET', `${PROJECT}/v1/projects?profile_id=${profileId}`), 200,
+  (r) => (r.data.projects ?? []).some((p) => p.name === 'Chung' && p.isDefault === true));
+const defaultProjectId = projectList.projects.find((p) => p.isDefault).id;
 
 // ---------------------------------------------------------------- status
 const seeded = check(
@@ -130,20 +138,21 @@ check('POST /v1/transitions/validate Todo->Done => allowed=false (không khai b�
 const task = check(
   'POST /v1/tasks (không truyền status_id -> dùng status default)',
   await req('POST', `${TASK}/v1/tasks`, {
-    profile_id: profileId, title: 'Viết báo cáo', priority: 'TASK_PRIORITY_HIGH',
+    profile_id: profileId, project_id: defaultProjectId, title: 'Viết báo cáo', priority: 'TASK_PRIORITY_HIGH',
   }),
   200,
-  (r) => r.data.task?.statusId === todoId && r.data.task?.parentTaskId === '',
+  (r) => r.data.task?.statusId === todoId && r.data.task?.parentTaskId === '' &&
+    r.data.task?.projectId === defaultProjectId,
 );
 const taskId = task.task.id;
 
 const sub = check(
-  'POST /v1/tasks (task con)',
+  'POST /v1/tasks (task con, kế thừa project của cha)',
   await req('POST', `${TASK}/v1/tasks`, {
     profile_id: profileId, title: 'Thu thập số liệu', parent_task_id: taskId,
   }),
   200,
-  (r) => r.data.task?.parentTaskId === taskId,
+  (r) => r.data.task?.parentTaskId === taskId && r.data.task?.projectId === defaultProjectId,
 );
 const subId = sub.task.id;
 
@@ -183,6 +192,7 @@ const schedule = check(
   'POST /v1/schedules',
   await req('POST', `${CALENDAR}/v1/schedules`, {
     profile_id: profileId,
+    project_id: defaultProjectId,
     title: 'Họp nhóm',
     description: 'Standup',
     location: 'Zoom',
@@ -209,11 +219,12 @@ check('PATCH /v1/schedules/{id}',
   await req('PATCH', `${CALENDAR}/v1/schedules/${scheduleId}`, { title: 'Họp nhóm (đã sửa)', all_day: true }), 200,
   (r) => r.data.schedule?.title === 'Họp nhóm (đã sửa)' && r.data.schedule?.allDay === true);
 checkCode('POST /v1/schedules thiếu title -> 400 + CALENDAR_TITLE_REQUIRED',
-  await req('POST', `${CALENDAR}/v1/schedules`, { profile_id: profileId, start_at: '2026-10-05T01:00:00Z' }),
+  await req('POST', `${CALENDAR}/v1/schedules`, { profile_id: profileId, project_id: defaultProjectId, start_at: '2026-10-05T01:00:00Z' }),
   400, 'CALENDAR_TITLE_REQUIRED');
 checkCode('POST /v1/schedules end < start -> 400 + CALENDAR_TIME_RANGE_INVALID',
   await req('POST', `${CALENDAR}/v1/schedules`, {
     profile_id: profileId,
+    project_id: defaultProjectId,
     title: 'Sai giờ',
     start_at: '2026-10-05T02:00:00Z',
     end_at: '2026-10-05T01:00:00Z',
@@ -230,7 +241,7 @@ checkCode('GET /v1/schedules/{id} sau khi xoá -> 404 + CALENDAR_NOT_FOUND',
 const event = check(
   'POST /v1/events (status + source)',
   await req('POST', `${EVENT}/v1/events`, {
-    profile_id: profileId,
+    profile_id: profileId, project_id: defaultProjectId,
     title: 'Hội thảo AI',
     description: 'Sự kiện công nghệ',
     location: 'Hà Nội',
@@ -248,7 +259,7 @@ const eventId = event.event.id;
 
 check('POST /v1/events (không truyền status -> PLANNED)',
   await req('POST', `${EVENT}/v1/events`, {
-    profile_id: profileId, title: 'Sự kiện mặc định', start_at: '2026-11-13T07:00:00Z',
+    profile_id: profileId, project_id: defaultProjectId, title: 'Sự kiện mặc định', start_at: '2026-11-13T07:00:00Z',
   }),
   200,
   (r) => r.data.event?.status === 'EVENT_STATUS_PLANNED');
@@ -265,11 +276,11 @@ check('PATCH /v1/events/{id} -> CANCELLED',
   await req('PATCH', `${EVENT}/v1/events/${eventId}`, { status: 'EVENT_STATUS_CANCELLED' }), 200,
   (r) => r.data.event?.status === 'EVENT_STATUS_CANCELLED');
 checkCode('POST /v1/events thiếu title -> 400 + EVENT_TITLE_REQUIRED',
-  await req('POST', `${EVENT}/v1/events`, { profile_id: profileId, start_at: '2026-11-12T07:00:00Z' }),
+  await req('POST', `${EVENT}/v1/events`, { profile_id: profileId, project_id: defaultProjectId, start_at: '2026-11-12T07:00:00Z' }),
   400, 'EVENT_TITLE_REQUIRED');
 checkCode('POST /v1/events end < start -> 400 + EVENT_TIME_RANGE_INVALID',
   await req('POST', `${EVENT}/v1/events`, {
-    profile_id: profileId, title: 'Sai giờ',
+    profile_id: profileId, project_id: defaultProjectId, title: 'Sai giờ',
     start_at: '2026-11-12T09:00:00Z', end_at: '2026-11-12T07:00:00Z',
   }),
   400, 'EVENT_TIME_RANGE_INVALID');
@@ -328,7 +339,7 @@ checkCode('GET /v1/backlogs/{id} sau khi xoá -> 404 + BACKLOG_NOT_FOUND',
 
 // ---------------------------------------------------------------- report
 check('POST /v1/tasks (report fixture)',
-  await req('POST', `${TASK}/v1/tasks`, { profile_id: profileId, title: 'Báo cáo fixture' }),
+  await req('POST', `${TASK}/v1/tasks`, { profile_id: profileId, project_id: defaultProjectId, title: 'Báo cáo fixture' }),
   200);
 check('GET /v1/reports/overview (tổng quan + khoảng mặc định)',
   await req('GET', `${REPORT}/v1/reports/overview?profile_id=${profileId}`), 200,
@@ -358,12 +369,12 @@ checkCode('GET /v1/reports/overview from > to -> 400 + REPORT_RANGE_INVALID',
 
 check('POST /v1/events (activity fixture)',
   await req('POST', `${EVENT}/v1/events`, {
-    profile_id: profileId, title: 'Sự kiện thống kê', start_at: '2026-11-20T07:00:00Z',
+    profile_id: profileId, project_id: defaultProjectId, title: 'Sự kiện thống kê', start_at: '2026-11-20T07:00:00Z',
   }),
   200);
 check('POST /v1/schedules (activity fixture)',
   await req('POST', `${CALENDAR}/v1/schedules`, {
-    profile_id: profileId, title: 'Lịch thống kê', start_at: '2026-11-21T07:00:00Z',
+    profile_id: profileId, project_id: defaultProjectId, title: 'Lịch thống kê', start_at: '2026-11-21T07:00:00Z',
   }),
   200);
 check('POST /v1/backlogs (activity fixture)',

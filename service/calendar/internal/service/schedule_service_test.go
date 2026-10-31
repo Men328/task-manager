@@ -37,9 +37,12 @@ func (r *fakeScheduleRepository) Get(_ context.Context, id string) (model.Schedu
 	return s, nil
 }
 
-func (r *fakeScheduleRepository) List(_ context.Context, _ model.ScheduleFilter) ([]model.Schedule, error) {
+func (r *fakeScheduleRepository) List(_ context.Context, f model.ScheduleFilter) ([]model.Schedule, error) {
 	out := make([]model.Schedule, 0, len(r.items))
 	for _, item := range r.items {
+		if f.ProjectID != "" && item.ProjectID != f.ProjectID {
+			continue
+		}
 		out = append(out, item)
 	}
 	return out, nil
@@ -49,6 +52,9 @@ func (r *fakeScheduleRepository) Update(_ context.Context, id string, upd model.
 	s, ok := r.items[id]
 	if !ok {
 		return model.Schedule{}, model.ErrNotFound
+	}
+	if upd.ProjectID != nil {
+		s.ProjectID = *upd.ProjectID
 	}
 	if upd.StartAt != nil {
 		s.StartAt = *upd.StartAt
@@ -68,6 +74,18 @@ func (r *fakeScheduleRepository) Delete(_ context.Context, id string) error {
 	return nil
 }
 
+type fakeProjectChecker struct {
+	assignable map[string]error
+}
+
+func newFakeProjectChecker() *fakeProjectChecker {
+	return &fakeProjectChecker{assignable: make(map[string]error)}
+}
+
+func (c *fakeProjectChecker) CheckAssignable(_ context.Context, _, projectID string) error {
+	return c.assignable[projectID]
+}
+
 func mustTime(t *testing.T, value string) time.Time {
 	t.Helper()
 	parsed, err := time.Parse(time.RFC3339, value)
@@ -81,11 +99,12 @@ func timePtr(t time.Time) *time.Time { return &t }
 
 func TestCreateRejectsEndBeforeStart(t *testing.T) {
 	repo := newFakeScheduleRepository()
-	svc := NewScheduleService(repo)
+	svc := NewScheduleService(repo, newFakeProjectChecker())
 	start := mustTime(t, "2026-10-05T02:00:00Z")
 
 	_, err := svc.Create(context.Background(), model.Schedule{
 		ProfileID: "p1",
+		ProjectID: "proj1",
 		Title:     "Sai giờ",
 		StartAt:   start,
 		EndAt:     timePtr(start.Add(-time.Hour)),
@@ -102,11 +121,12 @@ func TestCreateRejectsEndBeforeStart(t *testing.T) {
 
 func TestCreateAcceptsValidRange(t *testing.T) {
 	repo := newFakeScheduleRepository()
-	svc := NewScheduleService(repo)
+	svc := NewScheduleService(repo, newFakeProjectChecker())
 	start := mustTime(t, "2026-10-05T01:00:00Z")
 
 	created, err := svc.Create(context.Background(), model.Schedule{
 		ProfileID: "p1",
+		ProjectID: "proj1",
 		Title:     "Họp nhóm",
 		StartAt:   start,
 		EndAt:     timePtr(start.Add(time.Hour)),
@@ -129,7 +149,7 @@ func TestUpdateValidatesMergedRange(t *testing.T) {
 		StartAt:   start,
 		EndAt:     timePtr(end),
 	})
-	svc := NewScheduleService(repo)
+	svc := NewScheduleService(repo, newFakeProjectChecker())
 	newStart := start.Add(2 * time.Hour)
 
 	_, err := svc.Update(context.Background(), "s1", model.ScheduleUpdate{StartAt: timePtr(newStart)})
@@ -152,7 +172,7 @@ func TestUpdateMovesBothBounds(t *testing.T) {
 		StartAt:   start,
 		EndAt:     timePtr(start.Add(time.Hour)),
 	})
-	svc := NewScheduleService(repo)
+	svc := NewScheduleService(repo, newFakeProjectChecker())
 	newStart := start.Add(24 * time.Hour)
 	newEnd := newStart.Add(2 * time.Hour)
 
@@ -169,10 +189,128 @@ func TestUpdateMovesBothBounds(t *testing.T) {
 }
 
 func TestGetPropagatesNotFound(t *testing.T) {
-	svc := NewScheduleService(newFakeScheduleRepository())
+	svc := NewScheduleService(newFakeScheduleRepository(), newFakeProjectChecker())
 
 	_, err := svc.Get(context.Background(), "missing")
 	if err != model.ErrNotFound {
 		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func kindOf(t *testing.T, err error) model.ErrorKind {
+	t.Helper()
+	var domainErr *model.Error
+	if !errors.As(err, &domainErr) {
+		t.Fatalf("expected domain error, got %v", err)
+	}
+	return domainErr.Kind
+}
+
+func TestCreateRequiresProject(t *testing.T) {
+	repo := newFakeScheduleRepository()
+	svc := NewScheduleService(repo, newFakeProjectChecker())
+
+	_, err := svc.Create(context.Background(), model.Schedule{
+		ProfileID: "p1", Title: "x", StartAt: mustTime(t, "2026-10-05T01:00:00Z"),
+	})
+	if err == nil || kindOf(t, err) != model.ErrorKindProjectRequired {
+		t.Fatalf("expected project_required, got %v", err)
+	}
+	if len(repo.items) != 0 {
+		t.Fatal("repo must stay empty")
+	}
+}
+
+func TestCreateRejectsArchivedProject(t *testing.T) {
+	repo := newFakeScheduleRepository()
+	checker := newFakeProjectChecker()
+	checker.assignable["proj1"] = model.NewError(model.ErrorKindProjectArchived, "archived")
+	svc := NewScheduleService(repo, checker)
+
+	_, err := svc.Create(context.Background(), model.Schedule{
+		ProfileID: "p1", ProjectID: "proj1", Title: "x", StartAt: mustTime(t, "2026-10-05T01:00:00Z"),
+	})
+	if err == nil || kindOf(t, err) != model.ErrorKindProjectArchived {
+		t.Fatalf("expected project_archived, got %v", err)
+	}
+	if len(repo.items) != 0 {
+		t.Fatal("repo must stay empty")
+	}
+}
+
+func TestUpdateMovesScheduleToProject(t *testing.T) {
+	repo := newFakeScheduleRepository(model.Schedule{ID: "s1", ProfileID: "p1", ProjectID: "p1proj", Title: "x"})
+	svc := NewScheduleService(repo, newFakeProjectChecker())
+	target := "p2"
+
+	if _, err := svc.Update(context.Background(), "s1", model.ScheduleUpdate{ProjectID: &target}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if repo.items["s1"].ProjectID != "p2" {
+		t.Fatalf("expected project p2, got %s", repo.items["s1"].ProjectID)
+	}
+}
+
+func TestUpdateRejectsUnassignableProject(t *testing.T) {
+	repo := newFakeScheduleRepository(model.Schedule{ID: "s1", ProfileID: "p1", ProjectID: "p1proj", Title: "x"})
+	checker := newFakeProjectChecker()
+	checker.assignable["p2"] = model.NewError(model.ErrorKindProjectNotFound, "not found")
+	svc := NewScheduleService(repo, checker)
+	target := "p2"
+
+	_, err := svc.Update(context.Background(), "s1", model.ScheduleUpdate{ProjectID: &target})
+	if err == nil || kindOf(t, err) != model.ErrorKindProjectNotFound {
+		t.Fatalf("expected project_not_found, got %v", err)
+	}
+	if repo.items["s1"].ProjectID != "p1proj" {
+		t.Fatalf("project must be unchanged, got %s", repo.items["s1"].ProjectID)
+	}
+}
+
+func TestListFiltersByProject(t *testing.T) {
+	repo := newFakeScheduleRepository(
+		model.Schedule{ID: "a", ProfileID: "p1", ProjectID: "p1"},
+		model.Schedule{ID: "b", ProfileID: "p1", ProjectID: "p2"},
+	)
+	svc := NewScheduleService(repo, newFakeProjectChecker())
+
+	got, err := svc.List(context.Background(), model.ScheduleFilter{ProfileID: "p1", ProjectID: "p1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 1 || got[0].ID != "a" {
+		t.Fatalf("expected only schedule a, got %+v", got)
+	}
+}
+
+func TestCreateRejectsBlankProject(t *testing.T) {
+	repo := newFakeScheduleRepository()
+	svc := NewScheduleService(repo, newFakeProjectChecker())
+
+	_, err := svc.Create(context.Background(), model.Schedule{
+		ProfileID: "p1", ProjectID: "   ", Title: "x", StartAt: mustTime(t, "2026-10-05T01:00:00Z"),
+	})
+	if err == nil || kindOf(t, err) != model.ErrorKindProjectRequired {
+		t.Fatalf("expected project_required, got %v", err)
+	}
+	if len(repo.items) != 0 {
+		t.Fatal("repo must stay empty")
+	}
+}
+
+func TestUpdateRejectsEmptyProject(t *testing.T) {
+	start := mustTime(t, "2026-10-05T01:00:00Z")
+	repo := newFakeScheduleRepository(model.Schedule{ID: "s1", ProfileID: "p1", ProjectID: "p1proj", Title: "x", StartAt: start})
+	svc := NewScheduleService(repo, newFakeProjectChecker())
+
+	for _, value := range []string{"", "  "} {
+		empty := value
+		_, err := svc.Update(context.Background(), "s1", model.ScheduleUpdate{ProjectID: &empty})
+		if err == nil || kindOf(t, err) != model.ErrorKindProjectRequired {
+			t.Fatalf("project_id %q: expected project_required, got %v", value, err)
+		}
+	}
+	if repo.items["s1"].ProjectID != "p1proj" {
+		t.Fatalf("project must be unchanged, got %s", repo.items["s1"].ProjectID)
 	}
 }

@@ -15,6 +15,9 @@ type ErrorKind string
 const (
 	ErrorKindTimeRangeInvalid ErrorKind = "time_range_invalid"
 	ErrorKindStatusInvalid    ErrorKind = "status_invalid"
+	ErrorKindProjectRequired  ErrorKind = "project_required"
+	ErrorKindProjectNotFound  ErrorKind = "project_not_found"
+	ErrorKindProjectArchived  ErrorKind = "project_archived"
 )
 
 type Error struct {

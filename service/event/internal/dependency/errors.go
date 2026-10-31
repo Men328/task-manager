@@ -29,6 +29,12 @@ func codeForKind(kind model.ErrorKind) string {
 		return errorcode.EventTimeRangeInvalid
 	case model.ErrorKindStatusInvalid:
 		return errorcode.CommonInvalidArgument
+	case model.ErrorKindProjectRequired:
+		return errorcode.ProjectIDRequired
+	case model.ErrorKindProjectNotFound:
+		return errorcode.ProjectNotFound
+	case model.ErrorKindProjectArchived:
+		return errorcode.ProjectArchived
 	default:
 		return errorcode.CommonInternal
 	}

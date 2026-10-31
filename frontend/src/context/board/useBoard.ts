@@ -4,12 +4,14 @@ import { isDoneCategory } from '../../lib/tokens';
 import i18n from '../../i18n';
 import type { TaskPriority } from '../../types';
 import { useAppDispatch, useAppSelector } from '../hooks';
+import { selectCurrentProjectId } from '../project/projectSlice';
 import { setQuery } from '../session/sessionSlice';
 import {
   clearFilters,
   createTaskAndRefresh,
   fetchBoard,
   moveTask as moveTaskThunk,
+  moveTaskToProject as moveTaskToProjectThunk,
   removeTask as removeTaskThunk,
   seedBoardStatuses,
   selectBoardError,
@@ -39,6 +41,7 @@ export function useBoard() {
   const loading = useAppSelector(selectBoardLoading);
   const error = useAppSelector(selectBoardError);
   const profileId = useAppSelector((state) => state.session.profileId);
+  const projectId = useAppSelector(selectCurrentProjectId);
 
   const isStatusDone = useCallback(
     (statusId: string) => isDoneCategory(statusById.get(statusId)?.category),
@@ -78,7 +81,7 @@ export function useBoard() {
     },
     refresh: () => {
       if (profileId) {
-        void dispatch(fetchBoard({ profileId }));
+        void dispatch(fetchBoard({ profileId, projectId }));
       }
     },
     addTask: async (input: NewTaskInput) => {
@@ -86,6 +89,14 @@ export function useBoard() {
         throw new Error(i18n.t('errors.noProfile'));
       }
       await dispatch(createTaskAndRefresh({ profileId, input })).unwrap();
+    },
+    moveToProject: async (taskId: string, targetProjectId: string) => {
+      if (!profileId) {
+        return;
+      }
+      await dispatch(
+        moveTaskToProjectThunk({ profileId, taskId, projectId: targetProjectId }),
+      ).unwrap();
     },
     moveTask: async (taskId: string, statusId: string, note?: string) => {
       if (!profileId) {
