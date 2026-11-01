@@ -7,6 +7,7 @@ import { projectColor } from '../../lib/tokens';
 import { tokens } from '../../theme';
 import type { Project, Task } from '../../types';
 import PriorityBadge from '../board/PriorityBadge';
+import ReminderBadge from '../task/ReminderBadge';
 import classes from './Agenda.module.css';
 
 export type AgendaRowMode = 'overdue' | 'today' | 'upcoming';
@@ -87,6 +88,7 @@ export function AgendaRow({
             {task.priority !== 'TASK_PRIORITY_MEDIUM' && task.priority !== 'TASK_PRIORITY_UNSPECIFIED' ? (
               <PriorityBadge priority={task.priority} />
             ) : null}
+            <ReminderBadge remindAt={task.remindAt} />
           </Box>
         </Box>
         {parentTitle ? (

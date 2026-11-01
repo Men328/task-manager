@@ -3,6 +3,7 @@ package config
 import (
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -20,6 +21,15 @@ type Config struct {
 
 	ProjectGRPCDialAddr string
 	ProjectTimeout      time.Duration
+
+	NotificationGRPCDialAddr string
+	NotificationTimeout      time.Duration
+
+	ReminderEnabled  bool
+	ReminderInterval time.Duration
+	ReminderBatch    int
+	ReminderMaxLate  time.Duration
+	ReminderTimezone string
 }
 
 func Load() Config {
@@ -33,7 +43,48 @@ func Load() Config {
 
 		ProjectGRPCDialAddr: os.Getenv("PROJECT_GRPC_DIAL_ADDR"),
 		ProjectTimeout:      getduration("PROJECT_TIMEOUT", 10*time.Second),
+
+		NotificationGRPCDialAddr: os.Getenv("NOTIFICATION_GRPC_DIAL_ADDR"),
+		NotificationTimeout:      getduration("NOTIFICATION_TIMEOUT", 10*time.Second),
+
+		ReminderEnabled:  getbool("REMINDER_ENABLED", true),
+		ReminderInterval: getduration("REMINDER_INTERVAL", 30*time.Second),
+		ReminderBatch:    getint("REMINDER_BATCH", 100),
+		ReminderMaxLate:  getduration("REMINDER_MAX_LATE", 6*time.Hour),
+		ReminderTimezone: getenv("REMINDER_TIMEZONE", "Asia/Ho_Chi_Minh"),
 	}
+}
+
+func (c Config) NotificationDialTarget() string {
+	if c.NotificationGRPCDialAddr != "" {
+		return c.NotificationGRPCDialAddr
+	}
+	return "127.0.0.1:9088"
+}
+
+func (c Config) ReminderLocation() *time.Location {
+	loc, err := time.LoadLocation(c.ReminderTimezone)
+	if err != nil {
+		slog.Warn("REMINDER_TIMEZONE không hợp lệ, dùng UTC", "value", c.ReminderTimezone, "error", err)
+		return time.UTC
+	}
+	return loc
+}
+
+func getbool(key string, fallback bool) bool {
+	v, err := strconv.ParseBool(strings.TrimSpace(os.Getenv(key)))
+	if err != nil {
+		return fallback
+	}
+	return v
+}
+
+func getint(key string, fallback int) int {
+	v, err := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
+	if err != nil || v <= 0 {
+		return fallback
+	}
+	return v
 }
 
 func (c Config) SlogLevel() slog.Level {

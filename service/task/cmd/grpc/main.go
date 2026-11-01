@@ -21,6 +21,9 @@ func main() {
 			fx.Annotate(newProjectConn, fx.ResultTags(`name:"project"`)),
 			fx.Annotate(newProjectServiceClient, fx.ParamTags(`name:"project"`)),
 			newProjectChecker,
+			fx.Annotate(newNotificationConn, fx.ResultTags(`name:"notification"`)),
+			fx.Annotate(newNoticeServiceClient, fx.ParamTags(`name:"notification"`)),
+			newReminderWorker,
 			newTaskRepository,
 			newStatusRepository,
 			newTransitionRepository,
@@ -31,7 +34,7 @@ func main() {
 			handler.NewTaskStatusHandler,
 			handler.NewStatusTransitionHandler,
 		),
-		fx.Invoke(setupLogger, serveGRPC),
+		fx.Invoke(setupLogger, serveGRPC, startReminderWorker),
 	)
 	if err := app.Err(); err != nil {
 		slog.Error("task gRPC init failed", "error", err)

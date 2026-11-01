@@ -199,8 +199,15 @@ services:
       LOG_LEVEL: info
       PROJECT_GRPC_DIAL_ADDR: "project-grpc:9090"
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+      # Worker nhắc việc: quét task đến giờ nhắc rồi tạo notice TASK_REMINDER qua notification.
+      NOTIFICATION_GRPC_DIAL_ADDR: "notification-grpc:9088"
+      REMINDER_ENABLED: ${REMINDER_ENABLED:-true}
+      REMINDER_INTERVAL: ${REMINDER_INTERVAL:-30s}
+      REMINDER_TIMEZONE: ${REMINDER_TIMEZONE:-Asia/Ho_Chi_Minh}
     depends_on:
       project-grpc:
+        condition: service_started
+      notification-grpc:
         condition: service_started
       postgres:
         condition: service_healthy

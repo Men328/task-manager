@@ -73,6 +73,10 @@ func (r *fakeTaskRepo) Update(_ context.Context, id string, upd model.TaskUpdate
 	if upd.Title != nil {
 		t.Title = *upd.Title
 	}
+	if upd.ChangesReminder() {
+		t.RemindAt = upd.RemindAt
+		t.RemindedAt = upd.RemindedAt
+	}
 	r.items[id] = t
 	return t, nil
 }
@@ -396,5 +400,56 @@ func TestListPagination(t *testing.T) {
 	page, _ = svc.List(ctx, model.TaskFilter{ProfileID: "u1"})
 	if repo.lastFilter.Limit != 0 || page.NextOffset != 0 {
 		t.Fatalf("no paging: repo Limit %d, NextOffset %d; want 0, 0", repo.lastFilter.Limit, page.NextOffset)
+	}
+}
+
+func TestCreateTaskReminderState(t *testing.T) {
+	repo := newFakeTaskRepo()
+	svc := newTestTaskService(repo, &fakeProjectChecker{})
+	ctx := context.Background()
+	future := time.Now().Add(time.Hour)
+	past := time.Now().Add(-time.Hour)
+
+	created, err := svc.Create(ctx, model.Task{ProfileID: "u1", ProjectID: "p1", Title: "a", RemindAt: &future})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if created.RemindedAt != nil {
+		t.Fatalf("future reminder must stay pending, got reminded_at %v", created.RemindedAt)
+	}
+
+	created, _ = svc.Create(ctx, model.Task{ProfileID: "u1", ProjectID: "p1", Title: "b", RemindAt: &past})
+	if created.RemindedAt == nil {
+		t.Fatal("past reminder must be stored as already reminded so it never fires")
+	}
+}
+
+func TestUpdateTaskReminderResetsAndClears(t *testing.T) {
+	repo := newFakeTaskRepo()
+	svc := newTestTaskService(repo, &fakeProjectChecker{})
+	ctx := context.Background()
+	sent := time.Now().Add(-time.Minute)
+	old := time.Now().Add(-2 * time.Minute)
+	repo.put(model.Task{ID: "t1", ProfileID: "u1", ProjectID: "p1", RemindAt: &old, RemindedAt: &sent})
+
+	future := time.Now().Add(time.Hour)
+	updated, err := svc.Update(ctx, "t1", model.TaskUpdate{RemindAt: &future})
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if updated.RemindAt == nil || !updated.RemindAt.Equal(future) || updated.RemindedAt != nil {
+		t.Fatalf("new reminder time must re-arm the reminder, got %+v", updated)
+	}
+
+	updated, _ = svc.Update(ctx, "t1", model.TaskUpdate{ClearRemindAt: true})
+	if updated.RemindAt != nil || updated.RemindedAt != nil {
+		t.Fatalf("clear must remove the reminder, got %+v", updated)
+	}
+
+	title := "renamed"
+	repo.put(model.Task{ID: "t2", ProfileID: "u1", ProjectID: "p1", RemindAt: &old, RemindedAt: &sent})
+	updated, _ = svc.Update(ctx, "t2", model.TaskUpdate{Title: &title})
+	if updated.RemindedAt == nil {
+		t.Fatal("editing other fields must not re-arm a sent reminder")
 	}
 }

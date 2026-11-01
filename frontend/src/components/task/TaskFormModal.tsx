@@ -9,8 +9,11 @@ import { useBoard, useProject } from '../../context';
 import { hasText } from '../../lib/format';
 import { PRIORITY_LABEL_KEY } from '../../lib/tokens';
 import { tokens } from '../../theme';
+import { reminderFor } from '../../lib/reminders';
+import type { ReminderPreset } from '../../lib/reminders';
 import ProjectSelect from '../common/ProjectSelect';
 import { useProjectMoveNotice } from '../common/useProjectMoveNotice';
+import ReminderField from './ReminderField';
 import { TASK_PRIORITIES } from '../../types';
 import type { TaskPriority } from '../../types';
 
@@ -38,6 +41,8 @@ export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCrea
   const [parentTaskId, setParentTaskId] = useState<string | null>(null);
   const [dueAt, setDueAt] = useState('');
   const [projectId, setProjectId] = useState('');
+  const [reminderPreset, setReminderPreset] = useState<ReminderPreset>('none');
+  const [reminderCustom, setReminderCustom] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // reset mỗi lần mở
@@ -53,6 +58,8 @@ export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCrea
     setParentTaskId(null);
     setDueAt(prefill?.dueDate ?? '');
     setProjectId(prefill?.projectId ?? currentProjectId ?? '');
+    setReminderPreset('none');
+    setReminderCustom('');
   }, [opened, presetStatusId, statuses, currentProjectId, prefill]);
 
   const statusOptions = useMemo(
@@ -92,6 +99,7 @@ export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCrea
         priority,
         parentTaskId: parentTaskId ?? undefined,
         dueAt: hasText(dueAt) ? new Date(`${dueAt}T00:00:00`).toISOString() : undefined,
+        remindAt: reminderFor(reminderPreset, hasText(dueAt) ? dueAt : null, reminderCustom)?.toISOString(),
       });
       notifications.show({ title: t('taskForm.created'), message: title.trim(), color: 'teal' });
       onClose();
@@ -184,11 +192,27 @@ export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCrea
             <TextInput
               type="date"
               value={dueAt}
-              onChange={(event) => setDueAt(event.currentTarget.value)}
+              onChange={(event) => {
+                const next = event.currentTarget.value;
+                setDueAt(next);
+                if (!next && (reminderPreset === 'dueMorning' || reminderPreset === 'dayBefore')) {
+                  setReminderPreset('none');
+                }
+              }}
               leftSection={<IconCalendar size={15} style={{ color: tokens.textFaint }} />}
             />
           </Box>
         </Group>
+
+        <ReminderField
+          preset={reminderPreset}
+          custom={reminderCustom}
+          due={hasText(dueAt) ? dueAt : null}
+          onChange={(preset, custom) => {
+            setReminderPreset(preset);
+            setReminderCustom(custom);
+          }}
+        />
 
         <Group justify="flex-end" mt="sm">
           <Button variant="default" onClick={onClose} disabled={submitting}>

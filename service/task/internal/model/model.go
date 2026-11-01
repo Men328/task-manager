@@ -18,6 +18,8 @@ type Task struct {
 	IsArchived   bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	RemindAt     *time.Time
+	RemindedAt   *time.Time
 }
 
 type TaskFilter struct {
@@ -55,6 +57,14 @@ type TaskUpdate struct {
 	StartAt      *time.Time
 	DueAt        *time.Time
 	IsArchived   *bool
+
+	RemindAt      *time.Time
+	ClearRemindAt bool
+	RemindedAt    *time.Time
+}
+
+func (u TaskUpdate) ChangesReminder() bool {
+	return u.RemindAt != nil || u.ClearRemindAt
 }
 
 type Status struct {

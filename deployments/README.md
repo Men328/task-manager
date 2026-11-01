@@ -42,4 +42,8 @@ docker compose -f deployments/docker/docker-compose.yml --profile tunnel up --bu
   Cloudflare Tunnel (`cloudflared`, profile `tunnel`) trỏ vào `http://frontend:3000` nên chỉ
   một origin/port ra Internet. Chi tiết: `docker/README.md`.
 - Volume migration mount `../migrations` (tức `deployments/migrations`) vào `/migrations` trong container.
+- **Nhắc việc**: `task-grpc` chạy worker quét task đến giờ nhắc (`remind_at`) mỗi `REMINDER_INTERVAL`
+  (mặc định `30s`) và gửi notice `TASK_REMINDER` qua `notification-grpc`. Tắt bằng `REMINDER_ENABLED=false`
+  trong `docker/.env`; giờ trong nội dung notice theo `REMINDER_TIMEZONE` (mặc định `Asia/Ho_Chi_Minh`).
+  Nhắc trễ quá `REMINDER_MAX_LATE` (mặc định `6h`, ví dụ khi worker tắt lâu) được bỏ qua thay vì gửi dồn.
 - Chi tiết: `docker/README.md` và `migrations/README.md`.

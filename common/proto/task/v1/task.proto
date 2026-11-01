@@ -50,6 +50,8 @@ message Task {
   repeated Task subtasks = 15;
   // Dự án chứa mục này.
   string project_id = 16;
+  // Thời điểm nhắc việc; rỗng = không nhắc.
+  google.protobuf.Timestamp remind_at = 17;
 }
 
 message CreateTaskRequest {
@@ -64,6 +66,8 @@ message CreateTaskRequest {
   google.protobuf.Timestamp due_at = 9;
   // Dự án chứa mục này.
   string project_id = 10;
+  // Thời điểm nhắc; ở quá khứ thì được lưu nhưng không nhắc.
+  google.protobuf.Timestamp remind_at = 11;
 }
 
 message CreateTaskResponse {
@@ -130,6 +134,10 @@ message UpdateTaskRequest {
   optional bool is_archived = 9;
   // Chuyển sang dự án khác; rỗng = không đổi.
   optional string project_id = 10;
+  // Đặt/đổi thời điểm nhắc (nhắc lại theo giờ mới). Không dùng kèm clear_remind_at.
+  google.protobuf.Timestamp remind_at = 11;
+  // Bỏ nhắc việc.
+  bool clear_remind_at = 12;
 }
 
 message UpdateTaskResponse {

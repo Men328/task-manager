@@ -80,7 +80,7 @@ func (h *TaskHandler) ListTasks(ctx context.Context, req *taskv1.ListTasksReques
 }
 
 func (h *TaskHandler) UpdateTask(ctx context.Context, req *taskv1.UpdateTaskRequest) (*taskv1.UpdateTaskResponse, error) {
-	if err := dependency.ValidateTaskID(req.GetId()); err != nil {
+	if err := dependency.ValidateUpdateTask(req); err != nil {
 		return nil, err
 	}
 

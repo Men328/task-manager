@@ -50,7 +50,9 @@
     "title": "Notifications",
     "markAll": "Mark all read",
     "empty": "No notifications yet",
-    "loadError": "Could not load notifications"
+    "loadError": "Could not load notifications",
+    "reminderNoDue": "Time to work on this.",
+    "openTask": "Open"
   },
   "taskDetail": {
     "title": "Task details",
@@ -160,6 +162,22 @@
     "projectNotFound": "No project “{{value}}”",
     "projectAmbiguous": "Several projects match “{{value}}”",
     "needTitle": "Add a title for the task"
+  },
+  "reminder": {
+    "label": "Remind me",
+    "preset_none": "No reminder",
+    "preset_dueMorning": "9:00 on the due date",
+    "preset_dayBefore": "9:00 the day before",
+    "preset_custom": "Pick date & time",
+    "customLabel": "Remind at",
+    "needDue": "Set a due date to use due-based reminders, or pick a date & time.",
+    "willRemind": "Will remind at {{value}}",
+    "inPast": "This time has passed, so no reminder will be sent.",
+    "save": "Save reminder",
+    "saved": "Reminder saved",
+    "cleared": "Reminder removed",
+    "saveFailed": "Could not save the reminder",
+    "badge": "Reminder at {{value}}"
   },
   "taskForm": {
     "title": "New Task",

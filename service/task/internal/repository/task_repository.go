@@ -211,6 +211,10 @@ func (r *InMemoryTaskRepository) Update(_ context.Context, id string, upd model.
 	if upd.IsArchived != nil {
 		t.IsArchived = *upd.IsArchived
 	}
+	if upd.ChangesReminder() {
+		t.RemindAt = upd.RemindAt
+		t.RemindedAt = upd.RemindedAt
+	}
 	t.UpdatedAt = time.Now().UTC()
 	r.items[id] = t
 	return t, nil

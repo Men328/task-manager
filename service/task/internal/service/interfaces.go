@@ -45,6 +45,15 @@ type TransitionRepository interface {
 	IsAllowed(ctx context.Context, profileID, fromStatusID, toStatusID string) (bool, error)
 }
 
+type ReminderStore interface {
+	ClaimDueReminders(ctx context.Context, limit int) ([]model.Task, error)
+	ReleaseReminder(ctx context.Context, id string, claimedAt time.Time) error
+}
+
+type NoticeSender interface {
+	SendTaskReminder(ctx context.Context, t model.Task) error
+}
+
 type TaskService interface {
 	Create(ctx context.Context, t model.Task) (model.Task, error)
 	Get(ctx context.Context, id string) (model.Task, error)

@@ -11,7 +11,8 @@ import {
   Text,
   UnstyledButton,
 } from '@mantine/core';
-import { IconBell, IconBellOff, IconCheck } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { IconBell, IconBellOff, IconBellRinging, IconCheck } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +22,10 @@ import { formatDateTime } from '../../lib/format';
 import { tokens } from '../../theme';
 import { normalizeTargetType, type Notice } from '../../types';
 import classes from './NotificationMenu.module.css';
+
+const TASK_REMINDER = 'TASK_REMINDER';
+/** Toast nhắc việc ở lâu hơn toast thường để người dùng kịp thấy. */
+const REMINDER_TOAST_MS = 20000;
 
 function targetPath(notice: Notice): string {
   switch (normalizeTargetType(notice.targetType)) {
@@ -38,8 +43,37 @@ function targetPath(notice: Notice): string {
 export function NotificationMenu() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { items, unreadCount, loading, markRead, markAllRead, refresh } = useNotices();
   const [opened, setOpened] = useState(false);
+  const { items, unreadCount, loading, markRead, markAllRead, refresh } = useNotices((notice) => {
+    if (notice.type !== TASK_REMINDER) {
+      return;
+    }
+    const toastId = `notice-${notice.id}`;
+    notifications.show({
+      id: toastId,
+      title: notice.title,
+      color: 'brand',
+      icon: <IconBellRinging size={16} />,
+      autoClose: REMINDER_TOAST_MS,
+      message: (
+        <Group justify="space-between" wrap="nowrap" gap="sm">
+          <Text fz={12.5} c={tokens.textMuted}>
+            {notice.body || t('notice.reminderNoDue')}
+          </Text>
+          <Button
+            size="compact-xs"
+            variant="light"
+            onClick={() => {
+              notifications.hide(toastId);
+              openNotice(notice);
+            }}
+          >
+            {t('notice.openTask')}
+          </Button>
+        </Group>
+      ),
+    });
+  });
 
   const badge = unreadCount > 99 ? '99+' : String(unreadCount);
 

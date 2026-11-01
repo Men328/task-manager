@@ -14,7 +14,7 @@ import (
 	"taskmanager/service/task/internal/model"
 )
 
-const taskColumns = `id::text, profile_id::text, project_id::text, COALESCE(parent_task_id::text, ''), status_id::text, title, COALESCE(description, ''), priority::text, position, start_at, due_at, completed_at, is_archived, created_at, updated_at`
+const taskColumns = `id::text, profile_id::text, project_id::text, COALESCE(parent_task_id::text, ''), status_id::text, title, COALESCE(description, ''), priority::text, position, start_at, due_at, completed_at, is_archived, created_at, updated_at, remind_at, reminded_at`
 
 const statusLogColumns = `id, task_id::text, profile_id::text, COALESCE(from_status_id::text, ''), to_status_id::text, COALESCE(note, ''), changed_at`
 
@@ -66,6 +66,8 @@ func scanTask(row pgx.Row) (model.Task, error) {
 		&t.IsArchived,
 		&t.CreatedAt,
 		&t.UpdatedAt,
+		&t.RemindAt,
+		&t.RemindedAt,
 	); err != nil {
 		return model.Task{}, mapTaskError(err)
 	}
@@ -93,16 +95,18 @@ func (r *PostgresTaskRepository) Create(ctx context.Context, t model.Task) (mode
 	const query = `
 		INSERT INTO task.tasks
 			(id, profile_id, parent_task_id, status_id, title, description,
-			 priority, position, start_at, due_at, completed_at, is_archived, project_id)
+			 priority, position, start_at, due_at, completed_at, is_archived, project_id,
+			 remind_at, reminded_at)
 		VALUES
 			(COALESCE(NULLIF($1, '')::uuid, gen_random_uuid()), $2::uuid,
 			 NULLIF($3, '')::uuid, $4::uuid, $5, NULLIF($6, ''), $7::task.task_priority,
-			 $8, $9, $10, $11, $12, $13::uuid)
+			 $8, $9, $10, $11, $12, $13::uuid, $14, $15)
 		RETURNING ` + taskColumns
 
 	return scanTask(r.pool.QueryRow(ctx, query,
 		t.ID, t.ProfileID, t.ParentTaskID, t.StatusID, t.Title, t.Description,
-		priorityToDB(t.Priority), t.Position, t.StartAt, t.DueAt, t.CompletedAt, t.IsArchived, t.ProjectID))
+		priorityToDB(t.Priority), t.Position, t.StartAt, t.DueAt, t.CompletedAt, t.IsArchived, t.ProjectID,
+		t.RemindAt, t.RemindedAt))
 }
 
 func (r *PostgresTaskRepository) Get(ctx context.Context, id string) (model.Task, error) {
@@ -163,7 +167,9 @@ func (r *PostgresTaskRepository) Update(ctx context.Context, id string, upd mode
 		    position       = COALESCE($7, position),
 		    start_at       = CASE WHEN $8 THEN $9::timestamptz ELSE start_at END,
 		    due_at         = CASE WHEN $10 THEN $11::timestamptz ELSE due_at END,
-		    is_archived    = COALESCE($12, is_archived)
+		    is_archived    = COALESCE($12, is_archived),
+		    remind_at      = CASE WHEN $13 THEN $14::timestamptz ELSE remind_at END,
+		    reminded_at    = CASE WHEN $13 THEN $15::timestamptz ELSE reminded_at END
 		WHERE id = $1::uuid AND deleted_at IS NULL
 		RETURNING ` + taskColumns
 
@@ -190,7 +196,47 @@ func (r *PostgresTaskRepository) Update(ctx context.Context, id string, upd mode
 		upd.StartAt != nil, startAt,
 		upd.DueAt != nil, dueAt,
 		upd.IsArchived,
+		upd.ChangesReminder(), upd.RemindAt, upd.RemindedAt,
 	))
+}
+
+func (r *PostgresTaskRepository) ClaimDueReminders(ctx context.Context, limit int) ([]model.Task, error) {
+	const query = `
+		UPDATE task.tasks
+		SET reminded_at = now()
+		WHERE id IN (
+			SELECT t.id
+			FROM task.tasks t
+			JOIN task.task_statuses s ON s.id = t.status_id
+			WHERE t.remind_at <= now() AND t.reminded_at IS NULL
+			  AND t.deleted_at IS NULL AND NOT t.is_archived
+			  AND s.category NOT IN ('done', 'cancelled')
+			ORDER BY t.remind_at
+			LIMIT $1
+			FOR UPDATE OF t SKIP LOCKED)
+		RETURNING ` + taskColumns
+
+	rows, err := r.pool.Query(ctx, query, limit)
+	if err != nil {
+		return nil, mapTaskError(err)
+	}
+	defer rows.Close()
+
+	out := make([]model.Task, 0)
+	for rows.Next() {
+		t, err := scanTask(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, mapTaskError(rows.Err())
+}
+
+func (r *PostgresTaskRepository) ReleaseReminder(ctx context.Context, id string, claimedAt time.Time) error {
+	const query = `UPDATE task.tasks SET reminded_at = NULL WHERE id = $1::uuid AND reminded_at = $2`
+	_, err := r.pool.Exec(ctx, query, id, claimedAt)
+	return mapTaskError(err)
 }
 
 // SetProjectForSubtree đổi project của task rootID và mọi hậu duệ (theo
