@@ -50,7 +50,9 @@
     "title": "Thông báo",
     "markAll": "Đã đọc tất cả",
     "empty": "Chưa có thông báo",
-    "loadError": "Không tải được thông báo"
+    "loadError": "Không tải được thông báo",
+    "reminderNoDue": "Đến giờ làm việc này.",
+    "openTask": "Mở"
   },
   "taskDetail": {
     "title": "Chi tiết công việc",
@@ -160,6 +162,22 @@
     "projectNotFound": "Không có dự án «{{value}}»",
     "projectAmbiguous": "Nhiều dự án khớp «{{value}}»",
     "needTitle": "Thêm tiêu đề cho công việc"
+  },
+  "reminder": {
+    "label": "Nhắc tôi",
+    "preset_none": "Không nhắc",
+    "preset_dueMorning": "9:00 ngày đến hạn",
+    "preset_dayBefore": "9:00 trước hạn 1 ngày",
+    "preset_custom": "Tuỳ chọn ngày giờ",
+    "customLabel": "Nhắc lúc",
+    "needDue": "Đặt hạn để dùng nhắc theo hạn, hoặc chọn \"Tuỳ chọn ngày giờ\".",
+    "willRemind": "Sẽ nhắc lúc {{value}}",
+    "inPast": "Thời điểm này đã qua nên sẽ không nhắc.",
+    "save": "Lưu nhắc việc",
+    "saved": "Đã lưu nhắc việc",
+    "cleared": "Đã bỏ nhắc việc",
+    "saveFailed": "Không lưu được nhắc việc",
+    "badge": "Nhắc lúc {{value}}"
   },
   "taskForm": {
     "title": "Tạo công việc",

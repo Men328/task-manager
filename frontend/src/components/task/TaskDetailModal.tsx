@@ -1,12 +1,15 @@
-import { Badge, Divider, Group, Modal, Stack, Text } from '@mantine/core';
+import { Badge, Button, Divider, Group, Modal, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
+import { updateTask } from '../../api/task';
 import { useBoard, useProject } from '../../context';
 import { derivedProgress, formatDateTime, formatShortDate, hasText } from '../../lib/format';
+import { presetOf, reminderFor, toLocalInput } from '../../lib/reminders';
+import type { ReminderPreset } from '../../lib/reminders';
 import { statusColor } from '../../lib/tokens';
 import { tokens } from '../../theme';
 import type { Task } from '../../types';
@@ -15,6 +18,7 @@ import { useProjectMoveNotice } from '../common/useProjectMoveNotice';
 import AttachmentSection from '../attachment/AttachmentSection';
 import PriorityBadge from '../board/PriorityBadge';
 import TaskProgress from '../board/TaskProgress';
+import ReminderField from './ReminderField';
 
 interface TaskDetailModalProps {
   opened: boolean;
@@ -32,10 +36,47 @@ function Label({ children }: { children: ReactNode }) {
 
 export function TaskDetailModal({ opened, onClose, task }: TaskDetailModalProps) {
   const { t, i18n } = useTranslation();
-  const { statusById, statuses, taskById, isStatusDone, moveToProject } = useBoard();
+  const { statusById, statuses, taskById, isStatusDone, moveToProject, refresh } = useBoard();
   const { currentProjectId } = useProject();
   const notifyProjectMove = useProjectMoveNotice();
   const [moving, setMoving] = useState(false);
+  const [savedRemindAt, setSavedRemindAt] = useState<string | null>(null);
+  const [reminderPreset, setReminderPreset] = useState<ReminderPreset>('none');
+  const [reminderCustom, setReminderCustom] = useState('');
+  const [savingReminder, setSavingReminder] = useState(false);
+
+  useEffect(() => {
+    if (!opened || !task) {
+      return;
+    }
+    const current = hasText(task.remindAt) ? new Date(task.remindAt as string) : null;
+    setSavedRemindAt(current ? current.toISOString() : null);
+    setReminderPreset(presetOf(current, task.dueAt));
+    setReminderCustom(current ? toLocalInput(current) : '');
+  }, [opened, task?.id, task?.remindAt, task?.dueAt]);
+
+  const draftRemindAt = task ? reminderFor(reminderPreset, task.dueAt, reminderCustom)?.toISOString() ?? null : null;
+  const reminderDirty = draftRemindAt !== savedRemindAt && !(reminderPreset === 'custom' && !draftRemindAt);
+
+  const saveReminder = async () => {
+    if (!task) {
+      return;
+    }
+    setSavingReminder(true);
+    try {
+      await updateTask(task.id, { remindAt: draftRemindAt });
+      setSavedRemindAt(draftRemindAt);
+      refresh();
+      notifications.show({
+        message: draftRemindAt ? t('reminder.saved') : t('reminder.cleared'),
+        color: 'teal',
+      });
+    } catch (cause) {
+      notifications.show({ title: t('reminder.saveFailed'), message: getErrorMessage(cause), color: 'red' });
+    } finally {
+      setSavingReminder(false);
+    }
+  };
 
   const status = task ? statusById.get(task.statusId) : undefined;
   const statusIndex = status ? statuses.findIndex((item) => item.id === status.id) : -1;
@@ -131,6 +172,26 @@ export function TaskDetailModal({ opened, onClose, task }: TaskDetailModalProps)
               </Text>
             </div>
           </Group>
+
+          <div>
+            <ReminderField
+              preset={reminderPreset}
+              custom={reminderCustom}
+              due={task.dueAt}
+              disabled={savingReminder}
+              onChange={(preset, custom) => {
+                setReminderPreset(preset);
+                setReminderCustom(custom);
+              }}
+            />
+            {reminderDirty ? (
+              <Group justify="flex-end" mt={6}>
+                <Button size="compact-sm" onClick={() => void saveReminder()} loading={savingReminder}>
+                  {t('reminder.save')}
+                </Button>
+              </Group>
+            ) : null}
+          </div>
 
           {progress !== null ? (
             <div>

@@ -53,6 +53,8 @@ func (s *taskService) Create(ctx context.Context, t model.Task) (model.Task, err
 		}
 	}
 
+	t.RemindedAt = reminderState(t.RemindAt, time.Now().UTC())
+
 	created, err := s.tasks.Create(ctx, t)
 	if err != nil {
 		return model.Task{}, err
@@ -128,6 +130,12 @@ func (s *taskService) Update(ctx context.Context, id string, upd model.TaskUpdat
 
 	if upd.ProjectID != nil && strings.TrimSpace(*upd.ProjectID) == "" {
 		return model.Task{}, model.NewError(model.ErrorKindProjectRequired, "project_id must not be empty")
+	}
+	if upd.ClearRemindAt {
+		upd.RemindAt = nil
+	}
+	if upd.ChangesReminder() {
+		upd.RemindedAt = reminderState(upd.RemindAt, time.Now().UTC())
 	}
 
 	parentID := current.ParentTaskID
@@ -268,4 +276,11 @@ func (s *taskService) resolveStatusID(ctx context.Context, profileID, statusID s
 		return items[0].ID, nil
 	}
 	return "", model.NewError(model.ErrorKindNoStatusAvailable, "profile chưa có status nào, hãy tạo status trước")
+}
+
+func reminderState(remindAt *time.Time, now time.Time) *time.Time {
+	if remindAt == nil || remindAt.After(now) {
+		return nil
+	}
+	return &now
 }

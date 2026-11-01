@@ -116,6 +116,8 @@ export interface Task {
   updatedAt?: string;
   /** chỉ có khi request kèm include_subtasks=true */
   subtasks?: Task[];
+  /** Thời điểm nhắc việc; rỗng = không nhắc. */
+  remindAt?: string | null;
 }
 
 /** notification service: NOTIFICATION.notices — đối tượng notice trỏ tới. */
@@ -211,6 +213,8 @@ export interface TaskPage {
 export interface UpdateTaskInput {
   /** Chuyển task sang project khác (subtask bị backend từ chối). */
   projectId?: string;
+  /** Đặt/đổi giờ nhắc (ISO); `null` = bỏ nhắc. */
+  remindAt?: string | null;
 }
 
 export interface CreateTransitionInput {
@@ -231,6 +235,7 @@ export interface CreateTaskInput {
   parentTaskId?: string;
   dueAt?: string;
   startAt?: string;
+  remindAt?: string;
 }
 
 /** calendar service: SCHEDULES */

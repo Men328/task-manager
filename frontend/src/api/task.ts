@@ -48,6 +48,7 @@ function toTaskBody(input: CreateTaskInput): Record<string, unknown> {
     parent_task_id: input.parentTaskId,
     start_at: input.startAt,
     due_at: input.dueAt,
+    remind_at: input.remindAt,
   };
 }
 
@@ -180,11 +181,16 @@ export function createTask(input: CreateTaskInput): Promise<Task> {
   }).then((payload) => unwrap<Task>(payload, 'task'));
 }
 
-/** PATCH /v1/tasks/{id} — hiện chỉ dùng để chuyển project. */
+/** PATCH /v1/tasks/{id} — chuyển project, đặt/bỏ nhắc việc. */
 export function updateTask(id: string, input: UpdateTaskInput): Promise<Task> {
   const body: Record<string, unknown> = {};
   if (input.projectId !== undefined) {
     body.project_id = input.projectId;
+  }
+  if (input.remindAt === null) {
+    body.clear_remind_at = true;
+  } else if (input.remindAt !== undefined) {
+    body.remind_at = input.remindAt;
   }
   return request<Task>(taskApi, `${TASKS_PATH}/${encodeURIComponent(id)}`, {
     method: 'PATCH',

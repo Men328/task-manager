@@ -116,3 +116,17 @@ func TestTaskFilterSearchQuery(t *testing.T) {
 		t.Fatalf("blank query must be ignored, got %q, %v", f.Query, err)
 	}
 }
+
+func TestValidateUpdateTaskReminderConflict(t *testing.T) {
+	at := timestamppb.New(time.Date(2026, 11, 2, 9, 0, 0, 0, time.UTC))
+	err := ValidateUpdateTask(&taskv1.UpdateTaskRequest{Id: "t1", RemindAt: at, ClearRemindAt: true})
+	wantErrorCode(t, err, errorcode.TaskRemindAtConflict)
+
+	if err := ValidateUpdateTask(&taskv1.UpdateTaskRequest{Id: "t1", RemindAt: at}); err != nil {
+		t.Fatalf("setting a reminder must be valid: %v", err)
+	}
+	upd := TaskUpdateFromRequest(&taskv1.UpdateTaskRequest{Id: "t1", ClearRemindAt: true})
+	if !upd.ClearRemindAt || !upd.ChangesReminder() {
+		t.Fatalf("clear flag not mapped: %+v", upd)
+	}
+}

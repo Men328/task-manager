@@ -453,6 +453,15 @@
         "en": "Search query must be at least 2 characters."
       }
     },
+    "TASK_REMIND_AT_CONFLICT": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Không thể vừa đặt vừa bỏ nhắc việc trong cùng một yêu cầu.",
+        "en": "Cannot set and clear the reminder in the same request."
+      }
+    },
     "TASK_STATUS_NAME_REQUIRED": {
       "owner": "task",
       "grpcCode": "InvalidArgument",

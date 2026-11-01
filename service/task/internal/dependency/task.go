@@ -49,7 +49,18 @@ func TaskFromCreateRequest(req *taskv1.CreateTaskRequest) model.Task {
 		Position:     req.GetPosition(),
 		StartAt:      timePtr(req.GetStartAt()),
 		DueAt:        timePtr(req.GetDueAt()),
+		RemindAt:     timePtr(req.GetRemindAt()),
 	}
+}
+
+func ValidateUpdateTask(req *taskv1.UpdateTaskRequest) error {
+	if err := ValidateTaskID(req.GetId()); err != nil {
+		return err
+	}
+	if req.GetRemindAt() != nil && req.GetClearRemindAt() {
+		return errorcode.Error(errorcode.TaskRemindAtConflict)
+	}
+	return nil
 }
 
 const maxPageSize = 500
@@ -173,6 +184,9 @@ func TaskUpdateFromRequest(req *taskv1.UpdateTaskRequest) model.TaskUpdate {
 		StartAt:      timePtr(req.GetStartAt()),
 		DueAt:        timePtr(req.GetDueAt()),
 		IsArchived:   req.IsArchived,
+
+		RemindAt:      timePtr(req.GetRemindAt()),
+		ClearRemindAt: req.GetClearRemindAt(),
 	}
 }
 
@@ -193,6 +207,7 @@ func TaskToProto(t model.Task) *taskv1.Task {
 		IsArchived:   t.IsArchived,
 		CreatedAt:    timestamppb.New(t.CreatedAt),
 		UpdatedAt:    timestamppb.New(t.UpdatedAt),
+		RemindAt:     timestamp(t.RemindAt),
 	}
 }
 

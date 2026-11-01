@@ -7,6 +7,7 @@ import { derivedProgress, formatShortDate, hasText, isOverdue } from '../../lib/
 import { statusColor } from '../../lib/tokens';
 import { tokens } from '../../theme';
 import type { Task } from '../../types';
+import ReminderBadge from '../task/ReminderBadge';
 import PriorityBadge from './PriorityBadge';
 import TaskProgress from './TaskProgress';
 import classes from './TaskCard.module.css';
@@ -96,7 +97,7 @@ export function TaskCard({ task, dragging, onDragStart, onDragEnd, onOpen }: Tas
 
       <Divider my={11} color={tokens.border} />
 
-      <Group gap={10} wrap="nowrap">
+      <Group gap={10} wrap="nowrap" justify="space-between">
         {subtasks.length > 0 ? (
           <Group gap={4} wrap="nowrap">
             <IconChecklist size={13} style={{ color: tokens.textFaint }} />
@@ -109,6 +110,7 @@ export function TaskCard({ task, dragging, onDragStart, onDragEnd, onOpen }: Tas
             {formatShortDate(task.createdAt, i18n.language) ?? '—'}
           </Text>
         )}
+        <ReminderBadge remindAt={task.remindAt} />
       </Group>
     </Box>
   );

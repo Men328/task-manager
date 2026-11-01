@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { NOTICE_EVENT_NAME, createSoketiClient, noticeChannelName } from '../../lib/soketi';
 import { useAppDispatch, useAppSelector } from '../hooks';
@@ -11,13 +11,28 @@ import {
   markNoticesRead,
 } from './noticeSlice';
 
-export function useNotices() {
+import type { Notice } from '../../types';
+
+/** Payload soketi có thể đến dạng object hoặc chuỗi JSON. */
+function parseIncoming(data: unknown): Notice | null {
+  try {
+    const value = typeof data === 'string' ? JSON.parse(data) : data;
+    return value && typeof value === 'object' && 'type' in value ? (value as Notice) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** `onIncoming` được gọi với mỗi notice realtime (vd. để hiện toast nhắc việc). */
+export function useNotices(onIncoming?: (notice: Notice) => void) {
   const dispatch = useAppDispatch();
   const { token, profileId } = useSession();
   const items = useAppSelector((state) => state.notices.items);
   const unreadCount = useAppSelector((state) => state.notices.unreadCount);
   const loading = useAppSelector((state) => state.notices.loading);
   const error = useAppSelector((state) => state.notices.error);
+  const incomingRef = useRef(onIncoming);
+  incomingRef.current = onIncoming;
 
   useEffect(() => {
     if (!token || !profileId) {
@@ -30,9 +45,13 @@ export function useNotices() {
     const client = createSoketiClient(token);
     const channelName = noticeChannelName(profileId);
     const channel = client.subscribe(channelName);
-    const onNotice = () => {
+    const onNotice = (data: unknown) => {
       void dispatch(fetchUnreadCount());
       void dispatch(fetchNotices());
+      const notice = parseIncoming(data);
+      if (notice) {
+        incomingRef.current?.(notice);
+      }
     };
     channel.bind(NOTICE_EVENT_NAME, onNotice);
 

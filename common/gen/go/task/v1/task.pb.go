@@ -162,7 +162,9 @@ type Task struct {
 	// chỉ được fill khi request yêu cầu include_subtasks
 	Subtasks []*Task `protobuf:"bytes,15,rep,name=subtasks,proto3" json:"subtasks,omitempty"`
 	// Dự án chứa mục này.
-	ProjectId     string `protobuf:"bytes,16,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,16,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// Thời điểm nhắc việc; rỗng = không nhắc.
+	RemindAt      *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=remind_at,json=remindAt,proto3" json:"remind_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -309,6 +311,13 @@ func (x *Task) GetProjectId() string {
 	return ""
 }
 
+func (x *Task) GetRemindAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RemindAt
+	}
+	return nil
+}
+
 type CreateTaskRequest struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
 	ProfileId    string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
@@ -321,7 +330,9 @@ type CreateTaskRequest struct {
 	StartAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
 	DueAt        *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=due_at,json=dueAt,proto3" json:"due_at,omitempty"`
 	// Dự án chứa mục này.
-	ProjectId     string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// Thời điểm nhắc; ở quá khứ thì được lưu nhưng không nhắc.
+	RemindAt      *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=remind_at,json=remindAt,proto3" json:"remind_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -424,6 +435,13 @@ func (x *CreateTaskRequest) GetProjectId() string {
 		return x.ProjectId
 	}
 	return ""
+}
+
+func (x *CreateTaskRequest) GetRemindAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RemindAt
+	}
+	return nil
 }
 
 type CreateTaskResponse struct {
@@ -816,7 +834,11 @@ type UpdateTaskRequest struct {
 	DueAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=due_at,json=dueAt,proto3" json:"due_at,omitempty"`
 	IsArchived *bool                  `protobuf:"varint,9,opt,name=is_archived,json=isArchived,proto3,oneof" json:"is_archived,omitempty"`
 	// Chuyển sang dự án khác; rỗng = không đổi.
-	ProjectId     *string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3,oneof" json:"project_id,omitempty"`
+	ProjectId *string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3,oneof" json:"project_id,omitempty"`
+	// Đặt/đổi thời điểm nhắc (nhắc lại theo giờ mới). Không dùng kèm clear_remind_at.
+	RemindAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=remind_at,json=remindAt,proto3" json:"remind_at,omitempty"`
+	// Bỏ nhắc việc.
+	ClearRemindAt bool `protobuf:"varint,12,opt,name=clear_remind_at,json=clearRemindAt,proto3" json:"clear_remind_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -919,6 +941,20 @@ func (x *UpdateTaskRequest) GetProjectId() string {
 		return *x.ProjectId
 	}
 	return ""
+}
+
+func (x *UpdateTaskRequest) GetRemindAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RemindAt
+	}
+	return nil
+}
+
+func (x *UpdateTaskRequest) GetClearRemindAt() bool {
+	if x != nil {
+		return x.ClearRemindAt
+	}
+	return false
 }
 
 type UpdateTaskResponse struct {
@@ -1153,7 +1189,7 @@ var File_task_v1_task_proto protoreflect.FileDescriptor
 
 const file_task_v1_task_proto_rawDesc = "" +
 	"\n" +
-	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x89\x05\n" +
+	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc2\x05\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -1176,7 +1212,8 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12)\n" +
 	"\bsubtasks\x18\x0f \x03(\v2\r.task.v1.TaskR\bsubtasks\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x10 \x01(\tR\tprojectId\"\x85\x03\n" +
+	"project_id\x18\x10 \x01(\tR\tprojectId\x127\n" +
+	"\tremind_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\bremindAt\"\xbe\x03\n" +
 	"\x11CreateTaskRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12$\n" +
@@ -1190,7 +1227,8 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\x06due_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x05dueAt\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\n" +
-	" \x01(\tR\tprojectId\"7\n" +
+	" \x01(\tR\tprojectId\x127\n" +
+	"\tremind_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\bremindAt\"7\n" +
 	"\x12CreateTaskResponse\x12!\n" +
 	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"K\n" +
 	"\x0eGetTaskRequest\x12\x0e\n" +
@@ -1227,7 +1265,7 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\v_has_due_at\"`\n" +
 	"\x11ListTasksResponse\x12#\n" +
 	"\x05tasks\x18\x01 \x03(\v2\r.task.v1.TaskR\x05tasks\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x83\x04\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe4\x04\n" +
 	"\x11UpdateTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12)\n" +
 	"\x0eparent_task_id\x18\x02 \x01(\tH\x00R\fparentTaskId\x88\x01\x01\x12\x19\n" +
@@ -1241,7 +1279,9 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"isArchived\x88\x01\x01\x12\"\n" +
 	"\n" +
 	"project_id\x18\n" +
-	" \x01(\tH\x06R\tprojectId\x88\x01\x01B\x11\n" +
+	" \x01(\tH\x06R\tprojectId\x88\x01\x01\x127\n" +
+	"\tremind_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\bremindAt\x12&\n" +
+	"\x0fclear_remind_at\x18\f \x01(\bR\rclearRemindAtB\x11\n" +
 	"\x0f_parent_task_idB\b\n" +
 	"\x06_titleB\x0e\n" +
 	"\f_descriptionB\v\n" +
@@ -1324,38 +1364,41 @@ var file_task_v1_task_proto_depIdxs = []int32{
 	15, // 4: task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
 	15, // 5: task.v1.Task.updated_at:type_name -> google.protobuf.Timestamp
 	2,  // 6: task.v1.Task.subtasks:type_name -> task.v1.Task
-	1,  // 7: task.v1.CreateTaskRequest.priority:type_name -> task.v1.TaskPriority
-	15, // 8: task.v1.CreateTaskRequest.start_at:type_name -> google.protobuf.Timestamp
-	15, // 9: task.v1.CreateTaskRequest.due_at:type_name -> google.protobuf.Timestamp
-	2,  // 10: task.v1.CreateTaskResponse.task:type_name -> task.v1.Task
-	2,  // 11: task.v1.GetTaskResponse.task:type_name -> task.v1.Task
-	15, // 12: task.v1.ListTasksRequest.due_from:type_name -> google.protobuf.Timestamp
-	15, // 13: task.v1.ListTasksRequest.due_to:type_name -> google.protobuf.Timestamp
-	1,  // 14: task.v1.ListTasksRequest.priorities:type_name -> task.v1.TaskPriority
-	0,  // 15: task.v1.ListTasksRequest.sort_field:type_name -> task.v1.TaskSortField
-	2,  // 16: task.v1.ListTasksResponse.tasks:type_name -> task.v1.Task
-	1,  // 17: task.v1.UpdateTaskRequest.priority:type_name -> task.v1.TaskPriority
-	15, // 18: task.v1.UpdateTaskRequest.start_at:type_name -> google.protobuf.Timestamp
-	15, // 19: task.v1.UpdateTaskRequest.due_at:type_name -> google.protobuf.Timestamp
-	2,  // 20: task.v1.UpdateTaskResponse.task:type_name -> task.v1.Task
-	2,  // 21: task.v1.ChangeTaskStatusResponse.task:type_name -> task.v1.Task
-	3,  // 22: task.v1.TaskService.CreateTask:input_type -> task.v1.CreateTaskRequest
-	5,  // 23: task.v1.TaskService.GetTask:input_type -> task.v1.GetTaskRequest
-	7,  // 24: task.v1.TaskService.ListTasks:input_type -> task.v1.ListTasksRequest
-	9,  // 25: task.v1.TaskService.UpdateTask:input_type -> task.v1.UpdateTaskRequest
-	11, // 26: task.v1.TaskService.DeleteTask:input_type -> task.v1.DeleteTaskRequest
-	13, // 27: task.v1.TaskService.ChangeTaskStatus:input_type -> task.v1.ChangeTaskStatusRequest
-	4,  // 28: task.v1.TaskService.CreateTask:output_type -> task.v1.CreateTaskResponse
-	6,  // 29: task.v1.TaskService.GetTask:output_type -> task.v1.GetTaskResponse
-	8,  // 30: task.v1.TaskService.ListTasks:output_type -> task.v1.ListTasksResponse
-	10, // 31: task.v1.TaskService.UpdateTask:output_type -> task.v1.UpdateTaskResponse
-	12, // 32: task.v1.TaskService.DeleteTask:output_type -> task.v1.DeleteTaskResponse
-	14, // 33: task.v1.TaskService.ChangeTaskStatus:output_type -> task.v1.ChangeTaskStatusResponse
-	28, // [28:34] is the sub-list for method output_type
-	22, // [22:28] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	15, // 7: task.v1.Task.remind_at:type_name -> google.protobuf.Timestamp
+	1,  // 8: task.v1.CreateTaskRequest.priority:type_name -> task.v1.TaskPriority
+	15, // 9: task.v1.CreateTaskRequest.start_at:type_name -> google.protobuf.Timestamp
+	15, // 10: task.v1.CreateTaskRequest.due_at:type_name -> google.protobuf.Timestamp
+	15, // 11: task.v1.CreateTaskRequest.remind_at:type_name -> google.protobuf.Timestamp
+	2,  // 12: task.v1.CreateTaskResponse.task:type_name -> task.v1.Task
+	2,  // 13: task.v1.GetTaskResponse.task:type_name -> task.v1.Task
+	15, // 14: task.v1.ListTasksRequest.due_from:type_name -> google.protobuf.Timestamp
+	15, // 15: task.v1.ListTasksRequest.due_to:type_name -> google.protobuf.Timestamp
+	1,  // 16: task.v1.ListTasksRequest.priorities:type_name -> task.v1.TaskPriority
+	0,  // 17: task.v1.ListTasksRequest.sort_field:type_name -> task.v1.TaskSortField
+	2,  // 18: task.v1.ListTasksResponse.tasks:type_name -> task.v1.Task
+	1,  // 19: task.v1.UpdateTaskRequest.priority:type_name -> task.v1.TaskPriority
+	15, // 20: task.v1.UpdateTaskRequest.start_at:type_name -> google.protobuf.Timestamp
+	15, // 21: task.v1.UpdateTaskRequest.due_at:type_name -> google.protobuf.Timestamp
+	15, // 22: task.v1.UpdateTaskRequest.remind_at:type_name -> google.protobuf.Timestamp
+	2,  // 23: task.v1.UpdateTaskResponse.task:type_name -> task.v1.Task
+	2,  // 24: task.v1.ChangeTaskStatusResponse.task:type_name -> task.v1.Task
+	3,  // 25: task.v1.TaskService.CreateTask:input_type -> task.v1.CreateTaskRequest
+	5,  // 26: task.v1.TaskService.GetTask:input_type -> task.v1.GetTaskRequest
+	7,  // 27: task.v1.TaskService.ListTasks:input_type -> task.v1.ListTasksRequest
+	9,  // 28: task.v1.TaskService.UpdateTask:input_type -> task.v1.UpdateTaskRequest
+	11, // 29: task.v1.TaskService.DeleteTask:input_type -> task.v1.DeleteTaskRequest
+	13, // 30: task.v1.TaskService.ChangeTaskStatus:input_type -> task.v1.ChangeTaskStatusRequest
+	4,  // 31: task.v1.TaskService.CreateTask:output_type -> task.v1.CreateTaskResponse
+	6,  // 32: task.v1.TaskService.GetTask:output_type -> task.v1.GetTaskResponse
+	8,  // 33: task.v1.TaskService.ListTasks:output_type -> task.v1.ListTasksResponse
+	10, // 34: task.v1.TaskService.UpdateTask:output_type -> task.v1.UpdateTaskResponse
+	12, // 35: task.v1.TaskService.DeleteTask:output_type -> task.v1.DeleteTaskResponse
+	14, // 36: task.v1.TaskService.ChangeTaskStatus:output_type -> task.v1.ChangeTaskStatusResponse
+	31, // [31:37] is the sub-list for method output_type
+	25, // [25:31] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_task_v1_task_proto_init() }

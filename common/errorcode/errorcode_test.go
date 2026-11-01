@@ -39,6 +39,7 @@ func declaredCodes() []string {
 		TaskPageSizeInvalid,
 		TaskPageTokenInvalid,
 		TaskSearchQueryTooShort,
+		TaskRemindAtConflict,
 		TaskStatusNameRequired,
 		TaskStatusSlugRequired,
 		TaskStatusSlugAlreadyExists,
