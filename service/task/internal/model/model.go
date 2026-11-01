@@ -35,6 +35,7 @@ type TaskFilter struct {
 	Priorities       []TaskPriority
 	SortField        TaskSortField
 	SortDesc         bool
+	Query            string
 	Limit            int
 	Offset           int
 }

@@ -1668,6 +1668,13 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "query",
+            "description": "Tìm theo tiêu đề + mô tả, không phân biệt hoa thường/dấu, khớp một phần.\nTối thiểu 2 ký tự sau khi trim, dài hơn 200 ký tự bị cắt. Khi có query và\nkhông chọn sort_field, kết quả xếp theo độ giống rồi updated_at mới nhất.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [

@@ -56,11 +56,31 @@ const maxPageSize = 500
 
 const pageTokenPrefix = "o:"
 
+const (
+	minSearchQueryRunes = 2
+	maxSearchQueryRunes = 200
+)
+
+func normalizeSearchQuery(raw string) (string, error) {
+	query := strings.TrimSpace(raw)
+	if query == "" {
+		return "", nil
+	}
+	runes := []rune(query)
+	if len(runes) < minSearchQueryRunes {
+		return "", errorcode.Error(errorcode.TaskSearchQueryTooShort)
+	}
+	if len(runes) > maxSearchQueryRunes {
+		query = strings.TrimSpace(string(runes[:maxSearchQueryRunes]))
+	}
+	return query, nil
+}
+
 func usesListExtensions(req *taskv1.ListTasksRequest) bool {
 	return req.GetDueFrom() != nil || req.GetDueTo() != nil || req.HasDueAt != nil ||
 		req.GetOpenOnly() || len(req.GetPriorities()) > 0 ||
 		req.GetSortField() != taskv1.TaskSortField_TASK_SORT_FIELD_UNSPECIFIED || req.GetSortDesc() ||
-		req.GetPageSize() != 0 || req.GetPageToken() != ""
+		req.GetPageSize() != 0 || req.GetPageToken() != "" || req.GetQuery() != ""
 }
 
 func TaskFilterFromRequest(req *taskv1.ListTasksRequest) (model.TaskFilter, error) {
@@ -102,6 +122,12 @@ func TaskFilterFromRequest(req *taskv1.ListTasksRequest) (model.TaskFilter, erro
 		return model.TaskFilter{}, errorcode.Error(errorcode.TaskPageSizeInvalid)
 	}
 	f.Limit = min(size, maxPageSize)
+
+	query, err := normalizeSearchQuery(req.GetQuery())
+	if err != nil {
+		return model.TaskFilter{}, err
+	}
+	f.Query = query
 
 	if token := req.GetPageToken(); token != "" {
 		offset, ok := decodePageToken(token)

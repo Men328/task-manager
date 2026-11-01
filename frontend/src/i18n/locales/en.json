@@ -31,13 +31,20 @@
   },
   "topbar": {
     "openMenu": "Open menu",
-    "searchPlaceholder": "Search keyword",
+    "searchPlaceholder": "Search tasks in all projects",
     "noProfile": "No profile",
     "identityOffline": "Identity service offline",
     "notifications": "Notifications",
     "language": "Language",
     "theme": "Appearance",
     "signOut": "Sign out"
+  },
+  "search": {
+    "title": "Search tasks",
+    "minChars": "Type at least {{count}} characters to search.",
+    "loading": "Searching…",
+    "noResults": "No tasks found.",
+    "archivedProject": "Archived project"
   },
   "notice": {
     "title": "Notifications",

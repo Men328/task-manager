@@ -31,13 +31,20 @@
   },
   "topbar": {
     "openMenu": "Mở menu",
-    "searchPlaceholder": "Tìm kiếm từ khoá",
+    "searchPlaceholder": "Tìm công việc ở mọi dự án",
     "noProfile": "Chưa có hồ sơ",
     "identityOffline": "Dịch vụ identity ngoại tuyến",
     "notifications": "Thông báo",
     "language": "Ngôn ngữ",
     "theme": "Giao diện",
     "signOut": "Đăng xuất"
+  },
+  "search": {
+    "title": "Tìm công việc",
+    "minChars": "Gõ ít nhất {{count}} ký tự để tìm.",
+    "loading": "Đang tìm…",
+    "noResults": "Không tìm thấy công việc nào.",
+    "archivedProject": "Dự án đã lưu trữ"
   },
   "notice": {
     "title": "Thông báo",

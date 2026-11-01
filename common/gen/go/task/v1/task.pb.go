@@ -591,8 +591,12 @@ type ListTasksRequest struct {
 	SortField  TaskSortField  `protobuf:"varint,13,opt,name=sort_field,json=sortField,proto3,enum=task.v1.TaskSortField" json:"sort_field,omitempty"`
 	SortDesc   bool           `protobuf:"varint,14,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
 	// 0 = không phân trang (trả toàn bộ); tối đa 500.
-	PageSize      int32  `protobuf:"varint,15,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	PageToken     string `protobuf:"bytes,16,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize  int32  `protobuf:"varint,15,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken string `protobuf:"bytes,16,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Tìm theo tiêu đề + mô tả, không phân biệt hoa thường/dấu, khớp một phần.
+	// Tối thiểu 2 ký tự sau khi trim, dài hơn 200 ký tự bị cắt. Khi có query và
+	// không chọn sort_field, kết quả xếp theo độ giống rồi updated_at mới nhất.
+	Query         string `protobuf:"bytes,17,opt,name=query,proto3" json:"query,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -735,6 +739,13 @@ func (x *ListTasksRequest) GetPageSize() int32 {
 func (x *ListTasksRequest) GetPageToken() string {
 	if x != nil {
 		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListTasksRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
 	}
 	return ""
 }
@@ -1186,7 +1197,7 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12)\n" +
 	"\x10include_subtasks\x18\x02 \x01(\bR\x0fincludeSubtasks\"4\n" +
 	"\x0fGetTaskResponse\x12!\n" +
-	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"\x86\x05\n" +
+	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"\x9c\x05\n" +
 	"\x10ListTasksRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12$\n" +
@@ -1211,7 +1222,8 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\tsort_desc\x18\x0e \x01(\bR\bsortDesc\x12\x1b\n" +
 	"\tpage_size\x18\x0f \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x10 \x01(\tR\tpageTokenB\r\n" +
+	"page_token\x18\x10 \x01(\tR\tpageToken\x12\x14\n" +
+	"\x05query\x18\x11 \x01(\tR\x05queryB\r\n" +
 	"\v_has_due_at\"`\n" +
 	"\x11ListTasksResponse\x12#\n" +
 	"\x05tasks\x18\x01 \x03(\v2\r.task.v1.TaskR\x05tasks\x12&\n" +

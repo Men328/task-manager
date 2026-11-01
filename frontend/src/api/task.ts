@@ -126,6 +126,7 @@ function listTasksQuery(params: ListTasksParams): string {
     sort_desc: params.sortDesc,
     page_size: params.pageSize,
     page_token: params.pageToken,
+    query: params.query,
   });
 }
 
