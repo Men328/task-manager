@@ -11,7 +11,10 @@ import AgendaRow from '../../components/agenda/AgendaRow';
 import type { AgendaRowMode } from '../../components/agenda/AgendaRow';
 import ProjectFilterChips from '../../components/agenda/ProjectFilterChips';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
+import QuickAddInput from '../../components/task/QuickAddInput';
+import type { QuickAddPrefill } from '../../components/task/QuickAddInput';
 import TaskDetailModal from '../../components/task/TaskDetailModal';
+import TaskFormModal from '../../components/task/TaskFormModal';
 import { useAppDispatch, useProject, useSession } from '../../context';
 import { fetchBoard } from '../../context/board/boardSlice';
 import { agendaRanges, localDayKey } from '../../lib/dateRanges';
@@ -63,6 +66,9 @@ export function AgendaPage() {
   const [completing, setCompleting] = useState<Set<string>>(new Set());
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [detailOpened, setDetailOpened] = useState(false);
+  const [formPrefill, setFormPrefill] = useState<QuickAddPrefill | undefined>(undefined);
+  const [formOpened, setFormOpened] = useState(false);
+  const defaultProjectId = projects.find((project) => project.isDefault)?.id ?? projects[0]?.id ?? null;
 
   useEffect(() => writeHiddenProjects(hidden), [hidden]);
 
@@ -357,6 +363,15 @@ export function AgendaPage() {
 
       <Box p="lg" className={`${scrollClasses.scroll} ${classes.scrollArea}`}>
         <Stack gap="md" className={classes.content}>
+          <QuickAddInput
+            defaultProjectId={defaultProjectId}
+            onCreated={() => void agenda.reload()}
+            onOpenTask={(task) => void openTask(task)}
+            onOpenForm={(prefill) => {
+              setFormPrefill(prefill);
+              setFormOpened(true);
+            }}
+          />
           <ProjectFilterChips
             projects={projects}
             counts={counts}
@@ -374,6 +389,12 @@ export function AgendaPage() {
       </Box>
 
       <TaskDetailModal opened={detailOpened} onClose={closeDetail} task={detailTask} />
+      <TaskFormModal
+        opened={formOpened}
+        onClose={() => setFormOpened(false)}
+        prefill={formPrefill}
+        onCreated={() => void agenda.reload()}
+      />
     </Flex>
   );
 }

@@ -148,6 +148,19 @@
     "apiHint": "Backend chưa chạy. Khởi động rồi thử lại:",
     "loading": "Đang tải dữ liệu..."
   },
+  "quickAdd": {
+    "placeholder": "Thêm nhanh: \"Nộp báo cáo mai 9h !cao #dự-án\" rồi Enter",
+    "details": "Mở form đầy đủ (Shift+Enter)",
+    "created": "Đã thêm vào {{project}}",
+    "open": "Mở",
+    "failed": "Không thêm được công việc",
+    "noProject": "Chưa chọn dự án",
+    "due": "Hạn: {{value}}",
+    "remove": "Bỏ, giữ chữ trong tiêu đề",
+    "projectNotFound": "Không có dự án «{{value}}»",
+    "projectAmbiguous": "Nhiều dự án khớp «{{value}}»",
+    "needTitle": "Thêm tiêu đề cho công việc"
+  },
   "taskForm": {
     "title": "Tạo công việc",
     "titleLabel": "Tiêu đề",
