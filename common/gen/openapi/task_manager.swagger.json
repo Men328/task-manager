@@ -2241,6 +2241,13 @@
         "clearRemindAt": {
           "type": "boolean",
           "description": "Bỏ nhắc việc."
+        },
+        "recurrenceRule": {
+          "type": "string",
+          "description": "Đặt/đổi quy tắc lặp; \"\" = bỏ lặp."
+        },
+        "recurrenceTz": {
+          "type": "string"
         }
       }
     },
@@ -2452,6 +2459,14 @@
       "properties": {
         "task": {
           "$ref": "#/definitions/v1Task"
+        },
+        "nextTask": {
+          "$ref": "#/definitions/v1Task",
+          "description": "Lần lặp kế tiếp vừa được tạo khi hoàn thành task lặp."
+        },
+        "nextTaskError": {
+          "type": "string",
+          "description": "Mã lỗi khi không tạo được lần lặp kế tiếp (việc hoàn thành vẫn thành công)."
         }
       }
     },
@@ -2711,6 +2726,14 @@
           "type": "string",
           "format": "date-time",
           "description": "Thời điểm nhắc; ở quá khứ thì được lưu nhưng không nhắc."
+        },
+        "recurrenceRule": {
+          "type": "string",
+          "description": "Quy tắc lặp RRULE; cần due_at. Hoàn thành task sẽ tạo lần kế tiếp."
+        },
+        "recurrenceTz": {
+          "type": "string",
+          "description": "Múi giờ IANA để tính lần lặp; rỗng = Asia/Ho_Chi_Minh."
         }
       }
     },
@@ -3547,6 +3570,18 @@
           "type": "string",
           "format": "date-time",
           "description": "Thời điểm nhắc việc; rỗng = không nhắc."
+        },
+        "recurrenceRule": {
+          "type": "string",
+          "description": "Quy tắc lặp RRULE (không có DTSTART), VD \"FREQ=WEEKLY;BYDAY=FR\"; rỗng = không lặp."
+        },
+        "recurrenceTz": {
+          "type": "string",
+          "description": "Múi giờ IANA dùng để tính lần lặp, VD \"Asia/Ho_Chi_Minh\"."
+        },
+        "recurrenceSeriesId": {
+          "type": "string",
+          "description": "Id task đầu chuỗi lặp; mọi lần lặp cùng chuỗi có cùng giá trị."
         }
       },
       "title": "Task cá nhân, hỗ trợ task cha - con qua parent_task_id.\nMapping DB: task.TASKS"

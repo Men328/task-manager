@@ -15,6 +15,7 @@ import QuickAddInput from '../../components/task/QuickAddInput';
 import type { QuickAddPrefill } from '../../components/task/QuickAddInput';
 import TaskDetailModal from '../../components/task/TaskDetailModal';
 import TaskFormModal from '../../components/task/TaskFormModal';
+import { useNextOccurrenceNotice } from '../../components/task/useNextOccurrenceNotice';
 import { useAppDispatch, useProject, useSession } from '../../context';
 import { fetchBoard } from '../../context/board/boardSlice';
 import { agendaRanges, localDayKey } from '../../lib/dateRanges';
@@ -59,6 +60,7 @@ export function AgendaPage() {
   const { profileId } = useSession();
   const { projects, setCurrent } = useProject();
   const agenda = useAgenda(profileId);
+  const notifyNextOccurrence = useNextOccurrenceNotice();
 
   const [tab, setTab] = useState<AgendaTab>('today');
   const [hidden, setHidden] = useState<Set<string>>(readHiddenProjects);
@@ -148,7 +150,7 @@ export function AgendaPage() {
   const completeTask = async (task: Task) => {
     setCompleting((prev) => new Set(prev).add(task.id));
     try {
-      const target = await agenda.complete(task);
+      const { target, result } = await agenda.complete(task);
       const canUndo = agenda.canTransition(target.id, task.statusId);
       const noticeId = `agenda-done-${task.id}`;
       notifications.show({
@@ -176,6 +178,7 @@ export function AgendaPage() {
           </Group>
         ),
       });
+      notifyNextOccurrence(result, (next) => void openTask(next));
       window.setTimeout(() => {
         void agenda.reload().finally(() =>
           setCompleting((prev) => {

@@ -8,6 +8,7 @@ import { statusColor } from '../../lib/tokens';
 import { tokens } from '../../theme';
 import type { Task } from '../../types';
 import ReminderBadge from '../task/ReminderBadge';
+import RepeatBadge from '../task/RepeatBadge';
 import PriorityBadge from './PriorityBadge';
 import TaskProgress from './TaskProgress';
 import classes from './TaskCard.module.css';
@@ -110,7 +111,10 @@ export function TaskCard({ task, dragging, onDragStart, onDragEnd, onOpen }: Tas
             {formatShortDate(task.createdAt, i18n.language) ?? '—'}
           </Text>
         )}
-        <ReminderBadge remindAt={task.remindAt} />
+        <Group gap={8} wrap="nowrap">
+          <RepeatBadge rule={task.recurrenceRule} compact />
+          <ReminderBadge remindAt={task.remindAt} />
+        </Group>
       </Group>
     </Box>
   );

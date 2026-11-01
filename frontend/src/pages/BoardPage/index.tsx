@@ -20,6 +20,7 @@ import TaskDetailModal from '../../components/task/TaskDetailModal';
 import QuickAddInput from '../../components/task/QuickAddInput';
 import type { QuickAddPrefill } from '../../components/task/QuickAddInput';
 import TaskFormModal from '../../components/task/TaskFormModal';
+import { useNextOccurrenceNotice } from '../../components/task/useNextOccurrenceNotice';
 import { useAppDispatch, useBoard, useNoticeFocus, useProject, useSession } from '../../context';
 import { fetchBoard } from '../../context/board/boardSlice';
 import { useBoardFilters } from '../../context/board/useBoardFilters';
@@ -35,6 +36,7 @@ export function BoardPage() {
   const board = useBoard();
   const { currentProjectId } = useProject();
   const boardView = useBoardView();
+  const notifyNextOccurrence = useNextOccurrenceNotice();
   const { clear: clearBoardFilters } = useBoardFilters();
 
   const [view, setView] = useState<BoardView>('kanban');
@@ -78,7 +80,7 @@ export function BoardPage() {
 
   const handleMove = async (taskId: string, statusId: string) => {
     try {
-      await board.moveTask(taskId, statusId);
+      notifyNextOccurrence(await board.moveTask(taskId, statusId), openTaskDetail);
     } catch (cause) {
       notifications.show({
         title: t('boardPage.moveFailedTitle'),

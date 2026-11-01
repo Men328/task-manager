@@ -14,7 +14,7 @@ import (
 	"taskmanager/service/task/internal/model"
 )
 
-const taskColumns = `id::text, profile_id::text, project_id::text, COALESCE(parent_task_id::text, ''), status_id::text, title, COALESCE(description, ''), priority::text, position, start_at, due_at, completed_at, is_archived, created_at, updated_at, remind_at, reminded_at`
+const taskColumns = `id::text, profile_id::text, project_id::text, COALESCE(parent_task_id::text, ''), status_id::text, title, COALESCE(description, ''), priority::text, position, start_at, due_at, completed_at, is_archived, created_at, updated_at, remind_at, reminded_at, COALESCE(recurrence_rule, ''), COALESCE(recurrence_tz, ''), COALESCE(recurrence_series_id::text, ''), COALESCE(recurrence_next_id::text, '')`
 
 const statusLogColumns = `id, task_id::text, profile_id::text, COALESCE(from_status_id::text, ''), to_status_id::text, COALESCE(note, ''), changed_at`
 
@@ -68,6 +68,10 @@ func scanTask(row pgx.Row) (model.Task, error) {
 		&t.UpdatedAt,
 		&t.RemindAt,
 		&t.RemindedAt,
+		&t.RecurrenceRule,
+		&t.RecurrenceTZ,
+		&t.RecurrenceSeriesID,
+		&t.RecurrenceNextID,
 	); err != nil {
 		return model.Task{}, mapTaskError(err)
 	}
@@ -92,21 +96,31 @@ func scanStatusLog(row pgx.Row) (model.StatusLog, error) {
 }
 
 func (r *PostgresTaskRepository) Create(ctx context.Context, t model.Task) (model.Task, error) {
+	return createTask(ctx, r.pool, t)
+}
+
+type queryRower interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+func createTask(ctx context.Context, db queryRower, t model.Task) (model.Task, error) {
 	const query = `
 		INSERT INTO task.tasks
 			(id, profile_id, parent_task_id, status_id, title, description,
 			 priority, position, start_at, due_at, completed_at, is_archived, project_id,
-			 remind_at, reminded_at)
+			 remind_at, reminded_at, recurrence_rule, recurrence_tz, recurrence_series_id)
 		VALUES
 			(COALESCE(NULLIF($1, '')::uuid, gen_random_uuid()), $2::uuid,
 			 NULLIF($3, '')::uuid, $4::uuid, $5, NULLIF($6, ''), $7::task.task_priority,
-			 $8, $9, $10, $11, $12, $13::uuid, $14, $15)
+			 $8, $9, $10, $11, $12, $13::uuid, $14, $15,
+			 NULLIF($16, ''), NULLIF($17, ''), NULLIF($18, '')::uuid)
 		RETURNING ` + taskColumns
 
-	return scanTask(r.pool.QueryRow(ctx, query,
+	return scanTask(db.QueryRow(ctx, query,
 		t.ID, t.ProfileID, t.ParentTaskID, t.StatusID, t.Title, t.Description,
 		priorityToDB(t.Priority), t.Position, t.StartAt, t.DueAt, t.CompletedAt, t.IsArchived, t.ProjectID,
-		t.RemindAt, t.RemindedAt))
+		t.RemindAt, t.RemindedAt,
+		t.RecurrenceRule, t.RecurrenceTZ, t.RecurrenceSeriesID))
 }
 
 func (r *PostgresTaskRepository) Get(ctx context.Context, id string) (model.Task, error) {
@@ -169,7 +183,10 @@ func (r *PostgresTaskRepository) Update(ctx context.Context, id string, upd mode
 		    due_at         = CASE WHEN $10 THEN $11::timestamptz ELSE due_at END,
 		    is_archived    = COALESCE($12, is_archived),
 		    remind_at      = CASE WHEN $13 THEN $14::timestamptz ELSE remind_at END,
-		    reminded_at    = CASE WHEN $13 THEN $15::timestamptz ELSE reminded_at END
+		    reminded_at    = CASE WHEN $13 THEN $15::timestamptz ELSE reminded_at END,
+		    recurrence_rule      = CASE WHEN $16::text IS NULL THEN recurrence_rule ELSE NULLIF($16, '') END,
+		    recurrence_tz        = CASE WHEN $17::text IS NULL THEN recurrence_tz ELSE NULLIF($17, '') END,
+		    recurrence_series_id = CASE WHEN $18::text IS NULL THEN recurrence_series_id ELSE NULLIF($18, '')::uuid END
 		WHERE id = $1::uuid AND deleted_at IS NULL
 		RETURNING ` + taskColumns
 
@@ -197,7 +214,33 @@ func (r *PostgresTaskRepository) Update(ctx context.Context, id string, upd mode
 		upd.DueAt != nil, dueAt,
 		upd.IsArchived,
 		upd.ChangesReminder(), upd.RemindAt, upd.RemindedAt,
+		upd.RecurrenceRule, upd.RecurrenceTZ, upd.RecurrenceSeriesID,
 	))
+}
+
+func (r *PostgresTaskRepository) SpawnNextOccurrence(ctx context.Context, prevID string, next model.Task) (model.Task, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return model.Task{}, mapTaskError(err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	created, err := createTask(ctx, tx, next)
+	if err != nil {
+		return model.Task{}, err
+	}
+	const link = `UPDATE task.tasks SET recurrence_next_id = $2::uuid WHERE id = $1::uuid AND recurrence_next_id IS NULL`
+	tag, err := tx.Exec(ctx, link, prevID, created.ID)
+	if err != nil {
+		return model.Task{}, mapTaskError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return model.Task{}, model.ErrAlreadyExists
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return model.Task{}, mapTaskError(err)
+	}
+	return created, nil
 }
 
 func (r *PostgresTaskRepository) ClaimDueReminders(ctx context.Context, limit int) ([]model.Task, error) {

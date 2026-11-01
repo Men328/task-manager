@@ -13,7 +13,7 @@ import {
 } from '../../api/task';
 import i18n from '../../i18n';
 import { isDoneCategory } from '../../lib/tokens';
-import type { CreateTaskInput, StatusTransition, Task, TaskStatus } from '../../types';
+import type { CreateTaskInput, StatusChangeResult, StatusTransition, Task, TaskStatus } from '../../types';
 import type { RootState } from '../store';
 
 export type NewTaskInput = Omit<CreateTaskInput, 'profileId'>;
@@ -67,7 +67,7 @@ export const createTaskAndRefresh = createAsyncThunk<
 });
 
 export const moveTask = createAsyncThunk<
-  void,
+  StatusChangeResult | undefined,
   { profileId: string; taskId: string; statusId: string; note?: string },
   { state: RootState; rejectValue: string }
 >('board/moveTask', async (args, { dispatch, getState, rejectWithValue }) => {
@@ -79,10 +79,11 @@ export const moveTask = createAsyncThunk<
   dispatch(optimisticMove({ taskId: args.taskId, statusId: args.statusId }));
 
   try {
-    await changeTaskStatus(args.taskId, args.statusId, args.note);
+    const result = await changeTaskStatus(args.taskId, args.statusId, args.note);
     await dispatch(
       fetchBoard({ profileId: args.profileId, projectId: currentProjectId(getState()) }),
     ).unwrap();
+    return result;
   } catch (cause) {
     dispatch(optimisticMove({ taskId: args.taskId, statusId: previous.statusId }));
     return rejectWithValue(getErrorMessage(cause));

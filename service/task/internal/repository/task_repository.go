@@ -215,9 +215,48 @@ func (r *InMemoryTaskRepository) Update(_ context.Context, id string, upd model.
 		t.RemindAt = upd.RemindAt
 		t.RemindedAt = upd.RemindedAt
 	}
+	if upd.RecurrenceRule != nil {
+		t.RecurrenceRule = *upd.RecurrenceRule
+	}
+	if upd.RecurrenceTZ != nil {
+		t.RecurrenceTZ = *upd.RecurrenceTZ
+	}
+	if upd.RecurrenceSeriesID != nil {
+		t.RecurrenceSeriesID = *upd.RecurrenceSeriesID
+	}
 	t.UpdatedAt = time.Now().UTC()
 	r.items[id] = t
 	return t, nil
+}
+
+func (r *InMemoryTaskRepository) SpawnNextOccurrence(ctx context.Context, prevID string, next model.Task) (model.Task, error) {
+	r.mu.Lock()
+	prev, ok := r.items[prevID]
+	if !ok {
+		r.mu.Unlock()
+		return model.Task{}, fmt.Errorf("%w: task %s", model.ErrNotFound, prevID)
+	}
+	if prev.RecurrenceNextID != "" {
+		r.mu.Unlock()
+		return model.Task{}, model.ErrAlreadyExists
+	}
+	r.mu.Unlock()
+
+	created, err := r.Create(ctx, next)
+	if err != nil {
+		return model.Task{}, err
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	prev = r.items[prevID]
+	if prev.RecurrenceNextID != "" {
+		delete(r.items, created.ID)
+		return model.Task{}, model.ErrAlreadyExists
+	}
+	prev.RecurrenceNextID = created.ID
+	r.items[prevID] = prev
+	return created, nil
 }
 
 func (r *InMemoryTaskRepository) SetProjectForSubtree(_ context.Context, rootID, projectID string) error {

@@ -12,7 +12,7 @@
 import { foldText } from '../searchText';
 import type { Project, TaskPriority } from '../../types';
 
-export type QuickAddKind = 'date' | 'time' | 'priority' | 'project';
+export type QuickAddKind = 'date' | 'time' | 'priority' | 'project' | 'repeat';
 
 export interface QuickAddToken {
   kind: QuickAddKind;
@@ -32,6 +32,8 @@ export interface QuickAddResult {
   hasTime: boolean;
   priority?: TaskPriority;
   projectId?: string;
+  /** Quy tắc lặp RRULE khi dòng nhập có "mỗi ngày", "hằng tuần", "every monday"… */
+  recurrenceRule?: string;
   /** Token đã dùng (vị trí trong chuỗi gốc) để hiện chip. */
   tokens: QuickAddToken[];
   warnings: QuickAddWarning[];
@@ -56,6 +58,7 @@ interface Match {
   time?: TimeResolver;
   priority?: TaskPriority;
   projectName?: string;
+  repeat?: { rule: string; first: Resolver };
 }
 
 // Token phải đứng riêng: trước là đầu chuỗi/khoảng trắng/ngoặc mở, sau là cuối chuỗi/khoảng trắng/dấu câu.
@@ -128,8 +131,91 @@ interface Pattern {
   build: (m: RegExpExecArray) => Omit<Match, 'kind' | 'start' | 'end' | 'text'> | null;
 }
 
+const RRULE_DAY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+const today = (now: Date) => startOfDay(now);
+const EVERY_VI = '(?:mỗi|hằng|hàng)';
+
+/** Ngày gần nhất (kể cả hôm nay) có ngày-trong-tháng = day; bỏ qua tháng không có ngày đó. */
+function nextMonthDay(now: Date, day: number): Date | null {
+  for (let offset = 0; offset < 13; offset += 1) {
+    const date = new Date(now.getFullYear(), now.getMonth() + offset, day);
+    if (date.getDate() === day && date >= startOfDay(now)) {
+      return date;
+    }
+  }
+  return null;
+}
+
+const UNIT: Record<string, string> = {
+  'ngày': 'DAILY',
+  day: 'DAILY',
+  days: 'DAILY',
+  'tuần': 'WEEKLY',
+  week: 'WEEKLY',
+  weeks: 'WEEKLY',
+  'tháng': 'MONTHLY',
+  month: 'MONTHLY',
+  months: 'MONTHLY',
+};
+
 // Thứ tự = độ ưu tiên khi các mẫu chồng nhau (mẫu dài/cụ thể trước).
 const PATTERNS: Pattern[] = [
+  {
+    kind: 'repeat',
+    re: new RegExp(`${B}mỗi\\s+ngày\\s+(\\d{1,2})${E}`, 'giu'),
+    build: (m) => {
+      const day = Number(m[1]);
+      return day >= 1 && day <= 31
+        ? { repeat: { rule: `FREQ=MONTHLY;BYMONTHDAY=${day}`, first: (now) => nextMonthDay(now, day) } }
+        : null;
+    },
+  },
+  {
+    kind: 'repeat',
+    re: new RegExp(`${B}(?:mỗi|every)\\s+(\\d{1,3})\\s+(ngày|tuần|tháng|days?|weeks?|months?)${E}`, 'giu'),
+    build: (m) => {
+      const interval = Number(m[1]);
+      const unit = UNIT[m[2]!.toLowerCase()];
+      if (!unit || interval < 1 || interval > 365) {
+        return null;
+      }
+      return { repeat: { rule: interval === 1 ? `FREQ=${unit}` : `FREQ=${unit};INTERVAL=${interval}`, first: today } };
+    },
+  },
+  {
+    kind: 'repeat',
+    re: new RegExp(`${B}(?:mỗi|every)\\s+${VI_WEEKDAY}${E}`, 'giu'),
+    build: (m) => {
+      const weekday = viWeekday(m[1], m[2], m[3], m[4]);
+      return { repeat: { rule: `FREQ=WEEKLY;BYDAY=${RRULE_DAY[weekday]}`, first: (now) => nextWeekday(now, weekday) } };
+    },
+  },
+  {
+    kind: 'repeat',
+    re: new RegExp(`${B}every\\s+${EN_WEEKDAY_RE}${E}`, 'giu'),
+    build: (m) => {
+      const weekday = enWeekday(m[1]!);
+      return { repeat: { rule: `FREQ=WEEKLY;BYDAY=${RRULE_DAY[weekday]}`, first: (now) => nextWeekday(now, weekday) } };
+    },
+  },
+  {
+    kind: 'repeat',
+    re: new RegExp(
+      `${B}(${EVERY_VI}\\s+ngày|every\\s+day|daily|${EVERY_VI}\\s+tuần|every\\s+week|weekly|${EVERY_VI}\\s+tháng|every\\s+month|monthly|${EVERY_VI}\\s+năm|every\\s+year|yearly)${E}`,
+      'giu',
+    ),
+    build: (m) => {
+      const word = m[1]!.toLowerCase();
+      const freq = /ngày|day|daily/.test(word)
+        ? 'DAILY'
+        : /tuần|week/.test(word)
+          ? 'WEEKLY'
+          : /tháng|month/.test(word)
+            ? 'MONTHLY'
+            : 'YEARLY';
+      return { repeat: { rule: `FREQ=${freq}`, first: today } };
+    },
+  },
   {
     kind: 'project',
     re: /(?<!\S)#(?:"([^"]+)"|([^\s#"]+))/gu,
@@ -308,10 +394,21 @@ export function parseQuickAdd(input: string, options: QuickAddOptions = {}): Qui
   let dueAt: Date | undefined;
   const dateMatch = used.get('date');
   const timeMatch = used.get('time');
-  const day = dateMatch?.date?.(now) ?? null;
+  const repeatMatch = used.get('repeat');
+  const repeatFirst = !dateMatch && repeatMatch?.repeat ? repeatMatch.repeat.first(now) : null;
+  if (repeatMatch && !dateMatch && !repeatFirst) {
+    used.delete('repeat');
+  }
+  let day = dateMatch?.date?.(now) ?? repeatFirst;
   const time = timeMatch?.time?.() ?? null;
   if (dateMatch && !day) {
     used.delete('date');
+  }
+  if (repeatFirst && time && repeatMatch?.repeat?.rule.startsWith('FREQ=DAILY') && day) {
+    const atTime = new Date(day.getFullYear(), day.getMonth(), day.getDate(), time.hour, time.minute);
+    if (atTime <= now) {
+      day = addDays(day, 1);
+    }
   }
   if (day && time) {
     dueAt = new Date(day.getFullYear(), day.getMonth(), day.getDate(), time.hour, time.minute);
@@ -347,6 +444,7 @@ export function parseQuickAdd(input: string, options: QuickAddOptions = {}): Qui
     hasTime: Boolean(time && dueAt),
     priority: used.get('priority')?.priority,
     projectId,
+    recurrenceRule: used.get('repeat')?.repeat?.rule,
     tokens,
     warnings,
   };

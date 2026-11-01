@@ -8,6 +8,8 @@ import { getErrorMessage } from '../../api/client';
 import { updateTask } from '../../api/task';
 import { useBoard, useProject } from '../../context';
 import { derivedProgress, formatDateTime, formatShortDate, hasText } from '../../lib/format';
+import { DEFAULT_CUSTOM, browserTimeZone, presetOf as repeatPresetOf, ruleFor } from '../../lib/recurrence';
+import type { RepeatCustom, RepeatPreset } from '../../lib/recurrence';
 import { presetOf, reminderFor, toLocalInput } from '../../lib/reminders';
 import type { ReminderPreset } from '../../lib/reminders';
 import { statusColor } from '../../lib/tokens';
@@ -18,7 +20,9 @@ import { useProjectMoveNotice } from '../common/useProjectMoveNotice';
 import AttachmentSection from '../attachment/AttachmentSection';
 import PriorityBadge from '../board/PriorityBadge';
 import TaskProgress from '../board/TaskProgress';
+import RepeatBadge from './RepeatBadge';
 import ReminderField from './ReminderField';
+import RepeatField from './RepeatField';
 
 interface TaskDetailModalProps {
   opened: boolean;
@@ -44,6 +48,41 @@ export function TaskDetailModal({ opened, onClose, task }: TaskDetailModalProps)
   const [reminderPreset, setReminderPreset] = useState<ReminderPreset>('none');
   const [reminderCustom, setReminderCustom] = useState('');
   const [savingReminder, setSavingReminder] = useState(false);
+  const [savedRule, setSavedRule] = useState('');
+  const [repeatPreset, setRepeatPreset] = useState<RepeatPreset>('none');
+  const [repeatCustom, setRepeatCustom] = useState<RepeatCustom>(DEFAULT_CUSTOM);
+  const [savingRepeat, setSavingRepeat] = useState(false);
+
+  useEffect(() => {
+    if (!opened || !task) {
+      return;
+    }
+    const rule = task.recurrenceRule ?? '';
+    const repeat = repeatPresetOf(rule, task.dueAt);
+    setSavedRule(rule);
+    setRepeatPreset(repeat.preset);
+    setRepeatCustom(repeat.custom);
+  }, [opened, task?.id, task?.recurrenceRule, task?.dueAt]);
+
+  const draftRule = task ? ruleFor(repeatPreset, task.dueAt, repeatCustom) ?? '' : '';
+  const repeatDirty = draftRule !== savedRule;
+
+  const saveRepeat = async () => {
+    if (!task) {
+      return;
+    }
+    setSavingRepeat(true);
+    try {
+      await updateTask(task.id, { recurrenceRule: draftRule, recurrenceTz: browserTimeZone() });
+      setSavedRule(draftRule);
+      refresh();
+      notifications.show({ message: draftRule ? t('repeat.saved') : t('repeat.cleared'), color: 'teal' });
+    } catch (cause) {
+      notifications.show({ title: t('repeat.saveFailed'), message: getErrorMessage(cause), color: 'red' });
+    } finally {
+      setSavingRepeat(false);
+    }
+  };
 
   useEffect(() => {
     if (!opened || !task) {
@@ -127,6 +166,7 @@ export function TaskDetailModal({ opened, onClose, task }: TaskDetailModalProps)
                 </Badge>
               ) : null}
               <PriorityBadge priority={task.priority} />
+              <RepeatBadge rule={task.recurrenceRule} />
             </Group>
           </div>
 
@@ -172,6 +212,26 @@ export function TaskDetailModal({ opened, onClose, task }: TaskDetailModalProps)
               </Text>
             </div>
           </Group>
+
+          <div>
+            <RepeatField
+              preset={repeatPreset}
+              custom={repeatCustom}
+              due={task.dueAt}
+              disabled={savingRepeat}
+              onChange={(preset, custom) => {
+                setRepeatPreset(preset);
+                setRepeatCustom(custom);
+              }}
+            />
+            {repeatDirty ? (
+              <Group justify="flex-end" mt={6}>
+                <Button size="compact-sm" onClick={() => void saveRepeat()} loading={savingRepeat}>
+                  {t('repeat.save')}
+                </Button>
+              </Group>
+            ) : null}
+          </div>
 
           <div>
             <ReminderField

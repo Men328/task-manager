@@ -9,11 +9,14 @@ import { useBoard, useProject } from '../../context';
 import { hasText } from '../../lib/format';
 import { PRIORITY_LABEL_KEY } from '../../lib/tokens';
 import { tokens } from '../../theme';
+import { DEFAULT_CUSTOM, browserTimeZone, presetOf as repeatPresetOf, ruleFor } from '../../lib/recurrence';
+import type { RepeatCustom, RepeatPreset } from '../../lib/recurrence';
 import { reminderFor } from '../../lib/reminders';
 import type { ReminderPreset } from '../../lib/reminders';
 import ProjectSelect from '../common/ProjectSelect';
 import { useProjectMoveNotice } from '../common/useProjectMoveNotice';
 import ReminderField from './ReminderField';
+import RepeatField from './RepeatField';
 import { TASK_PRIORITIES } from '../../types';
 import type { TaskPriority } from '../../types';
 
@@ -23,7 +26,14 @@ interface TaskFormModalProps {
   /** status được chọn sẵn (khi bấm "+ Add Task" ở 1 cột) */
   presetStatusId?: string | null;
   /** Điền sẵn khi tạo mới (vd. từ backlog, ô thêm nhanh). `dueDate` dạng YYYY-MM-DD. */
-  prefill?: { title?: string; description?: string; priority?: TaskPriority; projectId?: string; dueDate?: string };
+  prefill?: {
+    title?: string;
+    description?: string;
+    priority?: TaskPriority;
+    projectId?: string;
+    dueDate?: string;
+    recurrenceRule?: string;
+  };
   /** Gọi sau khi tạo mới thành công. */
   onCreated?: () => void;
 }
@@ -43,6 +53,8 @@ export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCrea
   const [projectId, setProjectId] = useState('');
   const [reminderPreset, setReminderPreset] = useState<ReminderPreset>('none');
   const [reminderCustom, setReminderCustom] = useState('');
+  const [repeatPreset, setRepeatPreset] = useState<RepeatPreset>('none');
+  const [repeatCustom, setRepeatCustom] = useState<RepeatCustom>(DEFAULT_CUSTOM);
   const [submitting, setSubmitting] = useState(false);
 
   // reset mỗi lần mở
@@ -60,6 +72,9 @@ export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCrea
     setProjectId(prefill?.projectId ?? currentProjectId ?? '');
     setReminderPreset('none');
     setReminderCustom('');
+    const repeat = repeatPresetOf(prefill?.recurrenceRule, prefill?.dueDate);
+    setRepeatPreset(repeat.preset);
+    setRepeatCustom(repeat.custom);
   }, [opened, presetStatusId, statuses, currentProjectId, prefill]);
 
   const statusOptions = useMemo(
@@ -100,6 +115,8 @@ export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCrea
         parentTaskId: parentTaskId ?? undefined,
         dueAt: hasText(dueAt) ? new Date(`${dueAt}T00:00:00`).toISOString() : undefined,
         remindAt: reminderFor(reminderPreset, hasText(dueAt) ? dueAt : null, reminderCustom)?.toISOString(),
+        recurrenceRule: ruleFor(repeatPreset, hasText(dueAt) ? dueAt : null, repeatCustom) ?? undefined,
+        recurrenceTz: browserTimeZone(),
       });
       notifications.show({ title: t('taskForm.created'), message: title.trim(), color: 'teal' });
       onClose();
@@ -198,11 +215,24 @@ export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCrea
                 if (!next && (reminderPreset === 'dueMorning' || reminderPreset === 'dayBefore')) {
                   setReminderPreset('none');
                 }
+                if (!next) {
+                  setRepeatPreset('none');
+                }
               }}
               leftSection={<IconCalendar size={15} style={{ color: tokens.textFaint }} />}
             />
           </Box>
         </Group>
+
+        <RepeatField
+          preset={repeatPreset}
+          custom={repeatCustom}
+          due={hasText(dueAt) ? dueAt : null}
+          onChange={(preset, custom) => {
+            setRepeatPreset(preset);
+            setRepeatCustom(custom);
+          }}
+        />
 
         <ReminderField
           preset={reminderPreset}

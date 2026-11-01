@@ -52,6 +52,12 @@ message Task {
   string project_id = 16;
   // Thời điểm nhắc việc; rỗng = không nhắc.
   google.protobuf.Timestamp remind_at = 17;
+  // Quy tắc lặp RRULE (không có DTSTART), VD "FREQ=WEEKLY;BYDAY=FR"; rỗng = không lặp.
+  string recurrence_rule = 18;
+  // Múi giờ IANA dùng để tính lần lặp, VD "Asia/Ho_Chi_Minh".
+  string recurrence_tz = 19;
+  // Id task đầu chuỗi lặp; mọi lần lặp cùng chuỗi có cùng giá trị.
+  string recurrence_series_id = 20;
 }
 
 message CreateTaskRequest {
@@ -68,6 +74,10 @@ message CreateTaskRequest {
   string project_id = 10;
   // Thời điểm nhắc; ở quá khứ thì được lưu nhưng không nhắc.
   google.protobuf.Timestamp remind_at = 11;
+  // Quy tắc lặp RRULE; cần due_at. Hoàn thành task sẽ tạo lần kế tiếp.
+  string recurrence_rule = 12;
+  // Múi giờ IANA để tính lần lặp; rỗng = Asia/Ho_Chi_Minh.
+  string recurrence_tz = 13;
 }
 
 message CreateTaskResponse {
@@ -138,6 +148,9 @@ message UpdateTaskRequest {
   google.protobuf.Timestamp remind_at = 11;
   // Bỏ nhắc việc.
   bool clear_remind_at = 12;
+  // Đặt/đổi quy tắc lặp; "" = bỏ lặp.
+  optional string recurrence_rule = 13;
+  optional string recurrence_tz = 14;
 }
 
 message UpdateTaskResponse {
@@ -158,6 +171,10 @@ message ChangeTaskStatusRequest {
 
 message ChangeTaskStatusResponse {
   Task task = 1;
+  // Lần lặp kế tiếp vừa được tạo khi hoàn thành task lặp.
+  Task next_task = 2;
+  // Mã lỗi khi không tạo được lần lặp kế tiếp (việc hoàn thành vẫn thành công).
+  string next_task_error = 3;
 }
 
 service TaskService {

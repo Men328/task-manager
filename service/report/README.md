@@ -12,6 +12,9 @@ báo cáo. Service **không có DB riêng** — nguồn dữ liệu qua gRPC:
 - Interface (proto): `common/proto/report/v1/report.proto`
 - Code gen: `common/gen/go/report/v1`
 
+> **Task lặp lại**: mỗi lần lặp là một task riêng (cùng `recurrence_series_id`), nên số task hoàn thành
+> trong báo cáo tăng đúng theo số lần đã làm — một task "hằng ngày" làm đủ 7 ngày được đếm là 7.
+
 ## API
 
 Tất cả endpoint nhận `profile_id` (bắt buộc), `from`/`to` (RFC3339, tuỳ chọn — bỏ trống =

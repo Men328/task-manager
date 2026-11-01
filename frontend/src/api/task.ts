@@ -8,6 +8,7 @@ import type {
   UpdateTaskInput,
   ListTasksParams,
   StatusTransition,
+  StatusChangeResult,
   Task,
   TaskPage,
   TaskStatus,
@@ -49,6 +50,8 @@ function toTaskBody(input: CreateTaskInput): Record<string, unknown> {
     start_at: input.startAt,
     due_at: input.dueAt,
     remind_at: input.remindAt,
+    recurrence_rule: input.recurrenceRule,
+    recurrence_tz: input.recurrenceTz,
   };
 }
 
@@ -192,6 +195,10 @@ export function updateTask(id: string, input: UpdateTaskInput): Promise<Task> {
   } else if (input.remindAt !== undefined) {
     body.remind_at = input.remindAt;
   }
+  if (input.recurrenceRule !== undefined) {
+    body.recurrence_rule = input.recurrenceRule;
+    body.recurrence_tz = input.recurrenceTz;
+  }
   return request<Task>(taskApi, `${TASKS_PATH}/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
@@ -208,11 +215,18 @@ export function changeTaskStatus(
   taskId: string,
   statusId: string,
   note?: string,
-): Promise<Task> {
-  return request<Task>(taskApi, `${TASKS_PATH}/${encodeURIComponent(taskId)}/status`, {
+): Promise<StatusChangeResult> {
+  return request<unknown>(taskApi, `${TASKS_PATH}/${encodeURIComponent(taskId)}/status`, {
     method: 'POST',
     body: JSON.stringify({ status_id: statusId, note }),
-  }).then((payload) => unwrap<Task>(payload, 'task'));
+  }).then((payload) => {
+    const body = (payload ?? {}) as { nextTask?: Task | null; nextTaskError?: string | null };
+    return {
+      task: unwrap<Task>(payload, 'task'),
+      nextTask: body.nextTask ?? null,
+      nextTaskError: body.nextTaskError || null,
+    };
+  });
 }
 
 /**

@@ -50,6 +50,9 @@ func TaskFromCreateRequest(req *taskv1.CreateTaskRequest) model.Task {
 		StartAt:      timePtr(req.GetStartAt()),
 		DueAt:        timePtr(req.GetDueAt()),
 		RemindAt:     timePtr(req.GetRemindAt()),
+
+		RecurrenceRule: req.GetRecurrenceRule(),
+		RecurrenceTZ:   req.GetRecurrenceTz(),
 	}
 }
 
@@ -187,6 +190,9 @@ func TaskUpdateFromRequest(req *taskv1.UpdateTaskRequest) model.TaskUpdate {
 
 		RemindAt:      timePtr(req.GetRemindAt()),
 		ClearRemindAt: req.GetClearRemindAt(),
+
+		RecurrenceRule: req.RecurrenceRule,
+		RecurrenceTZ:   req.RecurrenceTz,
 	}
 }
 
@@ -208,6 +214,10 @@ func TaskToProto(t model.Task) *taskv1.Task {
 		CreatedAt:    timestamppb.New(t.CreatedAt),
 		UpdatedAt:    timestamppb.New(t.UpdatedAt),
 		RemindAt:     timestamp(t.RemindAt),
+
+		RecurrenceRule:     t.RecurrenceRule,
+		RecurrenceTz:       t.RecurrenceTZ,
+		RecurrenceSeriesId: t.RecurrenceSeriesID,
 	}
 }
 

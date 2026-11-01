@@ -2,8 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
+	"log/slog"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"taskmanager/service/task/internal/model"
 )
@@ -54,6 +58,20 @@ func (s *taskService) Create(ctx context.Context, t model.Task) (model.Task, err
 	}
 
 	t.RemindedAt = reminderState(t.RemindAt, time.Now().UTC())
+
+	rule, tz, err := normalizeRecurrence(t.RecurrenceRule, t.RecurrenceTZ, t.DueAt)
+	if err != nil {
+		return model.Task{}, err
+	}
+	t.RecurrenceRule, t.RecurrenceTZ = rule, tz
+	if rule != "" {
+		if t.ID == "" {
+			t.ID = uuid.NewString()
+		}
+		if t.RecurrenceSeriesID == "" {
+			t.RecurrenceSeriesID = t.ID
+		}
+	}
 
 	created, err := s.tasks.Create(ctx, t)
 	if err != nil {
@@ -137,6 +155,9 @@ func (s *taskService) Update(ctx context.Context, id string, upd model.TaskUpdat
 	if upd.ChangesReminder() {
 		upd.RemindedAt = reminderState(upd.RemindAt, time.Now().UTC())
 	}
+	if err := applyRecurrenceUpdate(current, &upd); err != nil {
+		return model.Task{}, err
+	}
 
 	parentID := current.ParentTaskID
 	if upd.ParentTaskID != nil {
@@ -200,29 +221,29 @@ func (s *taskService) Delete(ctx context.Context, id string) error {
 	return s.tasks.Delete(ctx, id)
 }
 
-func (s *taskService) ChangeStatus(ctx context.Context, id, statusID, note string) (model.Task, error) {
+func (s *taskService) ChangeStatus(ctx context.Context, id, statusID, note string) (model.StatusChange, error) {
 	task, err := s.tasks.Get(ctx, id)
 	if err != nil {
-		return model.Task{}, err
+		return model.StatusChange{}, err
 	}
 	if task.StatusID == statusID {
-		return model.Task{}, model.NewError(model.ErrorKindTaskStatusSame, "task đang ở status này rồi")
+		return model.StatusChange{}, model.NewError(model.ErrorKindTaskStatusSame, "task đang ở status này rồi")
 	}
 
 	target, err := s.statuses.Get(ctx, statusID)
 	if err != nil {
-		return model.Task{}, err
+		return model.StatusChange{}, err
 	}
 	if target.ProfileID != task.ProfileID {
-		return model.Task{}, model.NewError(model.ErrorKindStatusProfileMismatch, "status không thuộc profile của task")
+		return model.StatusChange{}, model.NewError(model.ErrorKindStatusProfileMismatch, "status không thuộc profile của task")
 	}
 
 	allowed, err := s.transitions.IsAllowed(ctx, task.ProfileID, task.StatusID, target.ID)
 	if err != nil {
-		return model.Task{}, err
+		return model.StatusChange{}, err
 	}
 	if !allowed {
-		return model.Task{}, model.NewError(model.ErrorKindTransitionNotAllowed,
+		return model.StatusChange{}, model.NewError(model.ErrorKindTransitionNotAllowed,
 			"không được phép chuyển từ status %s sang %s", task.StatusID, target.ID)
 	}
 
@@ -236,7 +257,7 @@ func (s *taskService) ChangeStatus(ctx context.Context, id, statusID, note strin
 
 	updated, err := s.tasks.ChangeStatus(ctx, task.ID, target.ID, completedAt)
 	if err != nil {
-		return model.Task{}, err
+		return model.StatusChange{}, err
 	}
 
 	_ = s.tasks.AppendStatusLog(ctx, model.StatusLog{
@@ -248,7 +269,114 @@ func (s *taskService) ChangeStatus(ctx context.Context, id, statusID, note strin
 		ChangedAt:    time.Now().UTC(),
 	})
 
-	return updated, nil
+	result := model.StatusChange{Task: updated}
+	if target.Category == model.TaskStatusCategoryDone && updated.RecurrenceRule != "" && updated.RecurrenceNextID == "" {
+		next, spawned, err := s.spawnNextOccurrence(ctx, updated)
+		switch {
+		case err != nil:
+			slog.Warn("không tạo được lần lặp kế tiếp", "task_id", updated.ID, "error", err)
+			result.NextErr = err
+		case spawned:
+			result.Next = &next
+		}
+	}
+	return result, nil
+}
+
+func applyRecurrenceUpdate(current model.Task, upd *model.TaskUpdate) error {
+	if upd.RecurrenceRule == nil {
+		if upd.DueAt == nil && upd.RecurrenceTZ == nil {
+			return nil
+		}
+		if current.RecurrenceRule == "" {
+			upd.RecurrenceTZ = nil
+			return nil
+		}
+		rule := current.RecurrenceRule
+		upd.RecurrenceRule = &rule
+	}
+	due := current.DueAt
+	if upd.DueAt != nil {
+		due = upd.DueAt
+	}
+	tz := current.RecurrenceTZ
+	if upd.RecurrenceTZ != nil {
+		tz = *upd.RecurrenceTZ
+	}
+	rule, tz, err := normalizeRecurrence(*upd.RecurrenceRule, tz, due)
+	if err != nil {
+		return err
+	}
+	upd.RecurrenceRule = &rule
+	upd.RecurrenceTZ = &tz
+	if rule != "" && current.RecurrenceSeriesID == "" {
+		series := current.ID
+		upd.RecurrenceSeriesID = &series
+	}
+	return nil
+}
+
+func (s *taskService) spawnNextOccurrence(ctx context.Context, done model.Task) (model.Task, bool, error) {
+	if done.DueAt == nil {
+		return model.Task{}, false, nil
+	}
+	now := time.Now().UTC()
+	occ, ok, err := nextOccurrence(done.RecurrenceRule, done.RecurrenceTZ, *done.DueAt, now)
+	if err != nil || !ok {
+		return model.Task{}, false, err
+	}
+
+	shift := occ.due.Sub(*done.DueAt)
+	moved := func(at *time.Time) *time.Time {
+		if at == nil {
+			return nil
+		}
+		v := at.Add(shift)
+		return &v
+	}
+
+	statusID, err := s.resolveStatusID(ctx, done.ProfileID, "")
+	if err != nil {
+		return model.Task{}, false, err
+	}
+	if err := s.projects.CheckAssignable(ctx, done.ProfileID, done.ProjectID); err != nil {
+		return model.Task{}, false, err
+	}
+
+	due := occ.due
+	next := model.Task{
+		ID:                 uuid.NewString(),
+		ProfileID:          done.ProfileID,
+		ProjectID:          done.ProjectID,
+		ParentTaskID:       done.ParentTaskID,
+		StatusID:           statusID,
+		Title:              done.Title,
+		Description:        done.Description,
+		Priority:           done.Priority,
+		StartAt:            moved(done.StartAt),
+		DueAt:              &due,
+		RemindAt:           moved(done.RemindAt),
+		RecurrenceRule:     occ.rule,
+		RecurrenceTZ:       done.RecurrenceTZ,
+		RecurrenceSeriesID: done.RecurrenceSeriesID,
+	}
+	next.RemindedAt = reminderState(next.RemindAt, now)
+
+	created, err := s.tasks.SpawnNextOccurrence(ctx, done.ID, next)
+	if errors.Is(err, model.ErrAlreadyExists) {
+		return model.Task{}, false, nil
+	}
+	if err != nil {
+		return model.Task{}, false, err
+	}
+	_ = s.tasks.AppendStatusLog(ctx, model.StatusLog{
+		TaskID:     created.ID,
+		ProfileID:  created.ProfileID,
+		ToStatusID: created.StatusID,
+		Note:       "lặp lại",
+		ChangedAt:  now,
+	})
+	return created, true, nil
 }
 
 func (s *taskService) resolveStatusID(ctx context.Context, profileID, statusID string) (string, error) {

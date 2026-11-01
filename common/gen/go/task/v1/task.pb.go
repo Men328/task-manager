@@ -164,9 +164,15 @@ type Task struct {
 	// Dự án chứa mục này.
 	ProjectId string `protobuf:"bytes,16,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Thời điểm nhắc việc; rỗng = không nhắc.
-	RemindAt      *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=remind_at,json=remindAt,proto3" json:"remind_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	RemindAt *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=remind_at,json=remindAt,proto3" json:"remind_at,omitempty"`
+	// Quy tắc lặp RRULE (không có DTSTART), VD "FREQ=WEEKLY;BYDAY=FR"; rỗng = không lặp.
+	RecurrenceRule string `protobuf:"bytes,18,opt,name=recurrence_rule,json=recurrenceRule,proto3" json:"recurrence_rule,omitempty"`
+	// Múi giờ IANA dùng để tính lần lặp, VD "Asia/Ho_Chi_Minh".
+	RecurrenceTz string `protobuf:"bytes,19,opt,name=recurrence_tz,json=recurrenceTz,proto3" json:"recurrence_tz,omitempty"`
+	// Id task đầu chuỗi lặp; mọi lần lặp cùng chuỗi có cùng giá trị.
+	RecurrenceSeriesId string `protobuf:"bytes,20,opt,name=recurrence_series_id,json=recurrenceSeriesId,proto3" json:"recurrence_series_id,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Task) Reset() {
@@ -318,6 +324,27 @@ func (x *Task) GetRemindAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Task) GetRecurrenceRule() string {
+	if x != nil {
+		return x.RecurrenceRule
+	}
+	return ""
+}
+
+func (x *Task) GetRecurrenceTz() string {
+	if x != nil {
+		return x.RecurrenceTz
+	}
+	return ""
+}
+
+func (x *Task) GetRecurrenceSeriesId() string {
+	if x != nil {
+		return x.RecurrenceSeriesId
+	}
+	return ""
+}
+
 type CreateTaskRequest struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
 	ProfileId    string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
@@ -332,7 +359,11 @@ type CreateTaskRequest struct {
 	// Dự án chứa mục này.
 	ProjectId string `protobuf:"bytes,10,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Thời điểm nhắc; ở quá khứ thì được lưu nhưng không nhắc.
-	RemindAt      *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=remind_at,json=remindAt,proto3" json:"remind_at,omitempty"`
+	RemindAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=remind_at,json=remindAt,proto3" json:"remind_at,omitempty"`
+	// Quy tắc lặp RRULE; cần due_at. Hoàn thành task sẽ tạo lần kế tiếp.
+	RecurrenceRule string `protobuf:"bytes,12,opt,name=recurrence_rule,json=recurrenceRule,proto3" json:"recurrence_rule,omitempty"`
+	// Múi giờ IANA để tính lần lặp; rỗng = Asia/Ho_Chi_Minh.
+	RecurrenceTz  string `protobuf:"bytes,13,opt,name=recurrence_tz,json=recurrenceTz,proto3" json:"recurrence_tz,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -442,6 +473,20 @@ func (x *CreateTaskRequest) GetRemindAt() *timestamppb.Timestamp {
 		return x.RemindAt
 	}
 	return nil
+}
+
+func (x *CreateTaskRequest) GetRecurrenceRule() string {
+	if x != nil {
+		return x.RecurrenceRule
+	}
+	return ""
+}
+
+func (x *CreateTaskRequest) GetRecurrenceTz() string {
+	if x != nil {
+		return x.RecurrenceTz
+	}
+	return ""
 }
 
 type CreateTaskResponse struct {
@@ -839,8 +884,11 @@ type UpdateTaskRequest struct {
 	RemindAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=remind_at,json=remindAt,proto3" json:"remind_at,omitempty"`
 	// Bỏ nhắc việc.
 	ClearRemindAt bool `protobuf:"varint,12,opt,name=clear_remind_at,json=clearRemindAt,proto3" json:"clear_remind_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Đặt/đổi quy tắc lặp; "" = bỏ lặp.
+	RecurrenceRule *string `protobuf:"bytes,13,opt,name=recurrence_rule,json=recurrenceRule,proto3,oneof" json:"recurrence_rule,omitempty"`
+	RecurrenceTz   *string `protobuf:"bytes,14,opt,name=recurrence_tz,json=recurrenceTz,proto3,oneof" json:"recurrence_tz,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *UpdateTaskRequest) Reset() {
@@ -955,6 +1003,20 @@ func (x *UpdateTaskRequest) GetClearRemindAt() bool {
 		return x.ClearRemindAt
 	}
 	return false
+}
+
+func (x *UpdateTaskRequest) GetRecurrenceRule() string {
+	if x != nil && x.RecurrenceRule != nil {
+		return *x.RecurrenceRule
+	}
+	return ""
+}
+
+func (x *UpdateTaskRequest) GetRecurrenceTz() string {
+	if x != nil && x.RecurrenceTz != nil {
+		return *x.RecurrenceTz
+	}
+	return ""
 }
 
 type UpdateTaskResponse struct {
@@ -1142,8 +1204,12 @@ func (x *ChangeTaskStatusRequest) GetNote() string {
 }
 
 type ChangeTaskStatusResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Task          *Task                  `protobuf:"bytes,1,opt,name=task,proto3" json:"task,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Task  *Task                  `protobuf:"bytes,1,opt,name=task,proto3" json:"task,omitempty"`
+	// Lần lặp kế tiếp vừa được tạo khi hoàn thành task lặp.
+	NextTask *Task `protobuf:"bytes,2,opt,name=next_task,json=nextTask,proto3" json:"next_task,omitempty"`
+	// Mã lỗi khi không tạo được lần lặp kế tiếp (việc hoàn thành vẫn thành công).
+	NextTaskError string `protobuf:"bytes,3,opt,name=next_task_error,json=nextTaskError,proto3" json:"next_task_error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1185,11 +1251,25 @@ func (x *ChangeTaskStatusResponse) GetTask() *Task {
 	return nil
 }
 
+func (x *ChangeTaskStatusResponse) GetNextTask() *Task {
+	if x != nil {
+		return x.NextTask
+	}
+	return nil
+}
+
+func (x *ChangeTaskStatusResponse) GetNextTaskError() string {
+	if x != nil {
+		return x.NextTaskError
+	}
+	return ""
+}
+
 var File_task_v1_task_proto protoreflect.FileDescriptor
 
 const file_task_v1_task_proto_rawDesc = "" +
 	"\n" +
-	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc2\x05\n" +
+	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc2\x06\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -1213,7 +1293,10 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\bsubtasks\x18\x0f \x03(\v2\r.task.v1.TaskR\bsubtasks\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x10 \x01(\tR\tprojectId\x127\n" +
-	"\tremind_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\bremindAt\"\xbe\x03\n" +
+	"\tremind_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\bremindAt\x12'\n" +
+	"\x0frecurrence_rule\x18\x12 \x01(\tR\x0erecurrenceRule\x12#\n" +
+	"\rrecurrence_tz\x18\x13 \x01(\tR\frecurrenceTz\x120\n" +
+	"\x14recurrence_series_id\x18\x14 \x01(\tR\x12recurrenceSeriesId\"\x8c\x04\n" +
 	"\x11CreateTaskRequest\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12$\n" +
@@ -1228,7 +1311,9 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\n" +
 	"project_id\x18\n" +
 	" \x01(\tR\tprojectId\x127\n" +
-	"\tremind_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\bremindAt\"7\n" +
+	"\tremind_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\bremindAt\x12'\n" +
+	"\x0frecurrence_rule\x18\f \x01(\tR\x0erecurrenceRule\x12#\n" +
+	"\rrecurrence_tz\x18\r \x01(\tR\frecurrenceTz\"7\n" +
 	"\x12CreateTaskResponse\x12!\n" +
 	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"K\n" +
 	"\x0eGetTaskRequest\x12\x0e\n" +
@@ -1265,7 +1350,7 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\v_has_due_at\"`\n" +
 	"\x11ListTasksResponse\x12#\n" +
 	"\x05tasks\x18\x01 \x03(\v2\r.task.v1.TaskR\x05tasks\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe4\x04\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe2\x05\n" +
 	"\x11UpdateTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12)\n" +
 	"\x0eparent_task_id\x18\x02 \x01(\tH\x00R\fparentTaskId\x88\x01\x01\x12\x19\n" +
@@ -1281,14 +1366,18 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"project_id\x18\n" +
 	" \x01(\tH\x06R\tprojectId\x88\x01\x01\x127\n" +
 	"\tremind_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\bremindAt\x12&\n" +
-	"\x0fclear_remind_at\x18\f \x01(\bR\rclearRemindAtB\x11\n" +
+	"\x0fclear_remind_at\x18\f \x01(\bR\rclearRemindAt\x12,\n" +
+	"\x0frecurrence_rule\x18\r \x01(\tH\aR\x0erecurrenceRule\x88\x01\x01\x12(\n" +
+	"\rrecurrence_tz\x18\x0e \x01(\tH\bR\frecurrenceTz\x88\x01\x01B\x11\n" +
 	"\x0f_parent_task_idB\b\n" +
 	"\x06_titleB\x0e\n" +
 	"\f_descriptionB\v\n" +
 	"\t_priorityB\v\n" +
 	"\t_positionB\x0e\n" +
 	"\f_is_archivedB\r\n" +
-	"\v_project_id\"7\n" +
+	"\v_project_idB\x12\n" +
+	"\x10_recurrence_ruleB\x10\n" +
+	"\x0e_recurrence_tz\"7\n" +
 	"\x12UpdateTaskResponse\x12!\n" +
 	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"#\n" +
 	"\x11DeleteTaskRequest\x12\x0e\n" +
@@ -1297,9 +1386,11 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\x17ChangeTaskStatusRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tstatus_id\x18\x02 \x01(\tR\bstatusId\x12\x12\n" +
-	"\x04note\x18\x03 \x01(\tR\x04note\"=\n" +
+	"\x04note\x18\x03 \x01(\tR\x04note\"\x91\x01\n" +
 	"\x18ChangeTaskStatusResponse\x12!\n" +
-	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task*\xc8\x01\n" +
+	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\x12*\n" +
+	"\tnext_task\x18\x02 \x01(\v2\r.task.v1.TaskR\bnextTask\x12&\n" +
+	"\x0fnext_task_error\x18\x03 \x01(\tR\rnextTaskError*\xc8\x01\n" +
 	"\rTaskSortField\x12\x1f\n" +
 	"\x1bTASK_SORT_FIELD_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18TASK_SORT_FIELD_POSITION\x10\x01\x12\x1a\n" +
@@ -1382,23 +1473,24 @@ var file_task_v1_task_proto_depIdxs = []int32{
 	15, // 22: task.v1.UpdateTaskRequest.remind_at:type_name -> google.protobuf.Timestamp
 	2,  // 23: task.v1.UpdateTaskResponse.task:type_name -> task.v1.Task
 	2,  // 24: task.v1.ChangeTaskStatusResponse.task:type_name -> task.v1.Task
-	3,  // 25: task.v1.TaskService.CreateTask:input_type -> task.v1.CreateTaskRequest
-	5,  // 26: task.v1.TaskService.GetTask:input_type -> task.v1.GetTaskRequest
-	7,  // 27: task.v1.TaskService.ListTasks:input_type -> task.v1.ListTasksRequest
-	9,  // 28: task.v1.TaskService.UpdateTask:input_type -> task.v1.UpdateTaskRequest
-	11, // 29: task.v1.TaskService.DeleteTask:input_type -> task.v1.DeleteTaskRequest
-	13, // 30: task.v1.TaskService.ChangeTaskStatus:input_type -> task.v1.ChangeTaskStatusRequest
-	4,  // 31: task.v1.TaskService.CreateTask:output_type -> task.v1.CreateTaskResponse
-	6,  // 32: task.v1.TaskService.GetTask:output_type -> task.v1.GetTaskResponse
-	8,  // 33: task.v1.TaskService.ListTasks:output_type -> task.v1.ListTasksResponse
-	10, // 34: task.v1.TaskService.UpdateTask:output_type -> task.v1.UpdateTaskResponse
-	12, // 35: task.v1.TaskService.DeleteTask:output_type -> task.v1.DeleteTaskResponse
-	14, // 36: task.v1.TaskService.ChangeTaskStatus:output_type -> task.v1.ChangeTaskStatusResponse
-	31, // [31:37] is the sub-list for method output_type
-	25, // [25:31] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	2,  // 25: task.v1.ChangeTaskStatusResponse.next_task:type_name -> task.v1.Task
+	3,  // 26: task.v1.TaskService.CreateTask:input_type -> task.v1.CreateTaskRequest
+	5,  // 27: task.v1.TaskService.GetTask:input_type -> task.v1.GetTaskRequest
+	7,  // 28: task.v1.TaskService.ListTasks:input_type -> task.v1.ListTasksRequest
+	9,  // 29: task.v1.TaskService.UpdateTask:input_type -> task.v1.UpdateTaskRequest
+	11, // 30: task.v1.TaskService.DeleteTask:input_type -> task.v1.DeleteTaskRequest
+	13, // 31: task.v1.TaskService.ChangeTaskStatus:input_type -> task.v1.ChangeTaskStatusRequest
+	4,  // 32: task.v1.TaskService.CreateTask:output_type -> task.v1.CreateTaskResponse
+	6,  // 33: task.v1.TaskService.GetTask:output_type -> task.v1.GetTaskResponse
+	8,  // 34: task.v1.TaskService.ListTasks:output_type -> task.v1.ListTasksResponse
+	10, // 35: task.v1.TaskService.UpdateTask:output_type -> task.v1.UpdateTaskResponse
+	12, // 36: task.v1.TaskService.DeleteTask:output_type -> task.v1.DeleteTaskResponse
+	14, // 37: task.v1.TaskService.ChangeTaskStatus:output_type -> task.v1.ChangeTaskStatusResponse
+	32, // [32:38] is the sub-list for method output_type
+	26, // [26:32] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_task_v1_task_proto_init() }

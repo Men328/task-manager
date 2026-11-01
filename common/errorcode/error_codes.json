@@ -462,6 +462,15 @@
         "en": "Cannot set and clear the reminder in the same request."
       }
     },
+    "TASK_RECURRENCE_INVALID": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Quy tắc lặp không hợp lệ hoặc task chưa có hạn.",
+        "en": "The repeat rule is invalid or the task has no due date."
+      }
+    },
     "TASK_STATUS_NAME_REQUIRED": {
       "owner": "task",
       "grpcCode": "InvalidArgument",

@@ -154,7 +154,11 @@ func (stubTaskRepo) Update(_ context.Context, _ string, _ model.TaskUpdate) (mod
 	return model.Task{}, nil
 }
 func (stubTaskRepo) SetProjectForSubtree(_ context.Context, _, _ string) error { return nil }
-func (stubTaskRepo) Delete(_ context.Context, _ string) error                  { return nil }
+
+func (stubTaskRepo) SpawnNextOccurrence(context.Context, string, model.Task) (model.Task, error) {
+	return model.Task{}, nil
+}
+func (stubTaskRepo) Delete(_ context.Context, _ string) error { return nil }
 func (stubTaskRepo) ChangeStatus(_ context.Context, _, _ string, _ *time.Time) (model.Task, error) {
 	return model.Task{}, nil
 }
