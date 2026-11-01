@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
+	"golang.org/x/text/unicode/norm"
 
 	"taskmanager/service/task/internal/model"
 )
@@ -89,7 +92,11 @@ func (r *InMemoryTaskRepository) List(_ context.Context, f model.TaskFilter) ([]
 		}
 		out = append(out, t)
 	}
-	sortTasksBy(out, f.SortField, f.SortDesc)
+	if f.Query != "" && f.SortField == model.TaskSortUnspecified {
+		sortTasksBy(out, model.TaskSortUpdatedAt, true)
+	} else {
+		sortTasksBy(out, f.SortField, f.SortDesc)
+	}
 	return paginate(out, f.Limit, f.Offset), nil
 }
 
@@ -112,7 +119,23 @@ func matchesListExtensions(t model.Task, f model.TaskFilter) bool {
 	if slices.Contains(f.ExcludeStatusIDs, t.StatusID) {
 		return false
 	}
+	if f.Query != "" && !strings.Contains(searchText(t.Title+" "+t.Description), searchText(f.Query)) {
+		return false
+	}
 	return true
+}
+
+var vietnameseD = strings.NewReplacer("đ", "d", "Đ", "D")
+
+func searchText(value string) string {
+	decomposed := norm.NFD.String(vietnameseD.Replace(value))
+	stripped := strings.Map(func(r rune) rune {
+		if unicode.Is(unicode.Mn, r) {
+			return -1
+		}
+		return r
+	}, decomposed)
+	return strings.ToLower(stripped)
 }
 
 func paginate(items []model.Task, limit, offset int) []model.Task {

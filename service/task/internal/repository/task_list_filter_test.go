@@ -172,3 +172,56 @@ func TestBuildTaskListQueryExtensions(t *testing.T) {
 		t.Fatalf("priority arg = %#v, want [urgent]", args[2])
 	}
 }
+
+func TestInMemoryListSearchIgnoresCaseAndAccents(t *testing.T) {
+	ctx := context.Background()
+	repo := NewInMemoryTaskRepository()
+	for _, task := range []model.Task{
+		{ID: "a", Title: "Nộp Báo cáo tuần", Description: "gửi thầy"},
+		{ID: "b", Title: "Họp nhóm", Description: "chuẩn bị Đồ án"},
+		{ID: "c", Title: "Mua sữa"},
+	} {
+		task.ProfileID = "u1"
+		if _, err := repo.Create(ctx, task); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+	}
+
+	cases := map[string][]string{
+		"bao cao": {"a"},
+		"BÁO CÁO": {"a"},
+		"do an":   {"b"},
+		"thay":    {"a"},
+		"xyz":     {},
+	}
+	for query, want := range cases {
+		got, err := repo.List(ctx, model.TaskFilter{ProfileID: "u1", Query: query})
+		if err != nil {
+			t.Fatalf("List(%q): %v", query, err)
+		}
+		if ids := taskIDs(got); !slices.Equal(ids, want) {
+			t.Fatalf("query %q: got %v, want %v", query, ids, want)
+		}
+	}
+}
+
+func TestBuildTaskListQuerySearch(t *testing.T) {
+	query, args := buildTaskListQuery(model.TaskFilter{ProfileID: "u1", Query: "50%_off\\x"})
+
+	for _, part := range []string{
+		taskSearchExpr + ` LIKE '%' || task.f_search_text($2) || '%' ESCAPE '\'`,
+		"ORDER BY similarity(" + taskSearchExpr + ", task.f_search_text($2)) DESC, tasks.updated_at DESC, tasks.id",
+	} {
+		if !strings.Contains(query, part) {
+			t.Fatalf("query missing %q:\n%s", part, query)
+		}
+	}
+	if args[1] != `50\%\_off\\x` {
+		t.Fatalf("query arg = %q, want LIKE wildcards escaped", args[1])
+	}
+
+	query, _ = buildTaskListQuery(model.TaskFilter{ProfileID: "u1", Query: "abc", SortField: model.TaskSortDueAt})
+	if !strings.Contains(query, "ORDER BY tasks.due_at ASC NULLS LAST") {
+		t.Fatalf("explicit sort must win over similarity:\n%s", query)
+	}
+}

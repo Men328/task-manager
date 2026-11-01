@@ -1,0 +1,67 @@
+.searchInput {
+  background: var(--tm-input-bg);
+  border: 1px solid var(--tm-border);
+  height: 38px;
+  font-size: 13px;
+}
+
+.option {
+  border-radius: var(--tm-radius-card);
+}
+
+.option[data-combobox-selected],
+.option:hover {
+  background: var(--tm-nav-active-bg);
+  color: inherit;
+}
+
+.result {
+  min-width: 0;
+}
+
+.result[data-closed] {
+  opacity: 0.6;
+}
+
+.mark {
+  background: var(--tm-brand-light);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.project {
+  min-width: 0;
+  max-width: 55%;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.due {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.message {
+  padding: 10px 12px;
+}
+
+.mobileList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobileItem {
+  padding: 10px 8px;
+  border-radius: var(--tm-radius-card);
+}
+
+.mobileItem:active {
+  background: var(--tm-hover-bg);
+}

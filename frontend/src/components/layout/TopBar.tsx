@@ -5,15 +5,15 @@ import {
   Menu,
   Stack,
   Text,
-  TextInput,
   UnstyledButton,
 } from '@mantine/core';
-import { IconLogout, IconSearch } from '@tabler/icons-react';
+import { IconLogout } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import { useSession } from '../../context';
 import { avatarColor, initials } from '../../lib/format';
 import { tokens } from '../../theme';
+import { GlobalSearch } from '../search/GlobalSearch';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { NotificationMenu } from './NotificationMenu';
 import { ProjectSwitcher } from './ProjectSwitcher';
@@ -22,7 +22,7 @@ import classes from './TopBar.module.css';
 
 export function TopBar({ navOpened, onToggleNav }: { navOpened: boolean; onToggleNav: () => void }) {
   const { t } = useTranslation();
-  const { profile, query, setQuery, signOut } = useSession();
+  const { profile, signOut } = useSession();
 
   const name = profile?.displayName ?? t('topbar.noProfile');
   const subtitle = profile?.email ?? t('topbar.identityOffline');
@@ -40,22 +40,7 @@ export function TopBar({ navOpened, onToggleNav }: { navOpened: boolean; onToggl
 
         <ProjectSwitcher />
 
-        <TextInput
-          value={query}
-          onChange={(event) => setQuery(event.currentTarget.value)}
-          placeholder={t('topbar.searchPlaceholder')}
-          leftSection={<IconSearch size={16} style={{ color: tokens.textFaint }} />}
-          rightSection={
-            <Text fz={11} fw={600} c={tokens.textFaint}>
-              ⌘K
-            </Text>
-          }
-          rightSectionWidth={40}
-          radius="md"
-          w={{ base: 200, sm: 320, md: 380 }}
-          visibleFrom="xs"
-          classNames={{ input: classes.searchInput }}
-        />
+        <GlobalSearch />
       </Group>
 
       <Group gap="sm" wrap="nowrap">

@@ -3,13 +3,6 @@
   min-width: 0;
 }
 
-.searchInput {
-  background: var(--tm-input-bg);
-  border: 1px solid var(--tm-border);
-  height: 38px;
-  font-size: 13px;
-}
-
 .langGroup {
   cursor: default;
 }

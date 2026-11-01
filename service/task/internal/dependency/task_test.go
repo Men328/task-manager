@@ -1,6 +1,7 @@
 package dependency
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -90,5 +91,28 @@ func TestPageTokenRoundTrip(t *testing.T) {
 	for _, bad := range []string{"%%%", "eDox", EncodePageToken(1)[:2]} {
 		_, err := TaskFilterFromRequest(&taskv1.ListTasksRequest{ProfileId: "u1", PageToken: bad})
 		wantErrorCode(t, err, errorcode.TaskPageTokenInvalid)
+	}
+}
+
+func TestTaskFilterSearchQuery(t *testing.T) {
+	_, err := TaskFilterFromRequest(&taskv1.ListTasksRequest{Query: "bao cao"})
+	wantErrorCode(t, err, errorcode.TaskProfileIDRequired)
+
+	_, err = TaskFilterFromRequest(&taskv1.ListTasksRequest{ProfileId: "u1", Query: "  đ "})
+	wantErrorCode(t, err, errorcode.TaskSearchQueryTooShort)
+
+	f, err := TaskFilterFromRequest(&taskv1.ListTasksRequest{ProfileId: "u1", Query: "  Báo cáo  "})
+	if err != nil || f.Query != "Báo cáo" {
+		t.Fatalf("query = %q, err = %v; want trimmed", f.Query, err)
+	}
+
+	f, _ = TaskFilterFromRequest(&taskv1.ListTasksRequest{ProfileId: "u1", Query: strings.Repeat("ữ", 250)})
+	if got := len([]rune(f.Query)); got != maxSearchQueryRunes {
+		t.Fatalf("long query has %d runes, want cut to %d", got, maxSearchQueryRunes)
+	}
+
+	f, err = TaskFilterFromRequest(&taskv1.ListTasksRequest{ProfileId: "u1", Query: "   "})
+	if err != nil || f.Query != "" {
+		t.Fatalf("blank query must be ignored, got %q, %v", f.Query, err)
 	}
 }

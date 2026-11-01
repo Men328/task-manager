@@ -296,6 +296,14 @@ func (r *PostgresTaskRepository) ListStatusLogs(ctx context.Context, taskID stri
 	return out, mapTaskError(rows.Err())
 }
 
+const taskSearchExpr = `task.f_search_text(title || ' ' || COALESCE(description, ''))`
+
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+func escapeLike(value string) string {
+	return likeEscaper.Replace(value)
+}
+
 func buildTaskListQuery(f model.TaskFilter) (string, []any) {
 	conds := []string{"deleted_at IS NULL"}
 	args := make([]any, 0, 12)
@@ -344,9 +352,16 @@ func buildTaskListQuery(f model.TaskFilter) (string, []any) {
 	if len(f.ExcludeStatusIDs) > 0 {
 		where("NOT (status_id = ANY(?::uuid[]))", f.ExcludeStatusIDs)
 	}
+	orderBy := taskOrderBy(f.SortField, f.SortDesc)
+	if f.Query != "" {
+		where(taskSearchExpr+` LIKE '%' || task.f_search_text(?) || '%' ESCAPE '\'`, escapeLike(f.Query))
+		if f.SortField == model.TaskSortUnspecified {
+			orderBy = fmt.Sprintf("similarity(%s, task.f_search_text($%d)) DESC, tasks.updated_at DESC, tasks.id", taskSearchExpr, len(args))
+		}
+	}
 
 	query := `SELECT ` + taskColumns + ` FROM task.tasks WHERE ` + strings.Join(conds, " AND ") +
-		` ORDER BY ` + taskOrderBy(f.SortField, f.SortDesc)
+		` ORDER BY ` + orderBy
 	if f.Limit > 0 {
 		args = append(args, f.Limit, f.Offset)
 		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)-1, len(args))

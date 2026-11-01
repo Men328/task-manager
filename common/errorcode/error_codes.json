@@ -444,6 +444,15 @@
         "en": "Page token is invalid."
       }
     },
+    "TASK_SEARCH_QUERY_TOO_SHORT": {
+      "owner": "task",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Từ khoá tìm kiếm cần ít nhất 2 ký tự.",
+        "en": "Search query must be at least 2 characters."
+      }
+    },
     "TASK_STATUS_NAME_REQUIRED": {
       "owner": "task",
       "grpcCode": "InvalidArgument",

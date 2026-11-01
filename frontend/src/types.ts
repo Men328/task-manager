@@ -198,6 +198,8 @@ export interface ListTasksParams {
   /** 0/không truyền = trả toàn bộ; tối đa 500. */
   pageSize?: number;
   pageToken?: string;
+  /** Tìm theo tiêu đề + mô tả, bỏ dấu, tối thiểu 2 ký tự. */
+  query?: string;
 }
 
 /** Một trang kết quả ListTasks; nextPageToken rỗng = đã hết. */

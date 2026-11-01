@@ -62,6 +62,7 @@ const (
 	TaskDueRangeInvalid          = "TASK_DUE_RANGE_INVALID"
 	TaskPageSizeInvalid          = "TASK_PAGE_SIZE_INVALID"
 	TaskPageTokenInvalid         = "TASK_PAGE_TOKEN_INVALID"
+	TaskSearchQueryTooShort      = "TASK_SEARCH_QUERY_TOO_SHORT"
 	TaskStatusNameRequired       = "TASK_STATUS_NAME_REQUIRED"
 	TaskStatusSlugRequired       = "TASK_STATUS_SLUG_REQUIRED"
 	TaskStatusSlugAlreadyExists  = "TASK_STATUS_SLUG_ALREADY_EXISTS"
