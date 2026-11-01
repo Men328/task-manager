@@ -2,12 +2,9 @@ import { useCallback } from 'react';
 
 import { isDoneCategory } from '../../lib/tokens';
 import i18n from '../../i18n';
-import type { TaskPriority } from '../../types';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { selectCurrentProjectId } from '../project/projectSlice';
-import { setQuery } from '../session/sessionSlice';
 import {
-  clearFilters,
   createTaskAndRefresh,
   fetchBoard,
   moveTask as moveTaskThunk,
@@ -16,15 +13,11 @@ import {
   seedBoardStatuses,
   selectBoardError,
   selectBoardLoading,
-  selectCardsByStatus,
-  selectPriorityFilter,
   selectStatusById,
   selectStatuses,
   selectTaskById,
   selectTasks,
   selectTransitions,
-  selectVisibleTaskCount,
-  togglePriority,
 } from './boardSlice';
 import type { NewTaskInput } from './boardSlice';
 
@@ -35,9 +28,6 @@ export function useBoard() {
   const tasks = useAppSelector(selectTasks);
   const statusById = useAppSelector(selectStatusById);
   const taskById = useAppSelector(selectTaskById);
-  const cardsByStatus = useAppSelector(selectCardsByStatus);
-  const visibleTaskCount = useAppSelector(selectVisibleTaskCount);
-  const priorityFilter = useAppSelector(selectPriorityFilter);
   const loading = useAppSelector(selectBoardLoading);
   const error = useAppSelector(selectBoardError);
   const profileId = useAppSelector((state) => state.session.profileId);
@@ -67,18 +57,10 @@ export function useBoard() {
     tasks,
     statusById,
     taskById,
-    cardsByStatus,
-    visibleTaskCount,
-    priorityFilter,
     loading,
     error,
     isStatusDone,
     allowedTargets,
-    togglePriority: (priority: TaskPriority) => dispatch(togglePriority(priority)),
-    clearFilters: () => {
-      dispatch(clearFilters());
-      dispatch(setQuery(''));
-    },
     refresh: () => {
       if (profileId) {
         void dispatch(fetchBoard({ profileId, projectId }));

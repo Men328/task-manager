@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
 import { useBoard } from '../../context';
+import { useBoardView } from '../../context/board/useBoardView';
 import { derivedProgress, formatShortDate, hasText } from '../../lib/format';
 import { statusColor } from '../../lib/tokens';
 import scrollClasses from '../../styles/scroll.module.css';
@@ -31,7 +32,8 @@ interface TaskTableProps {
 
 export function TaskTable({ onOpenTask }: TaskTableProps) {
   const { t, i18n } = useTranslation();
-  const { tasks, statusById, statuses, isStatusDone, taskById, removeTask } = useBoard();
+  const { statusById, statuses, isStatusDone, taskById, removeTask } = useBoard();
+  const { tableTasks: tasks, hasFilter } = useBoardView();
   const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -78,7 +80,7 @@ export function TaskTable({ onOpenTask }: TaskTableProps) {
               <Table.Tr>
                 <Table.Td colSpan={6}>
                   <Text c={tokens.textMuted} ta="center" py="lg" fz={13}>
-                    {t('taskTable.empty')}
+                    {hasFilter ? t('boardPage.noMatch') : t('taskTable.empty')}
                   </Text>
                 </Table.Td>
               </Table.Tr>

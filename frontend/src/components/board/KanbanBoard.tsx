@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Box, Group } from '@mantine/core';
 
 import { useBoard } from '../../context';
+import { useBoardView } from '../../context/board/useBoardView';
 import scrollClasses from '../../styles/scroll.module.css';
 import type { Task } from '../../types';
 import KanbanColumn from './KanbanColumn';
@@ -14,7 +15,8 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ onAddTask, onMoveTask, onOpenTask }: KanbanBoardProps) {
-  const { statuses, cardsByStatus } = useBoard();
+  const { statuses } = useBoard();
+  const { cardsByStatus } = useBoardView();
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
 
   return (

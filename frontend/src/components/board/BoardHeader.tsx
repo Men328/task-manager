@@ -11,6 +11,7 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import {
+  IconArrowsSort,
   IconChartHistogram,
   IconCheck,
   IconChevronDown,
@@ -22,10 +23,14 @@ import {
   IconRefresh,
   IconSearch,
   IconTable,
+  IconX,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import { useBoard, useSession } from '../../context';
+import { useBoardFilters } from '../../context/board/useBoardFilters';
+import { DUE_FILTERS, SORT_FIELDS, activeFilterCount } from '../../lib/boardFilters';
+import type { DueFilter, SortField } from '../../lib/boardFilters';
 import { PRIORITY_LABEL_KEY } from '../../lib/tokens';
 import { tokens } from '../../theme';
 import { TASK_PRIORITIES } from '../../types';
@@ -97,9 +102,24 @@ interface BoardHeaderProps {
 export function BoardHeader({ view, onViewChange, onNewTask }: BoardHeaderProps) {
   const { t } = useTranslation();
   const { query, setQuery } = useSession();
-  const { priorityFilter, togglePriority, clearFilters, refresh, loading } = useBoard();
+  const { refresh, loading } = useBoard();
+  const { filters, update, clear } = useBoardFilters();
 
-  const filterCount = priorityFilter.length;
+  const filterCount = activeFilterCount(filters);
+  const togglePriority = (priority: (typeof TASK_PRIORITIES)[number]) =>
+    update({
+      priorities: filters.priorities.includes(priority)
+        ? filters.priorities.filter((item) => item !== priority)
+        : [...filters.priorities, priority],
+    });
+  const clearAll = () => {
+    clear();
+    setQuery('');
+  };
+  const check = (on: boolean) =>
+    on ? <IconCheck size={14} style={{ color: tokens.brand }} /> : <Box w={14} />;
+  const dueLabel = (due: DueFilter) => t(`boardHeader.due_${due}`);
+  const sortLabel = (field: SortField) => t(`boardHeader.sort_${field}`);
 
   return (
     <Box px="lg" pt="md" className={classes.root}>
@@ -150,28 +170,76 @@ export function BoardHeader({ view, onViewChange, onNewTask }: BoardHeaderProps)
               </Button>
             </Menu.Target>
             <Menu.Dropdown>
+              <Menu.Label>{t('boardHeader.due')}</Menu.Label>
+              {DUE_FILTERS.map((due) => (
+                <Menu.Item key={due} onClick={() => update({ due })} leftSection={check(filters.due === due)}>
+                  {dueLabel(due)}
+                </Menu.Item>
+              ))}
+              <Menu.Divider />
               <Menu.Label>{t('boardHeader.priority')}</Menu.Label>
               {TASK_PRIORITIES.map((priority) => (
                 <Menu.Item
                   key={priority}
                   onClick={() => togglePriority(priority)}
-                  leftSection={
-                    priorityFilter.includes(priority) ? (
-                      <IconCheck size={14} style={{ color: tokens.brand }} />
-                    ) : (
-                      <Box w={14} />
-                    )
-                  }
+                  leftSection={check(filters.priorities.includes(priority))}
                 >
                   {t(PRIORITY_LABEL_KEY[priority])}
                 </Menu.Item>
               ))}
               <Menu.Divider />
-              <Menu.Item leftSection={<IconRefresh size={14} />} onClick={clearFilters}>
+              <Menu.Item
+                onClick={() => update({ hideDone: !filters.hideDone })}
+                leftSection={check(filters.hideDone)}
+              >
+                {t('boardHeader.hideDone')}
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item leftSection={<IconRefresh size={14} />} onClick={clearAll}>
                 {t('boardHeader.clearFilter')}
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
+
+          {view === 'table' ? (
+            <Menu position="bottom-end" withArrow shadow="md">
+              <Menu.Target>
+                <Button
+                  variant="default"
+                  size="compact-sm"
+                  leftSection={<IconArrowsSort size={14} />}
+                  rightSection={<IconChevronDown size={13} />}
+                >
+                  {`${sortLabel(filters.sort.field)} ${filters.sort.desc ? '↓' : '↑'}`}
+                </Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Label>{t('boardHeader.sortBy')}</Menu.Label>
+                {SORT_FIELDS.map((field) => (
+                  <Menu.Item
+                    key={field}
+                    onClick={() => update({ sort: { ...filters.sort, field } })}
+                    leftSection={check(filters.sort.field === field)}
+                  >
+                    {sortLabel(field)}
+                  </Menu.Item>
+                ))}
+                <Menu.Divider />
+                <Menu.Item
+                  onClick={() => update({ sort: { ...filters.sort, desc: false } })}
+                  leftSection={check(!filters.sort.desc)}
+                >
+                  {t('boardHeader.sortAsc')}
+                </Menu.Item>
+                <Menu.Item
+                  onClick={() => update({ sort: { ...filters.sort, desc: true } })}
+                  leftSection={check(filters.sort.desc)}
+                >
+                  {t('boardHeader.sortDesc')}
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          ) : null}
 
           <Tooltip label={t('boardHeader.refresh')} withArrow openDelay={300}>
             <ActionIcon
@@ -191,7 +259,49 @@ export function BoardHeader({ view, onViewChange, onNewTask }: BoardHeaderProps)
           </Button>
         </Group>
       </Group>
+
+      {filterCount > 0 ? (
+        <Group gap={6} pb="sm" wrap="wrap">
+          {filters.due !== 'all' ? (
+            <FilterChip label={dueLabel(filters.due)} onRemove={() => update({ due: 'all' })} />
+          ) : null}
+          {filters.priorities.map((priority) => (
+            <FilterChip
+              key={priority}
+              label={t(PRIORITY_LABEL_KEY[priority])}
+              onRemove={() => togglePriority(priority)}
+            />
+          ))}
+          {filters.hideDone ? (
+            <FilterChip label={t('boardHeader.hideDone')} onRemove={() => update({ hideDone: false })} />
+          ) : null}
+          <Button size="compact-xs" variant="subtle" onClick={clearAll}>
+            {t('boardHeader.clearFilter')}
+          </Button>
+        </Group>
+      ) : null}
     </Box>
+  );
+}
+
+function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Group gap={4} wrap="nowrap" className={classes.filterChip}>
+      <Text fz={12} fw={600} c={tokens.text}>
+        {label}
+      </Text>
+      <ActionIcon
+        size="xs"
+        variant="subtle"
+        color="gray"
+        radius="xl"
+        onClick={onRemove}
+        aria-label={t('boardHeader.removeFilter', { label })}
+      >
+        <IconX size={12} />
+      </ActionIcon>
+    </Group>
   );
 }
 
