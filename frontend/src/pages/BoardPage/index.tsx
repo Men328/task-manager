@@ -20,6 +20,8 @@ import TaskDetailModal from '../../components/task/TaskDetailModal';
 import TaskFormModal from '../../components/task/TaskFormModal';
 import { useAppDispatch, useBoard, useNoticeFocus, useProject, useSession } from '../../context';
 import { fetchBoard } from '../../context/board/boardSlice';
+import { useBoardFilters } from '../../context/board/useBoardFilters';
+import { useBoardView } from '../../context/board/useBoardView';
 import { tokens } from '../../theme';
 import type { Task } from '../../types';
 import classes from './BoardPage.module.css';
@@ -30,6 +32,8 @@ export function BoardPage() {
   const session = useSession();
   const board = useBoard();
   const { currentProjectId } = useProject();
+  const boardView = useBoardView();
+  const { clear: clearBoardFilters } = useBoardFilters();
 
   const [view, setView] = useState<BoardView>('kanban');
   const [modalOpened, setModalOpened] = useState(false);
@@ -116,7 +120,6 @@ export function BoardPage() {
     }
   };
 
-  const hasFilter = session.query.trim().length > 0 || board.priorityFilter.length > 0;
   const ready = !error && session.profile !== null && board.statuses.length > 0;
 
   return (
@@ -154,7 +157,7 @@ export function BoardPage() {
           />
         ) : null}
 
-        {ready && board.tasks.length > 0 && board.visibleTaskCount === 0 && hasFilter ? (
+        {ready && view === 'kanban' && board.tasks.length > 0 && boardView.kanbanCount === 0 && boardView.hasFilter ? (
           <Alert
             color="yellow"
             variant="light"
@@ -163,7 +166,15 @@ export function BoardPage() {
           >
             <Group justify="space-between" wrap="nowrap">
               <Text fz={13}>{t('boardPage.noMatch')}</Text>
-              <Button size="compact-xs" variant="light" color="yellow" onClick={board.clearFilters}>
+              <Button
+                size="compact-xs"
+                variant="light"
+                color="yellow"
+                onClick={() => {
+                  clearBoardFilters();
+                  session.setQuery('');
+                }}
+              >
                 {t('boardHeader.clearFilter')}
               </Button>
             </Group>

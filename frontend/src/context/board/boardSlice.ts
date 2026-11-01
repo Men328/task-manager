@@ -1,5 +1,4 @@
 import { createAction, createAsyncThunk, createSelector, createSlice } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { getErrorMessage } from '../../api/client';
 import {
@@ -12,10 +11,9 @@ import {
   listTransitions,
   seedDefaultStatuses,
 } from '../../api/task';
-import { hasText } from '../../lib/format';
 import i18n from '../../i18n';
-import { PRIORITY_ORDER, isDoneCategory } from '../../lib/tokens';
-import type { CreateTaskInput, StatusTransition, Task, TaskPriority, TaskStatus } from '../../types';
+import { isDoneCategory } from '../../lib/tokens';
+import type { CreateTaskInput, StatusTransition, Task, TaskStatus } from '../../types';
 import type { RootState } from '../store';
 
 export type NewTaskInput = Omit<CreateTaskInput, 'profileId'>;
@@ -135,7 +133,6 @@ export interface BoardState {
   statuses: TaskStatus[];
   transitions: StatusTransition[];
   tasks: Task[];
-  priorityFilter: TaskPriority[];
   loading: boolean;
   error: string | null;
   /** requestId của fetchBoard mới nhất; response cũ hơn bị bỏ qua. */
@@ -146,7 +143,6 @@ const initialState: BoardState = {
   statuses: [],
   transitions: [],
   tasks: [],
-  priorityFilter: [],
   loading: false,
   error: null,
   latestRequestId: null,
@@ -155,17 +151,7 @@ const initialState: BoardState = {
 const boardSlice = createSlice({
   name: 'board',
   initialState,
-  reducers: {
-    togglePriority(state, action: PayloadAction<TaskPriority>) {
-      const priority = action.payload;
-      state.priorityFilter = state.priorityFilter.includes(priority)
-        ? state.priorityFilter.filter((item) => item !== priority)
-        : [...state.priorityFilter, priority];
-    },
-    clearFilters(state) {
-      state.priorityFilter = [];
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       .addCase(fetchBoard.pending, (state, action) => {
@@ -198,13 +184,11 @@ const boardSlice = createSlice({
   },
 });
 
-export const { togglePriority, clearFilters } = boardSlice.actions;
 export const boardReducer = boardSlice.reducer;
 
 export const selectStatuses = (state: RootState) => state.board.statuses;
 export const selectTransitions = (state: RootState) => state.board.transitions;
 export const selectTasks = (state: RootState) => state.board.tasks;
-export const selectPriorityFilter = (state: RootState) => state.board.priorityFilter;
 export const selectBoardLoading = (state: RootState) => state.board.loading;
 export const selectBoardError = (state: RootState) => state.board.error;
 
@@ -219,56 +203,6 @@ export const selectTaskById = createSelector([selectTasks], (tasks) => {
   tasks.forEach((task) => map.set(task.id, task));
   return map;
 });
-
-export const selectCardsByStatus = createSelector(
-  [selectStatuses, selectTasks, selectPriorityFilter, (state: RootState) => state.session.query],
-  (statuses, tasks, priorityFilter, query) => {
-    const map = new Map<string, Task[]>();
-    statuses.forEach((status) => map.set(status.id, []));
-
-    const needle = query.trim().toLowerCase();
-
-    tasks.forEach((task) => {
-      if (hasText(task.parentTaskId)) {
-        return;
-      }
-      const bucket = map.get(task.statusId);
-      if (!bucket) {
-        return;
-      }
-      if (priorityFilter.length > 0 && !priorityFilter.includes(task.priority)) {
-        return;
-      }
-      if (needle.length > 0) {
-        const haystack = `${task.title} ${task.description ?? ''}`.toLowerCase();
-        if (!haystack.includes(needle)) {
-          return;
-        }
-      }
-      bucket.push(task);
-    });
-
-    map.forEach((bucket) => {
-      bucket.sort((a, b) => {
-        const position = (a.position ?? 0) - (b.position ?? 0);
-        if (position !== 0) {
-          return position;
-        }
-        const priority = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
-        if (priority !== 0) {
-          return priority;
-        }
-        return (a.createdAt ?? '').localeCompare(b.createdAt ?? '');
-      });
-    });
-
-    return map;
-  },
-);
-
-export const selectVisibleTaskCount = createSelector([selectCardsByStatus], (cardsByStatus) =>
-  Array.from(cardsByStatus.values()).reduce((total, bucket) => total + bucket.length, 0),
-);
 
 export const selectIsStatusDone = (statusId: string) => (state: RootState) =>
   isDoneCategory(state.board.statuses.find((status) => status.id === statusId)?.category);

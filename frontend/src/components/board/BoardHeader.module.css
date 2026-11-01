@@ -24,3 +24,10 @@
   border: 1px solid var(--tm-border);
   font-size: 12.5px;
 }
+
+.filterChip {
+  padding: 2px 4px 2px 10px;
+  border: 1px solid var(--tm-border-strong);
+  border-radius: 999px;
+  background: var(--tm-chip-bg);
+}
