@@ -1,0 +1,32 @@
+.input {
+  background: var(--tm-input-bg);
+  border: 1px solid var(--tm-border);
+  height: 40px;
+  font-size: 13.5px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px 2px 9px;
+  min-height: 24px;
+  border: 1px solid var(--tm-border-strong);
+  border-radius: 999px;
+  background: var(--tm-chip-bg);
+  color: var(--tm-text);
+}
+
+.chip[data-warning] {
+  border-color: var(--mantine-color-yellow-5);
+  background: var(--mantine-color-yellow-light);
+  color: var(--mantine-color-yellow-light-color);
+  padding-right: 9px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}

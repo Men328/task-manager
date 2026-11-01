@@ -148,6 +148,19 @@
     "apiHint": "The backend is not running. Start it and try again:",
     "loading": "Loading data..."
   },
+  "quickAdd": {
+    "placeholder": "Quick add: \"Send report tomorrow 9am !high #project\" then Enter",
+    "details": "Open the full form (Shift+Enter)",
+    "created": "Added to {{project}}",
+    "open": "Open",
+    "failed": "Could not add the task",
+    "noProject": "No project selected",
+    "due": "Due: {{value}}",
+    "remove": "Remove, keep the text in the title",
+    "projectNotFound": "No project “{{value}}”",
+    "projectAmbiguous": "Several projects match “{{value}}”",
+    "needTitle": "Add a title for the task"
+  },
   "taskForm": {
     "title": "New Task",
     "titleLabel": "Title",

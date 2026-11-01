@@ -19,8 +19,8 @@ interface TaskFormModalProps {
   onClose: () => void;
   /** status được chọn sẵn (khi bấm "+ Add Task" ở 1 cột) */
   presetStatusId?: string | null;
-  /** Điền sẵn tiêu đề/mô tả khi tạo mới (vd. từ backlog). */
-  prefill?: { title?: string; description?: string };
+  /** Điền sẵn khi tạo mới (vd. từ backlog, ô thêm nhanh). `dueDate` dạng YYYY-MM-DD. */
+  prefill?: { title?: string; description?: string; priority?: TaskPriority; projectId?: string; dueDate?: string };
   /** Gọi sau khi tạo mới thành công. */
   onCreated?: () => void;
 }
@@ -49,10 +49,10 @@ export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCrea
     setTitle(prefill?.title ?? '');
     setDescription(prefill?.description ?? '');
     setStatusId(presetStatusId ?? fallback);
-    setPriority('TASK_PRIORITY_MEDIUM');
+    setPriority(prefill?.priority ?? 'TASK_PRIORITY_MEDIUM');
     setParentTaskId(null);
-    setDueAt('');
-    setProjectId(currentProjectId ?? '');
+    setDueAt(prefill?.dueDate ?? '');
+    setProjectId(prefill?.projectId ?? currentProjectId ?? '');
   }, [opened, presetStatusId, statuses, currentProjectId, prefill]);
 
   const statusOptions = useMemo(

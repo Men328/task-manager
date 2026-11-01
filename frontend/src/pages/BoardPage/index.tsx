@@ -17,6 +17,8 @@ import KanbanBoard from '../../components/board/KanbanBoard';
 import TaskTable from '../../components/board/TaskTable';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
 import TaskDetailModal from '../../components/task/TaskDetailModal';
+import QuickAddInput from '../../components/task/QuickAddInput';
+import type { QuickAddPrefill } from '../../components/task/QuickAddInput';
 import TaskFormModal from '../../components/task/TaskFormModal';
 import { useAppDispatch, useBoard, useNoticeFocus, useProject, useSession } from '../../context';
 import { fetchBoard } from '../../context/board/boardSlice';
@@ -38,6 +40,7 @@ export function BoardPage() {
   const [view, setView] = useState<BoardView>('kanban');
   const [modalOpened, setModalOpened] = useState(false);
   const [presetStatusId, setPresetStatusId] = useState<string | null>(null);
+  const [formPrefill, setFormPrefill] = useState<QuickAddPrefill | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [detailOpened, setDetailOpened] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
@@ -67,8 +70,9 @@ export function BoardPage() {
     board.refresh();
   };
 
-  const openNewTask = (statusId?: string) => {
+  const openNewTask = (statusId?: string, prefill?: QuickAddPrefill) => {
     setPresetStatusId(statusId ?? null);
+    setFormPrefill(prefill);
     setModalOpened(true);
   };
 
@@ -181,6 +185,17 @@ export function BoardPage() {
           </Alert>
         ) : null}
 
+        {ready ? (
+          <Box mb="md" maw={760}>
+            <QuickAddInput
+              defaultProjectId={currentProjectId}
+              onCreated={() => board.refresh()}
+              onOpenTask={openTaskDetail}
+              onOpenForm={(prefill) => openNewTask(undefined, prefill)}
+            />
+          </Box>
+        ) : null}
+
         {ready && view === 'kanban' ? (
           <KanbanBoard onAddTask={openNewTask} onMoveTask={handleMove} onOpenTask={openTaskDetail} />
         ) : null}
@@ -201,6 +216,7 @@ export function BoardPage() {
         opened={modalOpened}
         onClose={() => setModalOpened(false)}
         presetStatusId={presetStatusId}
+        prefill={formPrefill}
       />
 
       <TaskDetailModal
