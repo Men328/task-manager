@@ -270,7 +270,7 @@ func (s *taskService) ChangeStatus(ctx context.Context, id, statusID, note strin
 	})
 
 	result := model.StatusChange{Task: updated}
-	if target.Category == model.TaskStatusCategoryDone && updated.RecurrenceRule != "" && updated.RecurrenceNextID == "" {
+	if target.Category == model.TaskStatusCategoryDone && updated.RecurrenceRule != "" && !s.nextOccurrenceExists(ctx, updated) {
 		next, spawned, err := s.spawnNextOccurrence(ctx, updated)
 		switch {
 		case err != nil:
@@ -314,6 +314,14 @@ func applyRecurrenceUpdate(current model.Task, upd *model.TaskUpdate) error {
 		upd.RecurrenceSeriesID = &series
 	}
 	return nil
+}
+
+func (s *taskService) nextOccurrenceExists(ctx context.Context, t model.Task) bool {
+	if t.RecurrenceNextID == "" {
+		return false
+	}
+	_, err := s.tasks.Get(ctx, t.RecurrenceNextID)
+	return !errors.Is(err, model.ErrNotFound)
 }
 
 func (s *taskService) spawnNextOccurrence(ctx context.Context, done model.Task) (model.Task, bool, error) {
@@ -362,7 +370,7 @@ func (s *taskService) spawnNextOccurrence(ctx context.Context, done model.Task) 
 	}
 	next.RemindedAt = reminderState(next.RemindAt, now)
 
-	created, err := s.tasks.SpawnNextOccurrence(ctx, done.ID, next)
+	created, err := s.tasks.SpawnNextOccurrence(ctx, done.ID, done.RecurrenceNextID, next)
 	if errors.Is(err, model.ErrAlreadyExists) {
 		return model.Task{}, false, nil
 	}

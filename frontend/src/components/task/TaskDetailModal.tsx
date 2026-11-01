@@ -8,7 +8,7 @@ import { getErrorMessage } from '../../api/client';
 import { updateTask } from '../../api/task';
 import { useBoard, useProject } from '../../context';
 import { derivedProgress, formatDateTime, formatShortDate, hasText } from '../../lib/format';
-import { DEFAULT_CUSTOM, browserTimeZone, presetOf as repeatPresetOf, ruleFor } from '../../lib/recurrence';
+import { DEFAULT_CUSTOM, browserTimeZone, presetOf as repeatPresetOf, resolveRule, rulesEqual } from '../../lib/recurrence';
 import type { RepeatCustom, RepeatPreset } from '../../lib/recurrence';
 import { presetOf, reminderFor, toLocalInput } from '../../lib/reminders';
 import type { ReminderPreset } from '../../lib/reminders';
@@ -64,8 +64,8 @@ export function TaskDetailModal({ opened, onClose, task }: TaskDetailModalProps)
     setRepeatCustom(repeat.custom);
   }, [opened, task?.id, task?.recurrenceRule, task?.dueAt]);
 
-  const draftRule = task ? ruleFor(repeatPreset, task.dueAt, repeatCustom) ?? '' : '';
-  const repeatDirty = draftRule !== savedRule;
+  const draftRule = task ? resolveRule(repeatPreset, task.dueAt, repeatCustom, savedRule) ?? '' : '';
+  const repeatDirty = !rulesEqual(draftRule, savedRule);
 
   const saveRepeat = async () => {
     if (!task) {
@@ -218,6 +218,7 @@ export function TaskDetailModal({ opened, onClose, task }: TaskDetailModalProps)
               preset={repeatPreset}
               custom={repeatCustom}
               due={task.dueAt}
+              currentRule={savedRule}
               disabled={savingRepeat}
               onChange={(preset, custom) => {
                 setRepeatPreset(preset);

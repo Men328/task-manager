@@ -219,11 +219,14 @@ describe('recurrence', () => {
     expect(parse('Đóng tiền nhà mỗi ngày 31', WED).dueAt).toEqual(d(12, 31));
   });
 
-  it('an explicit date wins over the first occurrence', () => {
+  it('an explicit date is the start: moved to the first day matching the rule', () => {
     expect(parse('Báo cáo mỗi thứ 6 15/11')).toMatchObject({
       recurrenceRule: 'FREQ=WEEKLY;BYDAY=FR',
-      dueAt: d(11, 15),
+      dueAt: d(11, 20),
     });
+    expect(parse('Báo cáo mỗi thứ 6 20/11').dueAt).toEqual(d(11, 20));
+    expect(parse('Đóng tiền mỗi ngày 5 15/11').dueAt).toEqual(d(12, 5));
+    expect(parse('Tập thể dục mỗi ngày 15/11').dueAt).toEqual(d(11, 15));
   });
 
   it('daily with a time already passed today starts tomorrow', () => {

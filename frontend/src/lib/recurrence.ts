@@ -1,6 +1,9 @@
 /** Quy tắc lặp (RRULE rút gọn) của task: dựng từ preset, nhận lại preset, mô tả bằng lời. */
 
-export type RepeatPreset = 'none' | 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+import { parseDueDate } from './dateRanges';
+
+/** `current` = giữ nguyên quy tắc có sẵn mà các preset không diễn đạt được (COUNT, UNTIL, nhiều thứ…). */
+export type RepeatPreset = 'none' | 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly' | 'custom' | 'current';
 export type RepeatUnit = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 
 export interface RepeatCustom {
@@ -15,19 +18,10 @@ export const DEFAULT_CUSTOM: RepeatCustom = { interval: 2, unit: 'DAILY' };
 export const RRULE_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'] as const;
 const WEEKDAYS = 'MO,TU,WE,TH,FR';
 
-/** Ngày hạn (YYYY-MM-DD của form hoặc ISO từ API) -> Date theo giờ địa phương. */
-export function dueDate(due: Date | string | null | undefined): Date | null {
-  if (!due) {
-    return null;
-  }
-  const date = typeof due === 'string' ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(due) ? `${due}T00:00:00` : due) : due;
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
 /** RRULE cho preset; preset theo thứ/ngày lấy từ hạn. null = không lặp hoặc thiếu hạn. */
 export function ruleFor(preset: RepeatPreset, due: Date | string | null | undefined, custom = DEFAULT_CUSTOM): string | null {
-  const date = dueDate(due);
-  if (preset === 'none' || !date) {
+  const date = parseDueDate(due);
+  if (preset === 'none' || preset === 'current' || !date) {
     return null;
   }
   switch (preset) {
@@ -62,7 +56,22 @@ export function parseRule(rule: string | null | undefined): Record<string, strin
   return parts;
 }
 
-/** Preset tương ứng một quy tắc có sẵn (để hiện lại trong form). */
+/** Hai quy tắc tương đương (không phụ thuộc thứ tự thuộc tính; INTERVAL=1 coi như vắng). */
+export function rulesEqual(a: string | null | undefined, b: string | null | undefined): boolean {
+  const normalize = (rule: string | null | undefined) => {
+    const parts = parseRule(rule);
+    if (parts.INTERVAL === '1') {
+      delete parts.INTERVAL;
+    }
+    return JSON.stringify(Object.keys(parts).sort().map((key) => [key, parts[key]]));
+  };
+  return normalize(a) === normalize(b);
+}
+
+/**
+ * Preset tương ứng một quy tắc có sẵn (để hiện lại trong form). Quy tắc không dựng lại được
+ * đúng từ preset nào -> `current`, để lưu không làm mất COUNT/UNTIL/BYDAY… của nó.
+ */
 export function presetOf(
   rule: string | null | undefined,
   due: Date | string | null | undefined,
@@ -71,13 +80,30 @@ export function presetOf(
     return { preset: 'none', custom: DEFAULT_CUSTOM };
   }
   for (const preset of ['daily', 'weekdays', 'weekly', 'monthly', 'yearly'] as const) {
-    if (ruleFor(preset, due) === rule.toUpperCase()) {
+    if (rulesEqual(ruleFor(preset, due), rule)) {
       return { preset, custom: DEFAULT_CUSTOM };
     }
   }
   const parts = parseRule(rule);
-  const unit = (['DAILY', 'WEEKLY', 'MONTHLY'] as const).find((value) => value === parts.FREQ) ?? 'DAILY';
-  return { preset: 'custom', custom: { interval: Number(parts.INTERVAL ?? 1) || 1, unit } };
+  const unit = (['DAILY', 'WEEKLY', 'MONTHLY'] as const).find((value) => value === parts.FREQ);
+  const custom = { interval: Number(parts.INTERVAL ?? 1) || 1, unit: unit ?? 'DAILY' };
+  if (unit && rulesEqual(ruleFor('custom', due, custom), rule)) {
+    return { preset: 'custom', custom };
+  }
+  return { preset: 'current', custom: DEFAULT_CUSTOM };
+}
+
+/** Quy tắc sẽ lưu cho lựa chọn hiện tại; `current` trả lại nguyên quy tắc có sẵn. */
+export function resolveRule(
+  preset: RepeatPreset,
+  due: Date | string | null | undefined,
+  custom: RepeatCustom,
+  currentRule: string | null | undefined,
+): string | null {
+  if (preset === 'current') {
+    return currentRule || null;
+  }
+  return ruleFor(preset, due, custom);
 }
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -91,8 +117,25 @@ function dayName(code: string, language: string): string {
   return new Date(2026, 10, 1 + index).toLocaleDateString(language, { weekday: 'long' });
 }
 
-/** Mô tả ngắn: "Hằng ngày", "Mỗi Thứ Sáu", "Mỗi 2 tuần", "Hằng tháng ngày 5"… */
+/** Mô tả ngắn: "Hằng ngày", "Mỗi Thứ Sáu", "Mỗi 2 tuần", "Hằng tháng ngày 5"… kèm giới hạn COUNT/UNTIL nếu có. */
 export function describeRule(rule: string | null | undefined, t: Translate, language: string): string | null {
+  const base = describeFrequency(rule, t, language);
+  if (!base) {
+    return null;
+  }
+  const parts = parseRule(rule);
+  if (parts.COUNT) {
+    return `${base} · ${t('repeat.describe.count', { count: Number(parts.COUNT) })}`;
+  }
+  const until = parts.UNTIL?.match(/^(\d{4})(\d{2})(\d{2})/);
+  if (until) {
+    const date = new Date(Number(until[1]), Number(until[2]) - 1, Number(until[3]));
+    return `${base} · ${t('repeat.describe.until', { date: date.toLocaleDateString(language, { day: 'numeric', month: 'numeric', year: 'numeric' }) })}`;
+  }
+  return base;
+}
+
+function describeFrequency(rule: string | null | undefined, t: Translate, language: string): string | null {
   if (!rule) {
     return null;
   }

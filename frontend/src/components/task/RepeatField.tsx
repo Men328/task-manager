@@ -2,7 +2,8 @@ import { Group, NumberInput, Select, Text } from '@mantine/core';
 import { IconRepeat } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
-import { REPEAT_PRESETS, describeRule, dueDate, ruleFor } from '../../lib/recurrence';
+import { parseDueDate } from '../../lib/dateRanges';
+import { REPEAT_PRESETS, describeRule, presetOf, resolveRule } from '../../lib/recurrence';
 import type { RepeatCustom, RepeatPreset, RepeatUnit } from '../../lib/recurrence';
 import { tokens } from '../../theme';
 
@@ -12,14 +13,17 @@ interface RepeatFieldProps {
   /** Hạn của task; lặp cần có hạn. */
   due: Date | string | null | undefined;
   onChange: (preset: RepeatPreset, custom: RepeatCustom) => void;
+  /** Quy tắc đang lưu; nếu preset không diễn đạt được thì có thêm lựa chọn "giữ nguyên". */
+  currentRule?: string | null;
   disabled?: boolean;
 }
 
 /** Ô "Lặp lại": Không · Hằng ngày · Ngày làm việc · Hằng tuần vào [thứ của hạn] · Hằng tháng ngày [ngày của hạn] · Hằng năm · Tuỳ chỉnh. */
-export function RepeatField({ preset, custom, due, onChange, disabled }: RepeatFieldProps) {
+export function RepeatField({ preset, custom, due, onChange, currentRule, disabled }: RepeatFieldProps) {
   const { t, i18n } = useTranslation();
-  const date = dueDate(due);
-  const rule = ruleFor(preset, due, custom);
+  const date = parseDueDate(due);
+  const rule = resolveRule(preset, due, custom, currentRule);
+  const canKeepCurrent = Boolean(currentRule) && presetOf(currentRule, due).preset === 'current';
 
   const presetLabel = (value: RepeatPreset) => {
     if (value === 'weekly' && date) {
@@ -28,8 +32,12 @@ export function RepeatField({ preset, custom, due, onChange, disabled }: RepeatF
     if (value === 'monthly' && date) {
       return t('repeat.preset_monthlyOn', { day: date.getDate() });
     }
+    if (value === 'current') {
+      return t('repeat.preset_current', { rule: describeRule(currentRule, t, i18n.language) });
+    }
     return t(`repeat.preset_${value}`);
   };
+  const presets: RepeatPreset[] = canKeepCurrent ? ['current', ...REPEAT_PRESETS] : REPEAT_PRESETS;
 
   return (
     <div>
@@ -37,7 +45,7 @@ export function RepeatField({ preset, custom, due, onChange, disabled }: RepeatF
         <Select
           label={t('repeat.label')}
           leftSection={<IconRepeat size={15} style={{ color: tokens.textFaint }} />}
-          data={REPEAT_PRESETS.map((value) => ({ value, label: presetLabel(value) }))}
+          data={presets.map((value) => ({ value, label: presetLabel(value) }))}
           value={date ? preset : 'none'}
           onChange={(value) => onChange((value as RepeatPreset) ?? 'none', custom)}
           allowDeselect={false}

@@ -123,12 +123,12 @@ func (r *fakeTaskRepo) ChangeStatus(_ context.Context, id, statusID string, comp
 	return t, nil
 }
 
-func (r *fakeTaskRepo) SpawnNextOccurrence(ctx context.Context, prevID string, next model.Task) (model.Task, error) {
+func (r *fakeTaskRepo) SpawnNextOccurrence(ctx context.Context, prevID, expectedNextID string, next model.Task) (model.Task, error) {
 	prev, ok := r.items[prevID]
 	if !ok {
 		return model.Task{}, model.ErrNotFound
 	}
-	if prev.RecurrenceNextID != "" {
+	if prev.RecurrenceNextID != expectedNextID {
 		return model.Task{}, model.ErrAlreadyExists
 	}
 	created, _ := r.Create(ctx, next)

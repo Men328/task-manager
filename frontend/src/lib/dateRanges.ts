@@ -47,3 +47,14 @@ export function calendarDaysBetween(from: Date, to: Date): number {
 export function isLocalMidnight(date: Date): boolean {
   return date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0;
 }
+
+/**
+ * Ngày hạn từ form (YYYY-MM-DD -> 0h giờ địa phương) hoặc từ API (ISO) -> Date; null nếu rỗng/không hợp lệ.
+ */
+export function parseDueDate(due: Date | string | null | undefined): Date | null {
+  if (!due) {
+    return null;
+  }
+  const date = typeof due === 'string' ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(due) ? `${due}T00:00:00` : due) : due;
+  return Number.isNaN(date.getTime()) ? null : date;
+}

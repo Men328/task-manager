@@ -190,6 +190,7 @@
     "preset_monthlyOn": "Hằng tháng ngày {{day}}",
     "preset_yearly": "Hằng năm",
     "preset_custom": "Tuỳ chỉnh…",
+    "preset_current": "Giữ nguyên: {{rule}}",
     "every": "Mỗi",
     "unit": "Đơn vị",
     "unit_DAILY": "ngày",
@@ -219,7 +220,10 @@
       "everyNMonths_one": "Mỗi {{count}} tháng",
       "everyNMonths_other": "Mỗi {{count}} tháng",
       "yearly": "Hằng năm",
-      "other": "Lặp lại"
+      "other": "Lặp lại",
+      "count_one": "còn {{count}} lần",
+      "count_other": "còn {{count}} lần",
+      "until": "đến {{date}}"
     }
   },
   "taskForm": {

@@ -155,7 +155,7 @@ func (stubTaskRepo) Update(_ context.Context, _ string, _ model.TaskUpdate) (mod
 }
 func (stubTaskRepo) SetProjectForSubtree(_ context.Context, _, _ string) error { return nil }
 
-func (stubTaskRepo) SpawnNextOccurrence(context.Context, string, model.Task) (model.Task, error) {
+func (stubTaskRepo) SpawnNextOccurrence(context.Context, string, string, model.Task) (model.Task, error) {
 	return model.Task{}, nil
 }
 func (stubTaskRepo) Delete(_ context.Context, _ string) error { return nil }

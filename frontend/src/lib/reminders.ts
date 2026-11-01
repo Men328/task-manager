@@ -1,3 +1,5 @@
+import { parseDueDate, startOfDay } from './dateRanges';
+
 /** Preset "Nhắc tôi" của task. Giờ nhắc lưu dạng ISO (UTC); preset tính theo giờ địa phương. */
 
 export type ReminderPreset = 'none' | 'dueMorning' | 'dayBefore' | 'custom';
@@ -18,12 +20,8 @@ export function toLocalInput(date: Date): string {
 
 /** Ngày hạn (Date, chuỗi YYYY-MM-DD của form, hoặc ISO từ API) -> Date 0h địa phương của ngày đó. */
 function dueDay(due: Date | string): Date | null {
-  const date =
-    typeof due === 'string' ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(due) ? `${due}T00:00:00` : due) : due;
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const date = parseDueDate(due);
+  return date ? startOfDay(date) : null;
 }
 
 /**
