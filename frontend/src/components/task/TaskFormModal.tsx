@@ -9,7 +9,7 @@ import { useBoard, useProject } from '../../context';
 import { hasText } from '../../lib/format';
 import { PRIORITY_LABEL_KEY } from '../../lib/tokens';
 import { tokens } from '../../theme';
-import { DEFAULT_CUSTOM, browserTimeZone, presetOf as repeatPresetOf, ruleFor } from '../../lib/recurrence';
+import { DEFAULT_CUSTOM, browserTimeZone, presetOf as repeatPresetOf, resolveRule } from '../../lib/recurrence';
 import type { RepeatCustom, RepeatPreset } from '../../lib/recurrence';
 import { reminderFor } from '../../lib/reminders';
 import type { ReminderPreset } from '../../lib/reminders';
@@ -115,7 +115,8 @@ export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCrea
         parentTaskId: parentTaskId ?? undefined,
         dueAt: hasText(dueAt) ? new Date(`${dueAt}T00:00:00`).toISOString() : undefined,
         remindAt: reminderFor(reminderPreset, hasText(dueAt) ? dueAt : null, reminderCustom)?.toISOString(),
-        recurrenceRule: ruleFor(repeatPreset, hasText(dueAt) ? dueAt : null, repeatCustom) ?? undefined,
+        recurrenceRule:
+          resolveRule(repeatPreset, hasText(dueAt) ? dueAt : null, repeatCustom, prefill?.recurrenceRule) ?? undefined,
         recurrenceTz: browserTimeZone(),
       });
       notifications.show({ title: t('taskForm.created'), message: title.trim(), color: 'teal' });
@@ -228,6 +229,7 @@ export function TaskFormModal({ opened, onClose, presetStatusId, prefill, onCrea
           preset={repeatPreset}
           custom={repeatCustom}
           due={hasText(dueAt) ? dueAt : null}
+          currentRule={prefill?.recurrenceRule}
           onChange={(preset, custom) => {
             setRepeatPreset(preset);
             setRepeatCustom(custom);

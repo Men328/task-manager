@@ -8,23 +8,7 @@ import (
 )
 
 func ToGRPCError(err error) error {
-	var domainErr *model.Error
-	if errors.As(err, &domainErr) {
-		return errorcode.Error(codeForKind(domainErr.Kind))
-	}
-
-	switch {
-	case errors.Is(err, model.ErrNotFound):
-		return errorcode.Error(errorcode.CommonNotFound)
-	case errors.Is(err, model.ErrAlreadyExists):
-		return errorcode.Error(errorcode.TaskTransitionAlreadyExists)
-	case errors.Is(err, model.ErrInUse):
-		return errorcode.Error(errorcode.CommonFailedPrecondition)
-	case errors.Is(err, model.ErrCycle):
-		return errorcode.Error(errorcode.TaskCycleDetected)
-	default:
-		return errorcode.Error(errorcode.CommonInternal)
-	}
+	return errorcode.Error(ErrorCode(err))
 }
 
 func ErrorCode(err error) string {
@@ -32,10 +16,19 @@ func ErrorCode(err error) string {
 	if errors.As(err, &domainErr) {
 		return codeForKind(domainErr.Kind)
 	}
-	if errors.Is(err, model.ErrNotFound) {
+
+	switch {
+	case errors.Is(err, model.ErrNotFound):
 		return errorcode.CommonNotFound
+	case errors.Is(err, model.ErrAlreadyExists):
+		return errorcode.TaskTransitionAlreadyExists
+	case errors.Is(err, model.ErrInUse):
+		return errorcode.CommonFailedPrecondition
+	case errors.Is(err, model.ErrCycle):
+		return errorcode.TaskCycleDetected
+	default:
+		return errorcode.CommonInternal
 	}
-	return errorcode.CommonInternal
 }
 
 func codeForKind(kind model.ErrorKind) string {

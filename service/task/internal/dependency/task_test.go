@@ -1,6 +1,7 @@
 package dependency
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -128,5 +129,19 @@ func TestValidateUpdateTaskReminderConflict(t *testing.T) {
 	upd := TaskUpdateFromRequest(&taskv1.UpdateTaskRequest{Id: "t1", ClearRemindAt: true})
 	if !upd.ClearRemindAt || !upd.ChangesReminder() {
 		t.Fatalf("clear flag not mapped: %+v", upd)
+	}
+}
+
+func TestErrorCodeMatchesGRPCError(t *testing.T) {
+	for _, err := range []error{
+		model.ErrNotFound, model.ErrAlreadyExists, model.ErrInUse, model.ErrCycle,
+		model.NewError(model.ErrorKindRecurrenceInvalid, "x"), errors.New("boom"),
+	} {
+		if got, want := ToGRPCError(err).Error(), errorcode.Error(ErrorCode(err)).Error(); got != want {
+			t.Fatalf("%v: grpc %q, code %q", err, got, want)
+		}
+	}
+	if ErrorCode(model.ErrCycle) != errorcode.TaskCycleDetected {
+		t.Fatal("ErrCycle must map to TASK_CYCLE_DETECTED")
 	}
 }

@@ -6,7 +6,7 @@ import { IconCalendarDue, IconChevronDown, IconChevronRight, IconSunHigh } from 
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
-import { getTask } from '../../api/task';
+import { deleteTask, getTask } from '../../api/task';
 import AgendaRow from '../../components/agenda/AgendaRow';
 import type { AgendaRowMode } from '../../components/agenda/AgendaRow';
 import ProjectFilterChips from '../../components/agenda/ProjectFilterChips';
@@ -138,9 +138,14 @@ export function AgendaPage() {
     return null;
   };
 
-  const undo = async (task: Task, previousStatusId: string) => {
+  // Hoàn tác một task lặp: khôi phục status rồi xoá bản kế tiếp vừa được tạo, để không còn hai bản đang mở.
+  const undo = async (task: Task, previousStatusId: string, spawned?: Task | null) => {
     try {
       await agenda.restoreStatus(task, previousStatusId);
+      if (spawned) {
+        notifications.hide(`next-occurrence-${spawned.id}`);
+        await deleteTask(spawned.id);
+      }
       await agenda.reload();
     } catch (cause) {
       notifications.show({ title: t('agendaPage.undoFailed'), message: getErrorMessage(cause), color: 'red' });
@@ -169,7 +174,7 @@ export function AgendaPage() {
                 color="teal"
                 onClick={() => {
                   notifications.hide(noticeId);
-                  void undo(task, task.statusId);
+                  void undo(task, task.statusId, result.nextTask);
                 }}
               >
                 {t('agendaPage.undo')}

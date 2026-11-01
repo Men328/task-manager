@@ -229,14 +229,14 @@ func (r *InMemoryTaskRepository) Update(_ context.Context, id string, upd model.
 	return t, nil
 }
 
-func (r *InMemoryTaskRepository) SpawnNextOccurrence(ctx context.Context, prevID string, next model.Task) (model.Task, error) {
+func (r *InMemoryTaskRepository) SpawnNextOccurrence(ctx context.Context, prevID, expectedNextID string, next model.Task) (model.Task, error) {
 	r.mu.Lock()
 	prev, ok := r.items[prevID]
 	if !ok {
 		r.mu.Unlock()
 		return model.Task{}, fmt.Errorf("%w: task %s", model.ErrNotFound, prevID)
 	}
-	if prev.RecurrenceNextID != "" {
+	if prev.RecurrenceNextID != expectedNextID {
 		r.mu.Unlock()
 		return model.Task{}, model.ErrAlreadyExists
 	}
@@ -250,7 +250,7 @@ func (r *InMemoryTaskRepository) SpawnNextOccurrence(ctx context.Context, prevID
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	prev = r.items[prevID]
-	if prev.RecurrenceNextID != "" {
+	if prev.RecurrenceNextID != expectedNextID {
 		delete(r.items, created.ID)
 		return model.Task{}, model.ErrAlreadyExists
 	}

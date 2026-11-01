@@ -190,6 +190,7 @@
     "preset_monthlyOn": "Monthly on day {{day}}",
     "preset_yearly": "Yearly",
     "preset_custom": "Custom…",
+    "preset_current": "Keep: {{rule}}",
     "every": "Every",
     "unit": "Unit",
     "unit_DAILY": "days",
@@ -219,7 +220,10 @@
       "everyNMonths_one": "Every month",
       "everyNMonths_other": "Every {{count}} months",
       "yearly": "Yearly",
-      "other": "Repeats"
+      "other": "Repeats",
+      "count_one": "{{count}} time left",
+      "count_other": "{{count}} times left",
+      "until": "until {{date}}"
     }
   },
   "taskForm": {

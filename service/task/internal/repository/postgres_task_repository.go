@@ -218,7 +218,7 @@ func (r *PostgresTaskRepository) Update(ctx context.Context, id string, upd mode
 	))
 }
 
-func (r *PostgresTaskRepository) SpawnNextOccurrence(ctx context.Context, prevID string, next model.Task) (model.Task, error) {
+func (r *PostgresTaskRepository) SpawnNextOccurrence(ctx context.Context, prevID, expectedNextID string, next model.Task) (model.Task, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return model.Task{}, mapTaskError(err)
@@ -229,8 +229,10 @@ func (r *PostgresTaskRepository) SpawnNextOccurrence(ctx context.Context, prevID
 	if err != nil {
 		return model.Task{}, err
 	}
-	const link = `UPDATE task.tasks SET recurrence_next_id = $2::uuid WHERE id = $1::uuid AND recurrence_next_id IS NULL`
-	tag, err := tx.Exec(ctx, link, prevID, created.ID)
+	const link = `
+		UPDATE task.tasks SET recurrence_next_id = $2::uuid
+		WHERE id = $1::uuid AND recurrence_next_id IS NOT DISTINCT FROM NULLIF($3, '')::uuid`
+	tag, err := tx.Exec(ctx, link, prevID, created.ID, expectedNextID)
 	if err != nil {
 		return model.Task{}, mapTaskError(err)
 	}

@@ -9,6 +9,7 @@
  * - Bọc trong "..." để giữ nguyên văn.
  */
 
+import { RRULE_DAYS } from '../recurrence';
 import { foldText } from '../searchText';
 import type { Project, TaskPriority } from '../../types';
 
@@ -58,7 +59,8 @@ interface Match {
   time?: TimeResolver;
   priority?: TaskPriority;
   projectName?: string;
-  repeat?: { rule: string; first: Resolver };
+  /** first: lần đầu khi không ghi ngày; align: dời ngày người dùng ghi tới ngày đầu tiên khớp quy tắc. */
+  repeat?: { rule: string; first: Resolver; align?: Resolver };
 }
 
 // Token phải đứng riêng: trước là đầu chuỗi/khoảng trắng/ngoặc mở, sau là cuối chuỗi/khoảng trắng/dấu câu.
@@ -131,7 +133,6 @@ interface Pattern {
   build: (m: RegExpExecArray) => Omit<Match, 'kind' | 'start' | 'end' | 'text'> | null;
 }
 
-const RRULE_DAY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 const today = (now: Date) => startOfDay(now);
 const EVERY_VI = '(?:mỗi|hằng|hàng)';
 
@@ -166,7 +167,13 @@ const PATTERNS: Pattern[] = [
     build: (m) => {
       const day = Number(m[1]);
       return day >= 1 && day <= 31
-        ? { repeat: { rule: `FREQ=MONTHLY;BYMONTHDAY=${day}`, first: (now) => nextMonthDay(now, day) } }
+        ? {
+            repeat: {
+              rule: `FREQ=MONTHLY;BYMONTHDAY=${day}`,
+              first: (now) => nextMonthDay(now, day),
+              align: (date) => nextMonthDay(date, day),
+            },
+          }
         : null;
     },
   },
@@ -187,7 +194,13 @@ const PATTERNS: Pattern[] = [
     re: new RegExp(`${B}(?:mỗi|every)\\s+${VI_WEEKDAY}${E}`, 'giu'),
     build: (m) => {
       const weekday = viWeekday(m[1], m[2], m[3], m[4]);
-      return { repeat: { rule: `FREQ=WEEKLY;BYDAY=${RRULE_DAY[weekday]}`, first: (now) => nextWeekday(now, weekday) } };
+      return {
+        repeat: {
+          rule: `FREQ=WEEKLY;BYDAY=${RRULE_DAYS[weekday]}`,
+          first: (now) => nextWeekday(now, weekday),
+          align: (date) => nextWeekday(date, weekday),
+        },
+      };
     },
   },
   {
@@ -195,7 +208,13 @@ const PATTERNS: Pattern[] = [
     re: new RegExp(`${B}every\\s+${EN_WEEKDAY_RE}${E}`, 'giu'),
     build: (m) => {
       const weekday = enWeekday(m[1]!);
-      return { repeat: { rule: `FREQ=WEEKLY;BYDAY=${RRULE_DAY[weekday]}`, first: (now) => nextWeekday(now, weekday) } };
+      return {
+        repeat: {
+          rule: `FREQ=WEEKLY;BYDAY=${RRULE_DAYS[weekday]}`,
+          first: (now) => nextWeekday(now, weekday),
+          align: (date) => nextWeekday(date, weekday),
+        },
+      };
     },
   },
   {
@@ -400,6 +419,10 @@ export function parseQuickAdd(input: string, options: QuickAddOptions = {}): Qui
     used.delete('repeat');
   }
   let day = dateMatch?.date?.(now) ?? repeatFirst;
+  const align = repeatMatch?.repeat?.align;
+  if (dateMatch && day && align) {
+    day = align(day) ?? day;
+  }
   const time = timeMatch?.time?.() ?? null;
   if (dateMatch && !day) {
     used.delete('date');

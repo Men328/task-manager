@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"os"
+	_ "time/tzdata"
 
 	"go.uber.org/fx"
 

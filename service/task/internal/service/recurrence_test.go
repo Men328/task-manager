@@ -196,3 +196,38 @@ func TestCreateAndUpdateRecurrence(t *testing.T) {
 		t.Fatalf("empty rule must stop repeating, got %q", updated.RecurrenceRule)
 	}
 }
+
+func TestDeletedNextOccurrenceIsRecreated(t *testing.T) {
+	repo := newFakeTaskRepo()
+	svc := newTestTaskService(repo, &fakeProjectChecker{})
+	ctx := context.Background()
+	recurringTask(repo, time.Now().Add(time.Hour), nil)
+
+	first, err := svc.ChangeStatus(ctx, "r1", "st-done", "")
+	if err != nil || first.Next == nil {
+		t.Fatalf("first completion: %+v %v", first, err)
+	}
+	if _, err := svc.ChangeStatus(ctx, "r1", "st-default", ""); err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	if err := repo.Delete(ctx, first.Next.ID); err != nil {
+		t.Fatalf("delete next: %v", err)
+	}
+
+	again, err := svc.ChangeStatus(ctx, "r1", "st-done", "")
+	if err != nil || again.Next == nil || again.Next.ID == first.Next.ID {
+		t.Fatalf("completing after undo must create a fresh occurrence: %+v %v", again, err)
+	}
+	if got := repo.items["r1"].RecurrenceNextID; got != again.Next.ID {
+		t.Fatalf("link must point to the new occurrence, got %q", got)
+	}
+}
+
+func TestRecurrenceLocationFallsBack(t *testing.T) {
+	if loc := recurrenceLocation("Mars/Base"); loc.String() != "Asia/Ho_Chi_Minh" {
+		t.Fatalf("invalid zone must fall back to the default, got %s", loc)
+	}
+	if loc := recurrenceLocation("Asia/Tokyo"); loc.String() != "Asia/Tokyo" {
+		t.Fatalf("got %s", loc)
+	}
+}

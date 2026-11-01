@@ -74,10 +74,7 @@ func nextOccurrence(rule, tz string, due, completedAt time.Time) (occurrence, bo
 	if err != nil {
 		return occurrence{}, false, err
 	}
-	loc, err := time.LoadLocation(tz)
-	if err != nil {
-		loc, _ = time.LoadLocation(defaultRecurrenceTZ)
-	}
+	loc := recurrenceLocation(tz)
 	if opt.Count == 1 {
 		return occurrence{}, false, nil
 	}
@@ -103,4 +100,13 @@ func nextOccurrence(rule, tz string, due, completedAt time.Time) (occurrence, bo
 		return occurrence{}, false, nil
 	}
 	return occurrence{due: next.UTC(), rule: nextRule.RRuleString()}, true, nil
+}
+
+func recurrenceLocation(tz string) *time.Location {
+	for _, name := range []string{tz, defaultRecurrenceTZ} {
+		if loc, err := time.LoadLocation(name); err == nil {
+			return loc
+		}
+	}
+	return time.UTC
 }
