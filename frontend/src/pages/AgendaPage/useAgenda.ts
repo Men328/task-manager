@@ -142,8 +142,8 @@ export function useAgenda(profileId: string | null) {
       if (!target) {
         throw new Error('no done status reachable');
       }
-      await changeTaskStatus(task.id, target.id);
-      return target;
+      const result = await changeTaskStatus(task.id, target.id);
+      return { target, result };
     },
     [doneTargetFor],
   );

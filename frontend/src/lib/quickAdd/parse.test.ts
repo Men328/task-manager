@@ -181,3 +181,65 @@ describe('false positives and edge cases', () => {
     expect(parse('mai !cao').title).toBe('');
   });
 });
+
+describe('recurrence', () => {
+  it.each([
+    ['Tập thể dục mỗi ngày', 'FREQ=DAILY', d(10, 31)],
+    ['Tập thể dục hằng ngày', 'FREQ=DAILY', d(10, 31)],
+    ['Tập thể dục hàng ngày', 'FREQ=DAILY', d(10, 31)],
+    ['Tập thể dục daily', 'FREQ=DAILY', d(10, 31)],
+    ['Tập thể dục every day', 'FREQ=DAILY', d(10, 31)],
+    ['Tập thể dục hằng tuần', 'FREQ=WEEKLY', d(10, 31)],
+    ['Tập thể dục weekly', 'FREQ=WEEKLY', d(10, 31)],
+    ['Tập thể dục mỗi tháng', 'FREQ=MONTHLY', d(10, 31)],
+    ['Tập thể dục monthly', 'FREQ=MONTHLY', d(10, 31)],
+    ['Tập thể dục hằng năm', 'FREQ=YEARLY', d(10, 31)],
+    ['Tập thể dục mỗi thứ 2', 'FREQ=WEEKLY;BYDAY=MO', d(11, 2)],
+    ['Tập thể dục mỗi t6', 'FREQ=WEEKLY;BYDAY=FR', d(11, 6)],
+    ['Tập thể dục mỗi chủ nhật', 'FREQ=WEEKLY;BYDAY=SU', d(11, 1)],
+    ['Tập thể dục every saturday', 'FREQ=WEEKLY;BYDAY=SA', d(10, 31)],
+    ['Tập thể dục mỗi 2 ngày', 'FREQ=DAILY;INTERVAL=2', d(10, 31)],
+    ['Tập thể dục mỗi 3 tuần', 'FREQ=WEEKLY;INTERVAL=3', d(10, 31)],
+    ['Tập thể dục every 2 weeks', 'FREQ=WEEKLY;INTERVAL=2', d(10, 31)],
+    ['Tập thể dục mỗi 1 tháng', 'FREQ=MONTHLY', d(10, 31)],
+  ])('%s', (input, rule, due) => {
+    const result = parse(input);
+    expect(result.recurrenceRule).toBe(rule);
+    expect(result.dueAt).toEqual(due);
+    expect(result.title).toBe('Tập thể dục');
+  });
+
+  it('monthly on a day picks the next date with that day', () => {
+    expect(parse('Đóng tiền điện mỗi ngày 5')).toMatchObject({
+      recurrenceRule: 'FREQ=MONTHLY;BYMONTHDAY=5',
+      dueAt: d(11, 5),
+      title: 'Đóng tiền điện',
+    });
+    expect(parse('Đóng tiền nhà mỗi ngày 31').dueAt).toEqual(d(10, 31));
+    expect(parse('Đóng tiền nhà mỗi ngày 31', WED).dueAt).toEqual(d(12, 31));
+  });
+
+  it('an explicit date wins over the first occurrence', () => {
+    expect(parse('Báo cáo mỗi thứ 6 15/11')).toMatchObject({
+      recurrenceRule: 'FREQ=WEEKLY;BYDAY=FR',
+      dueAt: d(11, 15),
+    });
+  });
+
+  it('daily with a time already passed today starts tomorrow', () => {
+    expect(parse('Uống thuốc mỗi ngày 7h').dueAt).toEqual(d(11, 1, 7));
+    expect(parse('Uống thuốc mỗi ngày 21h').dueAt).toEqual(d(10, 31, 21));
+  });
+
+  it('removing the repeat chip keeps the words in the title', () => {
+    const result = parse('Tập thể dục mỗi ngày', SAT, ['repeat']);
+    expect(result.recurrenceRule).toBeUndefined();
+    expect(result.title).toBe('Tập thể dục mỗi ngày');
+  });
+
+  it('does not treat "ngày mai" after other words as a repeat', () => {
+    const result = parse('Nộp đơn ngày mai');
+    expect(result.recurrenceRule).toBeUndefined();
+    expect(result.dueAt).toEqual(d(11, 1));
+  });
+});

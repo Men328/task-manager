@@ -27,6 +27,17 @@ func ToGRPCError(err error) error {
 	}
 }
 
+func ErrorCode(err error) string {
+	var domainErr *model.Error
+	if errors.As(err, &domainErr) {
+		return codeForKind(domainErr.Kind)
+	}
+	if errors.Is(err, model.ErrNotFound) {
+		return errorcode.CommonNotFound
+	}
+	return errorcode.CommonInternal
+}
+
 func codeForKind(kind model.ErrorKind) string {
 	switch kind {
 	case model.ErrorKindStatusNotInProfile:
@@ -55,6 +66,8 @@ func codeForKind(kind model.ErrorKind) string {
 		return errorcode.ProjectArchived
 	case model.ErrorKindSubtaskProjectLocked:
 		return errorcode.TaskSubtaskProjectLocked
+	case model.ErrorKindRecurrenceInvalid:
+		return errorcode.TaskRecurrenceInvalid
 	default:
 		return errorcode.CommonInternal
 	}

@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
 import { ActionIcon, Box, Button, Group, Text, TextInput, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconAdjustmentsHorizontal, IconAlertTriangle, IconBolt, IconX } from '@tabler/icons-react';
+import { IconAdjustmentsHorizontal, IconAlertTriangle, IconBolt, IconRepeat, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorMessage } from '../../api/client';
 import { createTask } from '../../api/task';
 import { useProject, useSession } from '../../context';
 import { parseQuickAdd } from '../../lib/quickAdd/parse';
+import { browserTimeZone, describeRule } from '../../lib/recurrence';
 import type { QuickAddKind, QuickAddResult } from '../../lib/quickAdd/parse';
 import { PRIORITY_LABEL_KEY, projectColor } from '../../lib/tokens';
 import { tokens } from '../../theme';
@@ -21,6 +22,7 @@ export interface QuickAddPrefill {
   projectId?: string;
   /** YYYY-MM-DD theo giờ địa phương (form chỉ chọn ngày). */
   dueDate?: string;
+  recurrenceRule?: string;
 }
 
 interface QuickAddInputProps {
@@ -68,6 +70,7 @@ export function QuickAddInput({ defaultProjectId, onCreated, onOpenTask, onOpenF
     priority: parsed.priority,
     projectId,
     dueDate: parsed.dueAt ? toDateInput(parsed.dueAt) : undefined,
+    recurrenceRule: parsed.recurrenceRule,
   });
 
   const submit = async () => {
@@ -82,6 +85,8 @@ export function QuickAddInput({ defaultProjectId, onCreated, onOpenTask, onOpenF
         title: parsed.title,
         priority: parsed.priority,
         dueAt: parsed.dueAt?.toISOString(),
+        recurrenceRule: parsed.recurrenceRule,
+        recurrenceTz: parsed.recurrenceRule ? browserTimeZone() : undefined,
       });
       const noticeId = `quick-add-${task.id}`;
       notifications.show({
@@ -186,6 +191,15 @@ export function QuickAddInput({ defaultProjectId, onCreated, onOpenTask, onOpenF
                 {t('quickAdd.due', { value: dueLabel })}
               </Text>
               <ChipRemove label={t('quickAdd.remove')} onClick={() => dismiss(hasDateToken ? 'date' : 'time', 'time')} />
+            </Box>
+          ) : null}
+          {parsed.recurrenceRule ? (
+            <Box className={classes.chip}>
+              <IconRepeat size={13} />
+              <Text fz={12} fw={600}>
+                {describeRule(parsed.recurrenceRule, t, i18n.language)}
+              </Text>
+              <ChipRemove label={t('quickAdd.remove')} onClick={() => dismiss('repeat')} />
             </Box>
           ) : null}
           {parsed.priority ? (

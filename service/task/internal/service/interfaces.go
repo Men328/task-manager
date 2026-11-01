@@ -15,6 +15,7 @@ type TaskRepository interface {
 	Update(ctx context.Context, id string, upd model.TaskUpdate) (model.Task, error)
 	// SetProjectForSubtree đổi project của task rootID và mọi hậu duệ của nó.
 	SetProjectForSubtree(ctx context.Context, rootID, projectID string) error
+	SpawnNextOccurrence(ctx context.Context, prevID string, next model.Task) (model.Task, error)
 	Delete(ctx context.Context, id string) error
 	ChangeStatus(ctx context.Context, id, statusID string, completedAt *time.Time) (model.Task, error)
 	CountByStatus(ctx context.Context, statusID string) (int, error)
@@ -61,7 +62,7 @@ type TaskService interface {
 	ListChildren(ctx context.Context, parentTaskID string) ([]model.Task, error)
 	Update(ctx context.Context, id string, upd model.TaskUpdate) (model.Task, error)
 	Delete(ctx context.Context, id string) error
-	ChangeStatus(ctx context.Context, id, statusID, note string) (model.Task, error)
+	ChangeStatus(ctx context.Context, id, statusID, note string) (model.StatusChange, error)
 }
 
 type TaskStatusService interface {

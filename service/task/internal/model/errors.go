@@ -31,6 +31,7 @@ const (
 	ErrorKindProjectNotFound         ErrorKind = "project_not_found"
 	ErrorKindProjectArchived         ErrorKind = "project_archived"
 	ErrorKindSubtaskProjectLocked    ErrorKind = "subtask_project_locked"
+	ErrorKindRecurrenceInvalid       ErrorKind = "recurrence_invalid"
 )
 
 type Error struct {

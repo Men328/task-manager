@@ -107,9 +107,16 @@ func (h *TaskHandler) ChangeTaskStatus(ctx context.Context, req *taskv1.ChangeTa
 		return nil, err
 	}
 
-	updated, err := h.tasks.ChangeStatus(ctx, req.GetId(), req.GetStatusId(), req.GetNote())
+	change, err := h.tasks.ChangeStatus(ctx, req.GetId(), req.GetStatusId(), req.GetNote())
 	if err != nil {
 		return nil, dependency.ToGRPCError(err)
 	}
-	return &taskv1.ChangeTaskStatusResponse{Task: dependency.TaskToProto(updated)}, nil
+	resp := &taskv1.ChangeTaskStatusResponse{Task: dependency.TaskToProto(change.Task)}
+	if change.Next != nil {
+		resp.NextTask = dependency.TaskToProto(*change.Next)
+	}
+	if change.NextErr != nil {
+		resp.NextTaskError = dependency.ErrorCode(change.NextErr)
+	}
+	return resp, nil
 }

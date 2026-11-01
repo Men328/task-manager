@@ -77,6 +77,15 @@ func (r *fakeTaskRepo) Update(_ context.Context, id string, upd model.TaskUpdate
 		t.RemindAt = upd.RemindAt
 		t.RemindedAt = upd.RemindedAt
 	}
+	if upd.RecurrenceRule != nil {
+		t.RecurrenceRule = *upd.RecurrenceRule
+	}
+	if upd.RecurrenceTZ != nil {
+		t.RecurrenceTZ = *upd.RecurrenceTZ
+	}
+	if upd.RecurrenceSeriesID != nil {
+		t.RecurrenceSeriesID = *upd.RecurrenceSeriesID
+	}
 	r.items[id] = t
 	return t, nil
 }
@@ -103,8 +112,29 @@ func (r *fakeTaskRepo) Delete(_ context.Context, id string) error {
 	return nil
 }
 
-func (r *fakeTaskRepo) ChangeStatus(context.Context, string, string, *time.Time) (model.Task, error) {
-	return model.Task{}, nil
+func (r *fakeTaskRepo) ChangeStatus(_ context.Context, id, statusID string, completedAt *time.Time) (model.Task, error) {
+	t, ok := r.items[id]
+	if !ok {
+		return model.Task{}, model.ErrNotFound
+	}
+	t.StatusID = statusID
+	t.CompletedAt = completedAt
+	r.items[id] = t
+	return t, nil
+}
+
+func (r *fakeTaskRepo) SpawnNextOccurrence(ctx context.Context, prevID string, next model.Task) (model.Task, error) {
+	prev, ok := r.items[prevID]
+	if !ok {
+		return model.Task{}, model.ErrNotFound
+	}
+	if prev.RecurrenceNextID != "" {
+		return model.Task{}, model.ErrAlreadyExists
+	}
+	created, _ := r.Create(ctx, next)
+	prev.RecurrenceNextID = created.ID
+	r.items[prevID] = prev
+	return created, nil
 }
 
 func (r *fakeTaskRepo) CountByStatus(context.Context, string) (int, error) { return 0, nil }
@@ -117,6 +147,16 @@ func (r *fakeTaskRepo) ListStatusLogs(context.Context, string) ([]model.StatusLo
 
 type fakeTaskStatusRepo struct{ StatusRepository }
 
+func (f fakeTaskStatusRepo) Get(ctx context.Context, id string) (model.Status, error) {
+	items, _ := f.List(ctx, "u1", true)
+	for _, st := range items {
+		if st.ID == id {
+			return st, nil
+		}
+	}
+	return model.Status{}, model.ErrNotFound
+}
+
 func (fakeTaskStatusRepo) List(_ context.Context, profileID string, _ bool) ([]model.Status, error) {
 	return []model.Status{
 		{ID: "st-default", ProfileID: profileID, IsDefault: true, Category: model.TaskStatusCategoryTodo},
@@ -126,6 +166,10 @@ func (fakeTaskStatusRepo) List(_ context.Context, profileID string, _ bool) ([]m
 }
 
 type fakeTaskTransitionRepo struct{ TransitionRepository }
+
+func (fakeTaskTransitionRepo) IsAllowed(context.Context, string, string, string) (bool, error) {
+	return true, nil
+}
 
 type fakeProjectChecker struct {
 	err   error

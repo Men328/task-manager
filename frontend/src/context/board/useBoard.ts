@@ -82,9 +82,9 @@ export function useBoard() {
     },
     moveTask: async (taskId: string, statusId: string, note?: string) => {
       if (!profileId) {
-        return;
+        return undefined;
       }
-      await dispatch(moveTaskThunk({ profileId, taskId, statusId, note })).unwrap();
+      return dispatch(moveTaskThunk({ profileId, taskId, statusId, note })).unwrap();
     },
     removeTask: async (taskId: string) => {
       if (!profileId) {

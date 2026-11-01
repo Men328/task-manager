@@ -118,6 +118,18 @@ export interface Task {
   subtasks?: Task[];
   /** Thời điểm nhắc việc; rỗng = không nhắc. */
   remindAt?: string | null;
+  /** Quy tắc lặp RRULE (vd. "FREQ=WEEKLY;BYDAY=FR"); rỗng = không lặp. */
+  recurrenceRule?: string | null;
+  recurrenceTz?: string | null;
+  recurrenceSeriesId?: string | null;
+}
+
+/** Kết quả đổi status: kèm lần lặp kế tiếp khi hoàn thành task lặp. */
+export interface StatusChangeResult {
+  task: Task;
+  nextTask?: Task | null;
+  /** Mã lỗi khi không tạo được lần lặp kế tiếp (task vẫn được hoàn thành). */
+  nextTaskError?: string | null;
 }
 
 /** notification service: NOTIFICATION.notices — đối tượng notice trỏ tới. */
@@ -215,6 +227,9 @@ export interface UpdateTaskInput {
   projectId?: string;
   /** Đặt/đổi giờ nhắc (ISO); `null` = bỏ nhắc. */
   remindAt?: string | null;
+  /** Đặt/đổi quy tắc lặp; `''` = bỏ lặp. */
+  recurrenceRule?: string;
+  recurrenceTz?: string;
 }
 
 export interface CreateTransitionInput {
@@ -236,6 +251,8 @@ export interface CreateTaskInput {
   dueAt?: string;
   startAt?: string;
   remindAt?: string;
+  recurrenceRule?: string;
+  recurrenceTz?: string;
 }
 
 /** calendar service: SCHEDULES */

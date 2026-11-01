@@ -20,6 +20,17 @@ type Task struct {
 	UpdatedAt    time.Time
 	RemindAt     *time.Time
 	RemindedAt   *time.Time
+
+	RecurrenceRule     string
+	RecurrenceTZ       string
+	RecurrenceSeriesID string
+	RecurrenceNextID   string
+}
+
+type StatusChange struct {
+	Task    Task
+	Next    *Task
+	NextErr error
 }
 
 type TaskFilter struct {
@@ -61,6 +72,10 @@ type TaskUpdate struct {
 	RemindAt      *time.Time
 	ClearRemindAt bool
 	RemindedAt    *time.Time
+
+	RecurrenceRule     *string
+	RecurrenceTZ       *string
+	RecurrenceSeriesID *string
 }
 
 func (u TaskUpdate) ChangesReminder() bool {
