@@ -71,7 +71,9 @@ Sau khi đổi status thành công và status đích có `category = done`, nế
 `recurrence_rule` và `recurrence_next_id IS NULL`:
 
 1. `DTSTART = due_at` quy về `recurrence_tz`. Lấy lần xuất hiện đầu tiên
-   `> max(due_at, đầu ngày hôm nay theo recurrence_tz)` — bỏ qua các chu kỳ đã lỡ
+   `> max(due_at, thời điểm hoàn thành)` — bỏ qua các chu kỳ đã lỡ; hoàn thành được xem là xong
+   chu kỳ hiện tại (người dùng đã duyệt 2026-11-01, thay cho mốc "đầu ngày hôm nay" ban đầu vốn sinh
+   ngay một bản cùng hạn hôm nay khi hoàn thành task hằng ngày đúng hạn)
    (chặn phản mục tiêu 2). Giữ giờ-phút của `due_at` (0h nếu là task chỉ ngày).
 2. Hết lần (COUNT/UNTIL) → không sinh, chuỗi kết thúc.
 3. Tạo task mới, **cùng transaction** với việc ghi `recurrence_next_id` vào task cũ:
@@ -81,7 +83,7 @@ Sau khi đổi status thành công và status đích có `category = done`, nế
      so với `due_at` cũ; `reminded_at = NULL`;
    - `status_id` = status mặc định (`resolveStatusID(ctx, profile, "")`) — tạo mới
      không qua transition nên guard không chặn (phản mục tiêu 3);
-   - `position` = cuối cột.
+   - `position` = 0, như tạo task thường (không đẩy xuống cuối cột).
 4. Task cũ giữ `recurrence_rule` (lịch sử), có `recurrence_next_id` → mở lại rồi
    xong lại không sinh nữa (phản mục tiêu 1).
 5. Đổi status **commit trước**, sinh lần kế tiếp **sau** (bước 3 là một
