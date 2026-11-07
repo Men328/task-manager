@@ -5,6 +5,7 @@ export { useBacklog } from './backlog/useBacklog';
 export { useBoard } from './board/useBoard';
 export { useCalendar } from './calendar/useCalendar';
 export { useEvent } from './event/useEvent';
+export { useFriends } from './friends/useFriends';
 export { useNotices } from './notification/useNotices';
 export { useProject } from './project/useProject';
 export { useReport } from './report/useReport';

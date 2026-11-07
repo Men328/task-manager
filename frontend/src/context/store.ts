@@ -4,6 +4,7 @@ import { backlogReducer } from './backlog/backlogSlice';
 import { boardReducer } from './board/boardSlice';
 import { calendarReducer } from './calendar/calendarSlice';
 import { eventReducer } from './event/eventSlice';
+import { friendsReducer } from './friends/friendsSlice';
 import { noticeReducer } from './notification/noticeSlice';
 import { projectReducer } from './project/projectSlice';
 import { reportReducer } from './report/reportSlice';
@@ -21,6 +22,7 @@ export const store = configureStore({
     report: reportReducer,
     statusesPage: statusesPageReducer,
     notices: noticeReducer,
+    friends: friendsReducer,
   },
 });
 
