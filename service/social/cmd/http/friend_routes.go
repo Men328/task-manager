@@ -190,7 +190,7 @@ func grpcErrorCode(err error) string {
 		return errorcode.CommonInvalidArgument
 	case codes.PermissionDenied:
 		return errorcode.CommonFailedPrecondition
-	case codes.Unavailable:
+	case codes.Unavailable, codes.DeadlineExceeded:
 		return errorcode.CommonUnavailable
 	default:
 		return errorcode.CommonInternal

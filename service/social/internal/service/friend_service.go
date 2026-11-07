@@ -5,11 +5,15 @@ import (
 	"errors"
 	"log/slog"
 	"strings"
+	"time"
 
 	"taskmanager/service/social/internal/model"
 )
 
-const maxEmailLength = 255
+const (
+	maxEmailLength = 255
+	notifyTimeout  = 2 * time.Second
+)
 
 type friendService struct {
 	friendships FriendshipRepository
@@ -150,7 +154,9 @@ func (s *friendService) SendRequest(ctx context.Context, profileID, targetID str
 		return model.RelationNone, err
 	}
 
-	if err := s.notifier.FriendRequested(ctx, targetID, sender, created.ID); err != nil {
+	notifyCtx, cancel := detachedNotifyContext(ctx)
+	defer cancel()
+	if err := s.notifier.FriendRequested(notifyCtx, targetID, sender, created.ID); err != nil {
 		slog.Warn("gửi thông báo lời mời kết bạn", "request_id", created.ID, "error", err)
 	}
 	return model.RelationOutgoing, nil
@@ -165,12 +171,14 @@ func (s *friendService) AcceptRequest(ctx context.Context, profileID, requestID 
 		return err
 	}
 
-	profiles, err := s.directory.GetByIDs(ctx, []string{profileID})
+	notifyCtx, cancel := detachedNotifyContext(ctx)
+	defer cancel()
+	profiles, err := s.directory.GetByIDs(notifyCtx, []string{profileID})
 	if err != nil || len(profiles) == 0 {
 		slog.Warn("tra hồ sơ để báo chấp nhận kết bạn", "request_id", row.ID, "error", err)
 		return nil
 	}
-	s.notifyAccepted(ctx, row, profiles[0])
+	s.notifyAccepted(notifyCtx, row, profiles[0])
 	return nil
 }
 
@@ -243,8 +251,14 @@ func (s *friendService) resolveExisting(ctx context.Context, row model.Friendshi
 	if err != nil {
 		return model.RelationNone, err
 	}
-	s.notifyAccepted(ctx, accepted, sender)
+	notifyCtx, cancel := detachedNotifyContext(ctx)
+	defer cancel()
+	s.notifyAccepted(notifyCtx, accepted, sender)
 	return model.RelationFriend, nil
+}
+
+func detachedNotifyContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), notifyTimeout)
 }
 
 func (s *friendService) notifyAccepted(ctx context.Context, row model.Friendship, by model.Profile) {

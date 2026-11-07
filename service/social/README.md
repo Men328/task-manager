@@ -36,4 +36,4 @@ make run-social
 | `SESSION_SECRET` | rỗng, gateway từ chối mọi token; phải khớp với identity |
 | `IDENTITY_GRPC_DIAL_ADDR` | `localhost:9081` |
 | `NOTIFICATION_GRPC_DIAL_ADDR` | `localhost:9088` |
-| `UPSTREAM_TIMEOUT` | `10s` |
+| `UPSTREAM_TIMEOUT` | `5s`, phải ngắn hơn hạn 10s của route |

@@ -36,7 +36,7 @@ func Load() Config {
 		SessionSecret:            os.Getenv("SESSION_SECRET"),
 		IdentityGRPCDialAddr:     getenv("IDENTITY_GRPC_DIAL_ADDR", "localhost:9081"),
 		NotificationGRPCDialAddr: getenv("NOTIFICATION_GRPC_DIAL_ADDR", "localhost:9088"),
-		UpstreamTimeout:          getduration("UPSTREAM_TIMEOUT", 10*time.Second),
+		UpstreamTimeout:          getduration("UPSTREAM_TIMEOUT", 5*time.Second),
 	}
 }
 

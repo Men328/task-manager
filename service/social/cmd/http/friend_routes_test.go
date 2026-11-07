@@ -17,6 +17,7 @@ import (
 
 	"taskmanager/common/errorcode"
 	socialv1 "taskmanager/common/gen/go/social/v1"
+	"taskmanager/service/social/internal/config"
 )
 
 const testSecret = "test-secret-at-least-16-bytes"
@@ -249,9 +250,23 @@ func TestGRPCErrorMapsToApiError(t *testing.T) {
 		t.Fatalf("phải 409, nhận %d %s", recorder.Code, recorder.Body.String())
 	}
 
+	client = &stubFriendClient{err: status.Error(codes.DeadlineExceeded, "hung")}
+	recorder = call(newTestMux(t, client), http.MethodGet, "/v1/friends", token, "")
+	if recorder.Code != http.StatusServiceUnavailable || errorCode(t, recorder) != errorcode.CommonUnavailable {
+		t.Fatalf("hết hạn phải 503, nhận %d %s", recorder.Code, recorder.Body.String())
+	}
+
 	client = &stubFriendClient{err: status.Error(codes.Unavailable, "down")}
 	recorder = call(newTestMux(t, client), http.MethodGet, "/v1/friends", token, "")
 	if recorder.Code != http.StatusServiceUnavailable || errorCode(t, recorder) != errorcode.CommonUnavailable {
 		t.Fatalf("phải 503, nhận %d %s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestUpstreamTimeoutFitsInsideRouteTimeout(t *testing.T) {
+	t.Setenv("UPSTREAM_TIMEOUT", "")
+
+	if got := config.Load().UpstreamTimeout; got >= routeTimeout {
+		t.Fatalf("hạn gọi service phía sau %v phải ngắn hơn hạn của route %v", got, routeTimeout)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"taskmanager/service/social/internal/model"
 	"taskmanager/service/social/internal/service"
@@ -54,14 +55,26 @@ type fakeNotifier struct {
 	requested []notice
 	accepted  []notice
 	err       error
+	called    bool
+	ctxErr    error
+	deadline  time.Time
+	hasLimit  bool
 }
 
-func (n *fakeNotifier) FriendRequested(_ context.Context, to string, from model.Profile, requestID string) error {
+func (n *fakeNotifier) record(ctx context.Context) {
+	n.called = true
+	n.ctxErr = ctx.Err()
+	n.deadline, n.hasLimit = ctx.Deadline()
+}
+
+func (n *fakeNotifier) FriendRequested(ctx context.Context, to string, from model.Profile, requestID string) error {
+	n.record(ctx)
 	n.requested = append(n.requested, notice{to, from.ID, requestID})
 	return n.err
 }
 
-func (n *fakeNotifier) FriendAccepted(_ context.Context, to string, by model.Profile, requestID string) error {
+func (n *fakeNotifier) FriendAccepted(ctx context.Context, to string, by model.Profile, requestID string) error {
+	n.record(ctx)
 	n.accepted = append(n.accepted, notice{to, by.ID, requestID})
 	return n.err
 }
@@ -483,4 +496,40 @@ func TestAcceptSucceedsWhenAcceptorProfileLookupFails(t *testing.T) {
 	if len(f.notifier.accepted) != 0 {
 		t.Fatalf("không có tên thì bỏ qua thông báo, nhận %+v", f.notifier.accepted)
 	}
+}
+
+func assertShortDetachedContext(t *testing.T, n *fakeNotifier) {
+	t.Helper()
+	if !n.called {
+		t.Fatal("notifier chưa được gọi")
+	}
+	if n.ctxErr != nil {
+		t.Fatalf("thông báo không được phụ thuộc context của request: %v", n.ctxErr)
+	}
+	if !n.hasLimit || time.Until(n.deadline) > 3*time.Second {
+		t.Fatalf("thông báo phải có hạn ngắn, nhận %v, %v", n.deadline, n.hasLimit)
+	}
+}
+
+func TestSendRequestNotifiesWithShortDetachedContext(t *testing.T) {
+	f := newFixture()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	if _, err := f.svc.SendRequest(ctx, alice, bob); err != nil {
+		t.Fatalf("gửi: %v", err)
+	}
+	assertShortDetachedContext(t, f.notifier)
+}
+
+func TestAcceptNotifiesWithShortDetachedContext(t *testing.T) {
+	f := newFixture()
+	id := f.invite(t, alice, bob)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	if err := f.svc.AcceptRequest(ctx, bob, id); err != nil {
+		t.Fatalf("chấp nhận: %v", err)
+	}
+	assertShortDetachedContext(t, f.notifier)
 }
