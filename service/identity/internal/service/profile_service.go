@@ -7,7 +7,10 @@ import (
 	"taskmanager/service/identity/internal/model"
 )
 
-const defaultListLimit = 50
+const (
+	defaultListLimit = 50
+	maxBatchGetIDs   = 500
+)
 
 type profileService struct {
 	profiles ProfileRepository
@@ -32,6 +35,17 @@ func (s *profileService) Create(ctx context.Context, p model.Profile) (model.Pro
 
 func (s *profileService) Get(ctx context.Context, id string) (model.Profile, error) {
 	return s.profiles.Get(ctx, id)
+}
+
+func (s *profileService) FindByEmail(ctx context.Context, email string) (model.Profile, error) {
+	return s.profiles.GetByEmail(ctx, strings.TrimSpace(email))
+}
+
+func (s *profileService) BatchGet(ctx context.Context, ids []string) ([]model.Profile, error) {
+	if len(ids) > maxBatchGetIDs {
+		return nil, model.ErrInvalid
+	}
+	return s.profiles.ListByIDs(ctx, ids)
 }
 
 func (s *profileService) List(ctx context.Context, limit int) ([]model.Profile, error) {

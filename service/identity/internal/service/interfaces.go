@@ -10,6 +10,7 @@ type ProfileRepository interface {
 	Create(ctx context.Context, p model.Profile) (model.Profile, error)
 	Get(ctx context.Context, id string) (model.Profile, error)
 	GetByEmail(ctx context.Context, email string) (model.Profile, error)
+	ListByIDs(ctx context.Context, ids []string) ([]model.Profile, error)
 	List(ctx context.Context, limit int) ([]model.Profile, error)
 	Update(ctx context.Context, id string, upd model.ProfileUpdate) (model.Profile, error)
 	TouchLastLogin(ctx context.Context, id string) (model.Profile, error)
@@ -33,6 +34,8 @@ type DefaultProjectSeeder interface {
 type ProfileService interface {
 	Create(ctx context.Context, p model.Profile) (model.Profile, error)
 	Get(ctx context.Context, id string) (model.Profile, error)
+	FindByEmail(ctx context.Context, email string) (model.Profile, error)
+	BatchGet(ctx context.Context, ids []string) ([]model.Profile, error)
 	List(ctx context.Context, limit int) ([]model.Profile, error)
 	Update(ctx context.Context, id string, upd model.ProfileUpdate) (model.Profile, error)
 	Delete(ctx context.Context, id string) error

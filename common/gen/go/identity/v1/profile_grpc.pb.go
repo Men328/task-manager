@@ -19,12 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ProfileService_CreateProfile_FullMethodName     = "/identity.v1.ProfileService/CreateProfile"
-	ProfileService_GetProfile_FullMethodName        = "/identity.v1.ProfileService/GetProfile"
-	ProfileService_ListProfiles_FullMethodName      = "/identity.v1.ProfileService/ListProfiles"
-	ProfileService_UpdateProfile_FullMethodName     = "/identity.v1.ProfileService/UpdateProfile"
-	ProfileService_DeleteProfile_FullMethodName     = "/identity.v1.ProfileService/DeleteProfile"
-	ProfileService_LoginWithProvider_FullMethodName = "/identity.v1.ProfileService/LoginWithProvider"
+	ProfileService_CreateProfile_FullMethodName      = "/identity.v1.ProfileService/CreateProfile"
+	ProfileService_GetProfile_FullMethodName         = "/identity.v1.ProfileService/GetProfile"
+	ProfileService_ListProfiles_FullMethodName       = "/identity.v1.ProfileService/ListProfiles"
+	ProfileService_UpdateProfile_FullMethodName      = "/identity.v1.ProfileService/UpdateProfile"
+	ProfileService_DeleteProfile_FullMethodName      = "/identity.v1.ProfileService/DeleteProfile"
+	ProfileService_LoginWithProvider_FullMethodName  = "/identity.v1.ProfileService/LoginWithProvider"
+	ProfileService_FindProfileByEmail_FullMethodName = "/identity.v1.ProfileService/FindProfileByEmail"
+	ProfileService_BatchGetProfiles_FullMethodName   = "/identity.v1.ProfileService/BatchGetProfiles"
 )
 
 // ProfileServiceClient is the client API for ProfileService service.
@@ -37,6 +39,8 @@ type ProfileServiceClient interface {
 	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error)
 	DeleteProfile(ctx context.Context, in *DeleteProfileRequest, opts ...grpc.CallOption) (*DeleteProfileResponse, error)
 	LoginWithProvider(ctx context.Context, in *LoginWithProviderRequest, opts ...grpc.CallOption) (*LoginWithProviderResponse, error)
+	FindProfileByEmail(ctx context.Context, in *FindProfileByEmailRequest, opts ...grpc.CallOption) (*FindProfileByEmailResponse, error)
+	BatchGetProfiles(ctx context.Context, in *BatchGetProfilesRequest, opts ...grpc.CallOption) (*BatchGetProfilesResponse, error)
 }
 
 type profileServiceClient struct {
@@ -107,6 +111,26 @@ func (c *profileServiceClient) LoginWithProvider(ctx context.Context, in *LoginW
 	return out, nil
 }
 
+func (c *profileServiceClient) FindProfileByEmail(ctx context.Context, in *FindProfileByEmailRequest, opts ...grpc.CallOption) (*FindProfileByEmailResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FindProfileByEmailResponse)
+	err := c.cc.Invoke(ctx, ProfileService_FindProfileByEmail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *profileServiceClient) BatchGetProfiles(ctx context.Context, in *BatchGetProfilesRequest, opts ...grpc.CallOption) (*BatchGetProfilesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetProfilesResponse)
+	err := c.cc.Invoke(ctx, ProfileService_BatchGetProfiles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProfileServiceServer is the server API for ProfileService service.
 // All implementations must embed UnimplementedProfileServiceServer
 // for forward compatibility.
@@ -117,6 +141,8 @@ type ProfileServiceServer interface {
 	UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error)
 	DeleteProfile(context.Context, *DeleteProfileRequest) (*DeleteProfileResponse, error)
 	LoginWithProvider(context.Context, *LoginWithProviderRequest) (*LoginWithProviderResponse, error)
+	FindProfileByEmail(context.Context, *FindProfileByEmailRequest) (*FindProfileByEmailResponse, error)
+	BatchGetProfiles(context.Context, *BatchGetProfilesRequest) (*BatchGetProfilesResponse, error)
 	mustEmbedUnimplementedProfileServiceServer()
 }
 
@@ -144,6 +170,12 @@ func (UnimplementedProfileServiceServer) DeleteProfile(context.Context, *DeleteP
 }
 func (UnimplementedProfileServiceServer) LoginWithProvider(context.Context, *LoginWithProviderRequest) (*LoginWithProviderResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method LoginWithProvider not implemented")
+}
+func (UnimplementedProfileServiceServer) FindProfileByEmail(context.Context, *FindProfileByEmailRequest) (*FindProfileByEmailResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FindProfileByEmail not implemented")
+}
+func (UnimplementedProfileServiceServer) BatchGetProfiles(context.Context, *BatchGetProfilesRequest) (*BatchGetProfilesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchGetProfiles not implemented")
 }
 func (UnimplementedProfileServiceServer) mustEmbedUnimplementedProfileServiceServer() {}
 func (UnimplementedProfileServiceServer) testEmbeddedByValue()                        {}
@@ -274,6 +306,42 @@ func _ProfileService_LoginWithProvider_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProfileService_FindProfileByEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FindProfileByEmailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProfileServiceServer).FindProfileByEmail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProfileService_FindProfileByEmail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProfileServiceServer).FindProfileByEmail(ctx, req.(*FindProfileByEmailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProfileService_BatchGetProfiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetProfilesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProfileServiceServer).BatchGetProfiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProfileService_BatchGetProfiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProfileServiceServer).BatchGetProfiles(ctx, req.(*BatchGetProfilesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProfileService_ServiceDesc is the grpc.ServiceDesc for ProfileService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -304,6 +372,14 @@ var ProfileService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "LoginWithProvider",
 			Handler:    _ProfileService_LoginWithProvider_Handler,
+		},
+		{
+			MethodName: "FindProfileByEmail",
+			Handler:    _ProfileService_FindProfileByEmail_Handler,
+		},
+		{
+			MethodName: "BatchGetProfiles",
+			Handler:    _ProfileService_BatchGetProfiles_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
