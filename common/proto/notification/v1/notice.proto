@@ -13,6 +13,7 @@ enum NoticeTargetType {
   NOTICE_TARGET_TYPE_SCHEDULE = 2;
   NOTICE_TARGET_TYPE_EVENT = 3;
   NOTICE_TARGET_TYPE_BACKLOG = 4;
+  NOTICE_TARGET_TYPE_FRIEND = 5;
 }
 
 // Thông báo của một profile.
@@ -20,7 +21,8 @@ enum NoticeTargetType {
 message Notice {
   string id = 1;
   string profile_id = 2;
-  // Nhãn nghiệp vụ: TASK_CREATED | SCHEDULE_CREATED | EVENT_CREATED | BACKLOG_CREATED.
+  // Nhãn nghiệp vụ: TASK_CREATED | SCHEDULE_CREATED | EVENT_CREATED | BACKLOG_CREATED |
+  // FRIEND_REQUEST | FRIEND_ACCEPTED.
   string type = 3;
   string title = 4;
   string body = 5;

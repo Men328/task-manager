@@ -29,3 +29,28 @@ func TestProfileServiceCreateIgnoresProjectSeedFailure(t *testing.T) {
 		t.Fatalf("seed project lỗi không được làm hỏng create: %v", err)
 	}
 }
+
+func TestBatchGetRejectsMoreThan500Ids(t *testing.T) {
+	svc := NewProfileService(newStubProfiles(), &stubSeeder{}, &stubProjectSeeder{})
+
+	_, err := svc.BatchGet(context.Background(), make([]string, 501))
+	if !errors.Is(err, model.ErrInvalid) {
+		t.Fatalf("quá 500 id phải ra ErrInvalid, nhận %v", err)
+	}
+}
+
+func TestFindByEmailIgnoresCaseAndSpace(t *testing.T) {
+	svc := NewProfileService(newStubProfiles(), &stubSeeder{}, &stubProjectSeeder{})
+	created, err := svc.Create(context.Background(), model.Profile{Email: "an@x.io", IsActive: true})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	found, err := svc.FindByEmail(context.Background(), "  AN@x.io ")
+	if err != nil {
+		t.Fatalf("find: %v", err)
+	}
+	if found.ID != created.ID {
+		t.Fatalf("phải tìm thấy %s, nhận %s", created.ID, found.ID)
+	}
+}

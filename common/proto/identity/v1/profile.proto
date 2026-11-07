@@ -93,6 +93,28 @@ message LoginWithProviderResponse {
   bool created = 2;
 }
 
+// FindProfileByEmail tra đúng toàn bộ email (không phân biệt hoa/thường).
+//
+// Cố ý KHÔNG khai báo google.api.http: RPC nội bộ cho service social. Expose ra
+// HTTP thì gateway không kiểm tra token, ai cũng dò được email.
+message FindProfileByEmailRequest {
+  string email = 1;
+}
+
+message FindProfileByEmailResponse {
+  Profile profile = 1;
+}
+
+// BatchGetProfiles trả các profile còn tồn tại; id không có hoặc đã xoá mềm thì
+// bị bỏ qua. Tối đa 500 id mỗi lần gọi. RPC nội bộ, không expose ra HTTP.
+message BatchGetProfilesRequest {
+  repeated string ids = 1;
+}
+
+message BatchGetProfilesResponse {
+  repeated Profile profiles = 1;
+}
+
 service ProfileService {
   rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse) {
     option (google.api.http) = {
@@ -121,4 +143,8 @@ service ProfileService {
   }
 
   rpc LoginWithProvider(LoginWithProviderRequest) returns (LoginWithProviderResponse);
+
+  rpc FindProfileByEmail(FindProfileByEmailRequest) returns (FindProfileByEmailResponse);
+
+  rpc BatchGetProfiles(BatchGetProfilesRequest) returns (BatchGetProfilesResponse);
 }

@@ -42,6 +42,27 @@ func (h *ProfileHandler) GetProfile(ctx context.Context, req *identityv1.GetProf
 	return &identityv1.GetProfileResponse{Profile: dependency.ProfileToProto(p)}, nil
 }
 
+func (h *ProfileHandler) FindProfileByEmail(ctx context.Context, req *identityv1.FindProfileByEmailRequest) (*identityv1.FindProfileByEmailResponse, error) {
+	p, err := h.profiles.FindByEmail(ctx, req.GetEmail())
+	if err != nil {
+		return nil, dependency.ToGRPCError(err)
+	}
+	return &identityv1.FindProfileByEmailResponse{Profile: dependency.ProfileToProto(p)}, nil
+}
+
+func (h *ProfileHandler) BatchGetProfiles(ctx context.Context, req *identityv1.BatchGetProfilesRequest) (*identityv1.BatchGetProfilesResponse, error) {
+	items, err := h.profiles.BatchGet(ctx, req.GetIds())
+	if err != nil {
+		return nil, dependency.ToGRPCError(err)
+	}
+
+	out := make([]*identityv1.Profile, 0, len(items))
+	for _, p := range items {
+		out = append(out, dependency.ProfileToProto(p))
+	}
+	return &identityv1.BatchGetProfilesResponse{Profiles: out}, nil
+}
+
 func (h *ProfileHandler) ListProfiles(ctx context.Context, req *identityv1.ListProfilesRequest) (*identityv1.ListProfilesResponse, error) {
 	items, err := h.profiles.List(ctx, int(req.GetPageSize()))
 	if err != nil {

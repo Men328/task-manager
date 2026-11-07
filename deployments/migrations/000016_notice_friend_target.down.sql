@@ -1,0 +1,9 @@
+-- =============================================================================
+-- 000016_notice_friend_target (down)
+-- =============================================================================
+
+DELETE FROM notification.notices WHERE target_type = 'friend';
+
+ALTER TABLE notification.notices DROP CONSTRAINT IF EXISTS ck_notification_notices_target_type;
+ALTER TABLE notification.notices ADD CONSTRAINT ck_notification_notices_target_type
+    CHECK (target_type IN ('task', 'schedule', 'event', 'backlog'));

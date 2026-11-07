@@ -118,6 +118,14 @@ const (
 	ProjectColorInvalid         = "PROJECT_COLOR_INVALID"
 	TaskSubtaskProjectLocked    = "TASK_SUBTASK_PROJECT_LOCKED"
 
+	SocialCannotFriendSelf      = "SOCIAL_CANNOT_FRIEND_SELF"
+	SocialProfileNotFound       = "SOCIAL_PROFILE_NOT_FOUND"
+	SocialFriendRequestExists   = "SOCIAL_FRIEND_REQUEST_EXISTS"
+	SocialAlreadyFriends        = "SOCIAL_ALREADY_FRIENDS"
+	SocialFriendRequestNotFound = "SOCIAL_FRIEND_REQUEST_NOT_FOUND"
+	SocialFriendNotFound        = "SOCIAL_FRIEND_NOT_FOUND"
+	SocialEmailInvalid          = "SOCIAL_EMAIL_INVALID"
+
 	EventProfileIDRequired = "EVENT_PROFILE_ID_REQUIRED"
 	EventTitleRequired     = "EVENT_TITLE_REQUIRED"
 	EventIDRequired        = "EVENT_ID_REQUIRED"

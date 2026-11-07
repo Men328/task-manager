@@ -75,6 +75,8 @@ func targetTypeToProto(targetType string) notificationv1.NoticeTargetType {
 		return notificationv1.NoticeTargetType_NOTICE_TARGET_TYPE_EVENT
 	case model.TargetTypeBacklog:
 		return notificationv1.NoticeTargetType_NOTICE_TARGET_TYPE_BACKLOG
+	case model.TargetTypeFriend:
+		return notificationv1.NoticeTargetType_NOTICE_TARGET_TYPE_FRIEND
 	default:
 		return notificationv1.NoticeTargetType_NOTICE_TARGET_TYPE_UNSPECIFIED
 	}
@@ -90,6 +92,8 @@ func targetTypeFromProto(targetType notificationv1.NoticeTargetType) string {
 		return model.TargetTypeEvent
 	case notificationv1.NoticeTargetType_NOTICE_TARGET_TYPE_BACKLOG:
 		return model.TargetTypeBacklog
+	case notificationv1.NoticeTargetType_NOTICE_TARGET_TYPE_FRIEND:
+		return model.TargetTypeFriend
 	default:
 		return ""
 	}

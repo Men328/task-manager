@@ -5,6 +5,7 @@
 #       calendar gRPC :9083 / HTTP :8083, event gRPC :9085 / HTTP :8085,
 #       backlog gRPC :9086 / HTTP :8086, mail-provider gRPC :9084 / HTTP :8084,
 #       notification gRPC :9088 / HTTP :8088,
+#       social gRPC :9091 / HTTP :8091,
 #       report gRPC :9087 / HTTP :8087
 set -euo pipefail
 
@@ -39,6 +40,11 @@ pids+=("$!")
 go run ./service/project/cmd/http &
 pids+=("$!")
 
+go run ./service/social/cmd/grpc &
+pids+=("$!")
+go run ./service/social/cmd/http &
+pids+=("$!")
+
 go run ./service/event/cmd/grpc &
 pids+=("$!")
 go run ./service/event/cmd/http &
@@ -68,6 +74,7 @@ echo "==> identity:  http://localhost:8081  (gRPC :9081)"
 echo "==> task:      http://localhost:8082  (gRPC :9082)"
 echo "==> calendar:  http://localhost:8083  (gRPC :9083)"
 echo "==> project:   http://localhost:8090  (gRPC :9090)"
+echo "==> social:    http://localhost:8091  (gRPC :9091)"
 echo "==> event:     http://localhost:8085  (gRPC :9085)"
 echo "==> backlog:   http://localhost:8086  (gRPC :9086)"
 echo "==> mail:      http://localhost:8084  (gRPC :9084)"

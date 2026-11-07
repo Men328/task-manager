@@ -22,6 +22,7 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 │   ├── task/                   # task, status, lifecycle (gRPC :9082 / HTTP :8082)
 │   ├── calendar/               # lịch cá nhân (schedule)   (gRPC :9083 / HTTP :8083)
 │   ├── project/                # nhóm công việc theo dự án (gRPC :9090 / HTTP :8090)
+│   ├── social/                 # quan hệ bạn bè (gRPC :9091 / HTTP :8091)
 │   ├── event/                  # sự kiện cá nhân (event)    (gRPC :9085 / HTTP :8085)
 │   ├── backlog/                # email không phân loại được (gRPC :9086 / HTTP :8086)
 │   ├── attachment/             # tệp đính kèm task/lịch/sự kiện/backlog (gRPC :9089 / HTTP :8089)
@@ -44,6 +45,7 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 | `taskmanager/service/task` | `service/task/` |
 | `taskmanager/service/calendar` | `service/calendar/` |
 | `taskmanager/service/project` | `service/project/` |
+| `taskmanager/service/social` | `service/social/` |
 | `taskmanager/service/event` | `service/event/` |
 | `taskmanager/service/backlog` | `service/backlog/` |
 | `taskmanager/service/attachment` | `service/attachment/` |
@@ -85,6 +87,7 @@ make run-report     # terminal 7  -> :8087 / :9087 (cần task service)
 make run-mail-provider  # terminal 8 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC + DEEPSEEK_API_KEY)
 make run-notification   # terminal 9 -> :8088 / :9088 (cần soketi + SESSION_SECRET)
 make run-project        # terminal 10 -> :8090 / :9090 (nhóm công việc theo dự án)
+make run-social         # terminal 11 -> :8091 / :9091 (quan hệ bạn bè)
 make web-install && make web-dev    # terminal 10 -> :5173
 make seed-demo      # (tuỳ chọn) seed dữ liệu demo: task/board + lịch + sự kiện + backlog
 ```
@@ -209,7 +212,7 @@ HTTP status / URL / text kỹ thuật lên notification.
 ## Quickstart (Docker)
 
 ```bash
-make up        # postgres + migrate + rustfs + soketi + identity + task + calendar + project + event + backlog + attachment + report + notification + mail-provider + frontend
+make up        # postgres + migrate + rustfs + soketi + identity + task + calendar + project + social + event + backlog + attachment + report + notification + mail-provider + frontend
 make up-core   # như trên nhưng KHÔNG kèm cloudflared (tắt tunnel)
 make up-tunnel # kèm cloudflared (Cloudflare Tunnel; cần token trong .env)
 make ps
@@ -231,6 +234,7 @@ của Cloudflare.
 | task | nội bộ `task:8082` (`/healthz`) |
 | calendar | nội bộ `calendar:8083` (`/healthz`) |
 | project | nội bộ `project:8090` (`/healthz`); API qua `/api/project` |
+| social | nội bộ `social:8091` (`/healthz`); API qua `/api/social` |
 | event | nội bộ `event:8085` (`/healthz`) |
 | backlog | nội bộ `backlog:8086` (`/healthz`) |
 | attachment | nội bộ `attachment:8089` (`/healthz`); API tệp qua `/api/attachment` |

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -80,6 +81,35 @@ func (r *PostgresProfileRepository) Get(ctx context.Context, id string) (model.P
 func (r *PostgresProfileRepository) GetByEmail(ctx context.Context, email string) (model.Profile, error) {
 	const query = `SELECT ` + profileColumns + ` FROM identity.profiles WHERE lower(email) = lower($1) AND deleted_at IS NULL`
 	return scanProfile(r.pool.QueryRow(ctx, query, email))
+}
+
+func (r *PostgresProfileRepository) ListByIDs(ctx context.Context, ids []string) ([]model.Profile, error) {
+	valid := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if uuid.Validate(id) == nil {
+			valid = append(valid, id)
+		}
+	}
+	if len(valid) == 0 {
+		return []model.Profile{}, nil
+	}
+
+	const query = `SELECT ` + profileColumns + ` FROM identity.profiles WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL`
+	rows, err := r.pool.Query(ctx, query, valid)
+	if err != nil {
+		return nil, mapIdentityError(err)
+	}
+	defer rows.Close()
+
+	out := make([]model.Profile, 0, len(valid))
+	for rows.Next() {
+		p, err := scanProfile(rows)
+		if err != nil {
+			return nil, mapIdentityError(err)
+		}
+		out = append(out, p)
+	}
+	return out, mapIdentityError(rows.Err())
 }
 
 func (r *PostgresProfileRepository) List(ctx context.Context, limit int) ([]model.Profile, error) {

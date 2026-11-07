@@ -14,7 +14,8 @@
     "groups": {
       "dashboard": "Dashboard",
       "planning": "Planning",
-      "config": "Configuration"
+      "config": "Configuration",
+      "social": "Connections"
     },
     "emptyGroup": "Coming soon",
     "today": "Today",
@@ -24,7 +25,8 @@
     "backlog": "Backlog",
     "reports": "Reports",
     "statusesLifecycle": "Statuses & Lifecycle",
-    "projects": "Projects"
+    "projects": "Projects",
+    "friends": "Friends"
   },
   "sidebar": {
     "brand": "Task Manager"
@@ -593,5 +595,33 @@
     "subtaskLocked": "Subtasks follow their parent task's project",
     "moveFailed": "Could not change project",
     "moved": "Project changed"
+  },
+  "friends": {
+    "pageTitle": "Friends",
+    "pageSubtitle": "Find people by email and add them as friends",
+    "searchPlaceholder": "Enter the exact email of the person you're looking for",
+    "searchAction": "Search",
+    "searchEmpty": "No account found with this email",
+    "searchFailed": "Search failed",
+    "tabFriends": "Friends",
+    "tabIncoming": "Received",
+    "tabOutgoing": "Sent",
+    "addAction": "Add friend",
+    "acceptAction": "Accept",
+    "declineAction": "Decline",
+    "cancelAction": "Cancel request",
+    "removeAction": "Unfriend",
+    "statusSent": "Request sent",
+    "statusFriend": "Already friends",
+    "emptyFriendsTitle": "No friends yet",
+    "emptyFriends": "Search by email above to send a friend request.",
+    "emptyIncomingTitle": "No requests",
+    "emptyIncoming": "Friend requests sent to you will appear here.",
+    "emptyOutgoingTitle": "No sent requests",
+    "emptyOutgoing": "Requests you have sent and that are waiting for a reply will appear here.",
+    "removeTitle": "Unfriend?",
+    "removeMessage": "{{name}} will be removed from your friends list. You can send a new request later.",
+    "removeCancel": "Keep",
+    "actionFailed": "Could not complete the action"
   }
 }

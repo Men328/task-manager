@@ -60,6 +60,8 @@ trong network Docker nội bộ và được các container gọi nhau bằng t�
 | mail-provider-grpc | tm-mail-provider-grpc | nội bộ `mail-provider-grpc:9084` | subscription ở Postgres; email gốc ở object storage S3; dial `notification-grpc` để đẩy notice |
 | notification (gateway) | tm-notification | nội bộ `notification:8088` | API `/api/notification`; verify session JWT, scope theo profile |
 | notification-grpc | tm-notification-grpc | nội bộ `notification-grpc:9088` | notice ở `notification.notices`; publish qua soketi |
+| social (gateway) | tm-social | nội bộ `social:8091` | API `/api/social`; verify session JWT, người gọi lấy từ token |
+| social-grpc | tm-social-grpc | nội bộ `social-grpc:9091` | bạn bè ở `social.friendships`; dial `identity-grpc` và `notification-grpc` |
 | soketi | tm-soketi | nội bộ `soketi:6001` (WS), debug `127.0.0.1:6001` | WebSocket giao thức Pusher; browser vào qua `/api/soketi` |
 | rustfs | tm-rustfs | API nội bộ `rustfs:9000`; console `127.0.0.1:9001` | object storage S3-compatible (thay MinIO OSS đã archive) |
 | postgres | tm-postgres | nội bộ `postgres:5432` | không publish ra host |

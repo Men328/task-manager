@@ -67,6 +67,19 @@ func (r *InMemoryProfileRepository) GetByEmail(_ context.Context, email string) 
 	return model.Profile{}, model.ErrNotFound
 }
 
+func (r *InMemoryProfileRepository) ListByIDs(_ context.Context, ids []string) ([]model.Profile, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	out := make([]model.Profile, 0, len(ids))
+	for _, id := range ids {
+		if p, ok := r.items[id]; ok {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
 func (r *InMemoryProfileRepository) List(_ context.Context, limit int) ([]model.Profile, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

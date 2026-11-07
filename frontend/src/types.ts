@@ -133,7 +133,7 @@ export interface StatusChangeResult {
 }
 
 /** notification service: NOTIFICATION.notices — đối tượng notice trỏ tới. */
-export type NoticeTargetType = 'task' | 'schedule' | 'event' | 'backlog';
+export type NoticeTargetType = 'task' | 'schedule' | 'event' | 'backlog' | 'friend';
 
 /**
  * notification service: NOTIFICATION.notices
@@ -156,7 +156,7 @@ export interface Notice {
   readAt?: string | null;
 }
 
-const NOTICE_TARGET_TYPES: NoticeTargetType[] = ['task', 'schedule', 'event', 'backlog'];
+const NOTICE_TARGET_TYPES: NoticeTargetType[] = ['task', 'schedule', 'event', 'backlog', 'friend'];
 
 export function normalizeTargetType(value: string | null | undefined): NoticeTargetType | null {
   if (typeof value !== 'string') {
@@ -164,6 +164,33 @@ export function normalizeTargetType(value: string | null | undefined): NoticeTar
   }
   const short = value.trim().toLowerCase().replace(/^notice_target_type_/, '');
   return (NOTICE_TARGET_TYPES as string[]).includes(short) ? (short as NoticeTargetType) : null;
+}
+
+/** social service: phần hồ sơ được phép cho người dùng khác thấy. */
+export interface FriendProfile {
+  id: string;
+  email: string;
+  displayName: string;
+  avatarUrl: string;
+}
+
+export interface Friend {
+  profile: FriendProfile;
+  friendsSince?: string | null;
+}
+
+/** Lời mời đang chờ; `profile` là phía bên kia. */
+export interface FriendRequest {
+  id: string;
+  profile: FriendProfile;
+  createdAt?: string | null;
+}
+
+export type FriendRelation = 'none' | 'self' | 'friend' | 'outgoing' | 'incoming';
+
+export interface FriendSearchResult {
+  profile: FriendProfile | null;
+  relation: FriendRelation;
 }
 
 /* -------------------------------------------------------------------------- */

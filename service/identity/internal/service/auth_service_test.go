@@ -53,6 +53,16 @@ func (s *stubProfiles) GetByEmail(_ context.Context, email string) (model.Profil
 	return model.Profile{}, model.ErrNotFound
 }
 
+func (s *stubProfiles) ListByIDs(_ context.Context, ids []string) ([]model.Profile, error) {
+	out := make([]model.Profile, 0, len(ids))
+	for _, id := range ids {
+		if p, ok := s.items[id]; ok {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
 func (s *stubProfiles) List(_ context.Context, limit int) ([]model.Profile, error) {
 	out := make([]model.Profile, 0, len(s.items))
 	for _, p := range s.items {

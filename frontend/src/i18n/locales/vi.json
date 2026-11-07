@@ -14,7 +14,8 @@
     "groups": {
       "dashboard": "Tổng quan",
       "planning": "Kế hoạch",
-      "config": "Cấu hình"
+      "config": "Cấu hình",
+      "social": "Kết nối"
     },
     "emptyGroup": "Sắp có",
     "today": "Hôm nay",
@@ -24,7 +25,8 @@
     "backlog": "Backlog",
     "reports": "Báo cáo",
     "statusesLifecycle": "Trạng thái & vòng đời",
-    "projects": "Project"
+    "projects": "Project",
+    "friends": "Bạn bè"
   },
   "sidebar": {
     "brand": "Quản lý công việc"
@@ -593,5 +595,33 @@
     "subtaskLocked": "Subtask theo project của task cha",
     "moveFailed": "Không chuyển được project",
     "moved": "Đã chuyển project"
+  },
+  "friends": {
+    "pageTitle": "Bạn bè",
+    "pageSubtitle": "Tìm người quen bằng email và kết bạn",
+    "searchPlaceholder": "Nhập đúng email của người bạn muốn tìm",
+    "searchAction": "Tìm",
+    "searchEmpty": "Không tìm thấy tài khoản với email này",
+    "searchFailed": "Không tìm được",
+    "tabFriends": "Bạn bè",
+    "tabIncoming": "Lời mời đến",
+    "tabOutgoing": "Đã gửi",
+    "addAction": "Kết bạn",
+    "acceptAction": "Chấp nhận",
+    "declineAction": "Từ chối",
+    "cancelAction": "Rút lời mời",
+    "removeAction": "Hủy kết bạn",
+    "statusSent": "Đã gửi lời mời",
+    "statusFriend": "Đã là bạn",
+    "emptyFriendsTitle": "Chưa có bạn bè",
+    "emptyFriends": "Tìm bằng email ở ô phía trên để gửi lời mời kết bạn.",
+    "emptyIncomingTitle": "Không có lời mời nào",
+    "emptyIncoming": "Lời mời kết bạn gửi đến bạn sẽ hiện ở đây.",
+    "emptyOutgoingTitle": "Chưa gửi lời mời nào",
+    "emptyOutgoing": "Lời mời bạn đã gửi và đang chờ trả lời sẽ hiện ở đây.",
+    "removeTitle": "Hủy kết bạn?",
+    "removeMessage": "{{name}} sẽ bị xóa khỏi danh sách bạn bè của bạn. Bạn có thể gửi lại lời mời sau.",
+    "removeCancel": "Giữ lại",
+    "actionFailed": "Không thực hiện được"
   }
 }

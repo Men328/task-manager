@@ -34,6 +34,9 @@
       "name": "ReportService"
     },
     {
+      "name": "FriendService"
+    },
+    {
       "name": "StatusTransitionService"
     },
     {

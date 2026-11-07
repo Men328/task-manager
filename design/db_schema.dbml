@@ -593,6 +593,21 @@ TableGroup event_service {
   event.events
 }
 
+Table social.friendships {
+  id           uuid        [pk, default: `gen_random_uuid()`]
+  requester_id uuid        [not null, ref: > identity.PROFILES.id]
+  addressee_id uuid        [not null, ref: > identity.PROFILES.id]
+  status       varchar(16) [not null, default: 'pending', note: 'pending | accepted']
+  created_at   timestamptz [not null, default: `now()`]
+  accepted_at  timestamptz
+
+  Note: 'Mỗi cặp chỉ có 1 dòng (unique LEAST/GREATEST). Từ chối, rút lời mời, hủy kết bạn đều xoá dòng.'
+}
+
+TableGroup social_service {
+  social.friendships
+}
+
 TableGroup project_service {
   project.projects
 }

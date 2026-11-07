@@ -7,6 +7,7 @@ import {
   IconChecklist,
   IconFolders,
   IconSunHigh,
+  IconUsers,
 } from '@tabler/icons-react';
 
 type IconComponent = typeof IconChecklist;
@@ -42,6 +43,11 @@ export const NAV_SECTIONS: NavSection[] = [
       { key: 'events', labelKey: 'nav.events', icon: IconCalendarEvent, to: '/events' },
       { key: 'backlog', labelKey: 'nav.backlog', icon: IconArchive, to: '/backlog' },
     ],
+  },
+  {
+    key: 'social',
+    labelKey: 'nav.groups.social',
+    items: [{ key: 'friends', labelKey: 'nav.friends', icon: IconUsers, to: '/friends' }],
   },
   {
     key: 'config',

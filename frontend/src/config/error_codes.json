@@ -1,6 +1,6 @@
 {
   "_note": "Bộ mã lỗi chuẩn (canonical). Backend gắn mã này vào google.rpc.ErrorInfo; FE map mã sang message. Bản mirror cho FE: frontend/src/config/error_codes.json - sinh bằng `make error-codes`, không sửa tay.",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "domain": "taskmanager",
   "defaultCode": "COMMON_INTERNAL",
   "codes": {
@@ -1108,6 +1108,69 @@
       "message": {
         "vi": "Không tìm thấy tệp đính kèm.",
         "en": "Attachment not found."
+      }
+    },
+    "SOCIAL_CANNOT_FRIEND_SELF": {
+      "owner": "social",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Bạn không thể kết bạn với chính mình.",
+        "en": "You cannot add yourself as a friend."
+      }
+    },
+    "SOCIAL_PROFILE_NOT_FOUND": {
+      "owner": "social",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy người dùng.",
+        "en": "User not found."
+      }
+    },
+    "SOCIAL_FRIEND_REQUEST_EXISTS": {
+      "owner": "social",
+      "grpcCode": "AlreadyExists",
+      "httpStatus": 409,
+      "message": {
+        "vi": "Bạn đã gửi lời mời kết bạn cho người này.",
+        "en": "You have already sent this person a friend request."
+      }
+    },
+    "SOCIAL_ALREADY_FRIENDS": {
+      "owner": "social",
+      "grpcCode": "AlreadyExists",
+      "httpStatus": 409,
+      "message": {
+        "vi": "Hai bạn đã là bạn bè.",
+        "en": "You are already friends."
+      }
+    },
+    "SOCIAL_FRIEND_REQUEST_NOT_FOUND": {
+      "owner": "social",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Không tìm thấy lời mời kết bạn.",
+        "en": "Friend request not found."
+      }
+    },
+    "SOCIAL_FRIEND_NOT_FOUND": {
+      "owner": "social",
+      "grpcCode": "NotFound",
+      "httpStatus": 404,
+      "message": {
+        "vi": "Người này không có trong danh sách bạn bè.",
+        "en": "This person is not in your friends list."
+      }
+    },
+    "SOCIAL_EMAIL_INVALID": {
+      "owner": "social",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Email không hợp lệ.",
+        "en": "The email address is invalid."
       }
     }
   }

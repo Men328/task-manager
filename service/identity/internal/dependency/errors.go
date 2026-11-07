@@ -15,6 +15,8 @@ func ToGRPCError(err error) error {
 		return errorcode.Error(errorcode.IdentityEmailAlreadyExists)
 	case errors.Is(err, model.ErrProfileInactive):
 		return errorcode.Error(errorcode.IdentityAuthProfileInactive)
+	case errors.Is(err, model.ErrInvalid):
+		return errorcode.Error(errorcode.CommonInvalidArgument)
 	default:
 		return errorcode.Error(errorcode.CommonInternal)
 	}
