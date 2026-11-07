@@ -60,7 +60,6 @@ func (s *friendService) ListFriends(ctx context.Context, profileID string) ([]mo
 
 	friends := make([]model.Friend, 0, len(rows))
 	for _, row := range rows {
-		// Thiếu profile nghĩa là tài khoản đã xoá mềm: ẩn đi, không báo lỗi.
 		other, ok := profiles[otherSide(row, profileID)]
 		if !ok {
 			continue
@@ -141,7 +140,6 @@ func (s *friendService) SendRequest(ctx context.Context, profileID, targetID str
 
 	created, err := s.friendships.Create(ctx, profileID, targetID)
 	if errors.Is(err, model.ErrDuplicate) {
-		// Người kia vừa mời cùng lúc: unique index chặn dòng thứ hai, đọc lại để xử lý như đã mời trước.
 		existing, err := s.friendships.GetByPair(ctx, profileID, targetID)
 		if err != nil {
 			return model.RelationNone, err
@@ -167,7 +165,6 @@ func (s *friendService) AcceptRequest(ctx context.Context, profileID, requestID 
 		return err
 	}
 
-	// Đã chấp nhận xong: tra tên chỉ để điền thông báo, lỗi thì bỏ qua thông báo.
 	profiles, err := s.directory.GetByIDs(ctx, []string{profileID})
 	if err != nil || len(profiles) == 0 {
 		slog.Warn("tra hồ sơ để báo chấp nhận kết bạn", "request_id", row.ID, "error", err)
@@ -209,7 +206,6 @@ func (s *friendService) deletePending(ctx context.Context, requestID string, all
 	return nil
 }
 
-// requireProfiles kiểm tra cả 2 tài khoản còn tồn tại và trả hồ sơ người gửi.
 func (s *friendService) requireProfiles(ctx context.Context, profileID, targetID string) (model.Profile, error) {
 	profiles, err := s.directory.GetByIDs(ctx, []string{profileID, targetID})
 	if err != nil {
@@ -257,7 +253,6 @@ func (s *friendService) notifyAccepted(ctx context.Context, row model.Friendship
 	}
 }
 
-// profilesOf tra hồ sơ phía bên kia của mọi dòng trong một lần gọi.
 func (s *friendService) profilesOf(ctx context.Context, rows []model.Friendship, profileID string) (map[string]model.Profile, error) {
 	if len(rows) == 0 {
 		return map[string]model.Profile{}, nil

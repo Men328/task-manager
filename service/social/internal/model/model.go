@@ -9,7 +9,6 @@ const (
 	StatusAccepted Status = "accepted"
 )
 
-// Relation mô tả quan hệ giữa người gọi và một profile khác.
 type Relation string
 
 const (
@@ -20,7 +19,6 @@ const (
 	RelationIncoming Relation = "incoming"
 )
 
-// Profile là phần hồ sơ được phép cho người dùng khác thấy.
 type Profile struct {
 	ID          string
 	Email       string
@@ -42,7 +40,6 @@ type Friend struct {
 	Since   time.Time
 }
 
-// FriendRequest là lời mời đang chờ; Profile là phía bên kia.
 type FriendRequest struct {
 	ID        string
 	Profile   Profile

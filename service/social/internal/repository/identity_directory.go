@@ -12,7 +12,6 @@ import (
 	"taskmanager/service/social/internal/model"
 )
 
-// maxBatchIDs khớp giới hạn của identity.BatchGetProfiles.
 const maxBatchIDs = 500
 
 type IdentityDirectory struct {

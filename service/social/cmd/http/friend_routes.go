@@ -24,8 +24,6 @@ const (
 	maxBodyBytes = 16 * 1024
 )
 
-// friendRoutes là HTTP API của social. Người gọi luôn lấy từ session token,
-// không bao giờ từ dữ liệu client gửi lên.
 type friendRoutes struct {
 	friends socialv1.FriendServiceClient
 	signer  *sessionSigner
@@ -63,7 +61,6 @@ func (a *friendRoutes) register(mux *runtime.ServeMux) error {
 	return nil
 }
 
-// authedHandler trả response của gRPC; friendRoutes lo phần xác thực và ghi kết quả.
 type authedHandler func(ctx context.Context, r *http.Request, profileID string, params map[string]string) (proto.Message, error)
 
 func (a *friendRoutes) authenticated(handler authedHandler) runtime.HandlerFunc {
@@ -124,7 +121,6 @@ func (a *friendRoutes) handleCancel(ctx context.Context, _ *http.Request, profil
 	return a.friends.CancelFriendRequest(ctx, &socialv1.CancelFriendRequestRequest{ProfileId: profileID, RequestId: params["id"]})
 }
 
-// parseTargetID đọc người nhận lời mời từ body.
 func parseTargetID(r *http.Request) (string, error) {
 	raw, err := io.ReadAll(io.LimitReader(r.Body, maxBodyBytes))
 	if err != nil {

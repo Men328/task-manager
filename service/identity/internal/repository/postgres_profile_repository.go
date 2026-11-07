@@ -86,7 +86,6 @@ func (r *PostgresProfileRepository) GetByEmail(ctx context.Context, email string
 func (r *PostgresProfileRepository) ListByIDs(ctx context.Context, ids []string) ([]model.Profile, error) {
 	valid := make([]string, 0, len(ids))
 	for _, id := range ids {
-		// Một id sai định dạng không được làm hỏng cả lô khi ép kiểu uuid[].
 		if uuid.Validate(id) == nil {
 			valid = append(valid, id)
 		}

@@ -18,7 +18,6 @@ type Config struct {
 
 	DatabaseURL string
 
-	// SessionSecret dùng để xác thực session JWT do identity phát hành.
 	SessionSecret string
 
 	IdentityGRPCDialAddr     string

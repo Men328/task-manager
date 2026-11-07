@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"taskmanager/service/social/internal/model"
-	"taskmanager/service/social/internal/repository"
 	"taskmanager/service/social/internal/service"
 )
 
@@ -75,7 +74,7 @@ type fixture struct {
 }
 
 func newFixture() *fixture {
-	return newFixtureWithRepo(repository.NewInMemoryFriendshipRepository())
+	return newFixtureWithRepo(newMemoryRepo())
 }
 
 func newFixtureWithRepo(repo service.FriendshipRepository) *fixture {
@@ -93,7 +92,6 @@ func newFixtureWithRepo(repo service.FriendshipRepository) *fixture {
 	}
 }
 
-// invite tạo lời mời from -> to và trả id của nó.
 func (f *fixture) invite(t *testing.T, from, to string) string {
 	t.Helper()
 	if _, err := f.svc.SendRequest(context.Background(), from, to); err != nil {
@@ -189,7 +187,6 @@ func TestSendRequestWhenOtherSideInvitedAutoAccepts(t *testing.T) {
 	}
 }
 
-// racingRepo giả lập người kia chèn lời mời ngay sau khi service đọc cặp lần đầu.
 type racingRepo struct {
 	service.FriendshipRepository
 	hidden bool
@@ -204,7 +201,7 @@ func (r *racingRepo) GetByPair(ctx context.Context, a, b string) (model.Friendsh
 }
 
 func TestSendRequestRaceFallsBackToAutoAccept(t *testing.T) {
-	inner := repository.NewInMemoryFriendshipRepository()
+	inner := newMemoryRepo()
 	if _, err := inner.Create(context.Background(), alice, bob); err != nil {
 		t.Fatalf("tạo: %v", err)
 	}
