@@ -5,7 +5,9 @@ go 1.25.0
 replace taskmanager/common => ../../common
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0
 	github.com/jackc/pgx/v5 v5.11.0
 	go.uber.org/fx v1.24.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260904194346-d0f1323225a4
@@ -15,7 +17,6 @@ require (
 )
 
 require (
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect

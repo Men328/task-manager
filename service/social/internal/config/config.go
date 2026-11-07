@@ -41,6 +41,10 @@ func Load() Config {
 	}
 }
 
+func (c Config) SessionConfigured() bool {
+	return len(c.SessionSecret) >= 16
+}
+
 func (c Config) SlogLevel() slog.Level {
 	switch strings.ToLower(c.LogLevel) {
 	case "debug":
