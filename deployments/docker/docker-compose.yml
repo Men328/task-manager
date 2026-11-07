@@ -327,6 +327,58 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ------------------------------------------------------------------ social
+  # Quan hệ bạn bè (social.friendships). Gateway verify session JWT của identity.
+  social-grpc:
+    build:
+      context: ../..
+      dockerfile: service/social/Dockerfile
+    image: task-manager/social:latest
+    container_name: tm-social-grpc
+    entrypoint: ["/usr/local/bin/grpc"]
+    environment:
+      SERVICE_NAME: social
+      GRPC_ADDR: ":9091"
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+      IDENTITY_GRPC_DIAL_ADDR: "identity-grpc:9081"
+      NOTIFICATION_GRPC_DIAL_ADDR: "notification-grpc:9088"
+    depends_on:
+      identity-grpc:
+        condition: service_started
+      notification-grpc:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  social:
+    build:
+      context: ../..
+      dockerfile: service/social/Dockerfile
+    image: task-manager/social:latest
+    container_name: tm-social
+    entrypoint: ["/usr/local/bin/http"]
+    environment:
+      SERVICE_NAME: social
+      HTTP_ADDR: ":8091"
+      GRPC_DIAL_ADDR: "social-grpc:9091"
+      LOG_LEVEL: info
+      # Gateway xác thực session JWT (HS256) do identity phát hành.
+      SESSION_SECRET: ${SESSION_SECRET:-}
+    depends_on:
+      social-grpc:
+        condition: service_started
+    healthcheck:
+      # /healthz chỉ 200 khi gateway gọi được gRPC health service.
+      test: ["CMD", "wget", "-qO-", "http://localhost:8091/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   # ------------------------------------------------------------------ event
   # Sự kiện cá nhân (EVENT.events): giống lịch nhưng có status + source.
   event-grpc:
@@ -727,6 +779,8 @@ services:
       calendar:
         condition: service_healthy
       project:
+        condition: service_healthy
+      social:
         condition: service_healthy
       event:
         condition: service_healthy

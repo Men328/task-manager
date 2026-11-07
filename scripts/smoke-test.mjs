@@ -9,6 +9,8 @@
  *   NotFound            -> 404
  *   AlreadyExists       -> 409
  */
+import { createHmac } from 'node:crypto';
+
 const IDENTITY = process.env.IDENTITY_URL ?? 'http://localhost:8081';
 const TASK = process.env.TASK_URL ?? 'http://localhost:8082';
 const CALENDAR = process.env.CALENDAR_URL ?? 'http://localhost:8083';
@@ -16,11 +18,28 @@ const PROJECT = process.env.PROJECT_URL ?? 'http://localhost:8090';
 const EVENT = process.env.EVENT_URL ?? 'http://localhost:8085';
 const BACKLOG = process.env.BACKLOG_URL ?? 'http://localhost:8086';
 const REPORT = process.env.REPORT_URL ?? 'http://localhost:8087';
+const SOCIAL = process.env.SOCIAL_URL ?? 'http://localhost:8091';
+const SESSION_SECRET = process.env.SMOKE_SESSION_SECRET ?? '';
 
-async function req(method, url, body) {
+/** Ký session JWT giống identity, cho các API bắt buộc bearer token. */
+function sessionToken(profileId) {
+  const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const payload = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({
+    iss: 'taskmanager-identity',
+    sub: profileId,
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  })}`;
+  const signature = createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+async function req(method, url, body, token) {
   const res = await fetch(url, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
@@ -392,6 +411,65 @@ check('GET /v1/reports/activity (sự kiện + lịch + backlog)',
     (r.data.backlogs?.byCategory ?? []).some((entry) => entry.category === 'task' && entry.count >= 1));
 checkCode('GET /v1/reports/activity thiếu profile_id -> 400 + REPORT_PROFILE_ID_REQUIRED',
   await req('GET', `${REPORT}/v1/reports/activity`), 400, 'REPORT_PROFILE_ID_REQUIRED');
+
+// ---------------------------------------------------------------- social
+check('GET /healthz (social)', await req('GET', `${SOCIAL}/healthz`), 200);
+checkCode('GET /v1/friends không token -> 401',
+  await req('GET', `${SOCIAL}/v1/friends`), 401, 'IDENTITY_AUTH_TOKEN_MISSING');
+
+const friendSuffix = Date.now();
+const friendA = check('POST /v1/profiles (bạn A)',
+  await req('POST', `${IDENTITY}/v1/profiles`, { email: `friend-a-${friendSuffix}@example.com`, display_name: 'Bạn A' }),
+  200).profile;
+const friendB = check('POST /v1/profiles (bạn B)',
+  await req('POST', `${IDENTITY}/v1/profiles`, { email: `friend-b-${friendSuffix}@example.com`, display_name: 'Bạn B' }),
+  200).profile;
+const tokenA = sessionToken(friendA.id);
+const tokenB = sessionToken(friendB.id);
+
+check('GET /v1/friends/search (email viết hoa)',
+  await req('GET', `${SOCIAL}/v1/friends/search?email=${encodeURIComponent(friendB.email.toUpperCase())}`, undefined, tokenA),
+  200,
+  (r) => r.data.profile?.id === friendB.id && r.data.relation === 'none');
+check('GET /v1/friends/search (email không tồn tại)',
+  await req('GET', `${SOCIAL}/v1/friends/search?email=nobody-${friendSuffix}@example.com`, undefined, tokenA),
+  200,
+  (r) => r.data.profile === null && r.data.relation === 'none');
+check('POST /v1/friend-requests',
+  await req('POST', `${SOCIAL}/v1/friend-requests`, { profile_id: friendB.id }, tokenA),
+  200,
+  (r) => r.data.relation === 'outgoing');
+checkCode('POST /v1/friend-requests lần 2 -> 409',
+  await req('POST', `${SOCIAL}/v1/friend-requests`, { profile_id: friendB.id }, tokenA),
+  409, 'SOCIAL_FRIEND_REQUEST_EXISTS');
+const requestsOfB = check('GET /v1/friend-requests (người nhận)',
+  await req('GET', `${SOCIAL}/v1/friend-requests`, undefined, tokenB),
+  200,
+  (r) => r.data.incoming?.length === 1 && r.data.incoming[0].profile.id === friendA.id);
+checkCode('POST accept bởi người gửi -> 404',
+  await req('POST', `${SOCIAL}/v1/friend-requests/${requestsOfB.incoming[0].id}/accept`, undefined, tokenA),
+  404, 'SOCIAL_FRIEND_REQUEST_NOT_FOUND');
+checkCode('POST accept với id sai định dạng -> 404',
+  await req('POST', `${SOCIAL}/v1/friend-requests/not-a-uuid/accept`, undefined, tokenB),
+  404, 'SOCIAL_FRIEND_REQUEST_NOT_FOUND');
+check('POST /v1/friend-requests/{id}/accept',
+  await req('POST', `${SOCIAL}/v1/friend-requests/${requestsOfB.incoming[0].id}/accept`, undefined, tokenB),
+  200);
+check('GET /v1/friends (A thấy B)',
+  await req('GET', `${SOCIAL}/v1/friends`, undefined, tokenA),
+  200,
+  (r) => r.data.friends?.length === 1 && r.data.friends[0].profile.id === friendB.id);
+check('GET /v1/friends (B thấy A)',
+  await req('GET', `${SOCIAL}/v1/friends`, undefined, tokenB),
+  200,
+  (r) => r.data.friends?.length === 1 && r.data.friends[0].profile.id === friendA.id);
+check('DELETE /v1/friends/{profile_id}',
+  await req('DELETE', `${SOCIAL}/v1/friends/${friendB.id}`, undefined, tokenA),
+  200);
+check('GET /v1/friends (B không còn bạn)',
+  await req('GET', `${SOCIAL}/v1/friends`, undefined, tokenB),
+  200,
+  (r) => r.data.friends?.length === 0);
 
 console.log(failures === 0 ? '\nSMOKE: ALL PASS' : `\nSMOKE: ${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

@@ -27,6 +27,7 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
         run-mail-provider run-mail-provider-grpc run-mail-provider-http \
         run-notification run-notification-grpc run-notification-http \
         run-report run-report-grpc run-report-http \
+        run-social run-social-grpc run-social-http \
         quality-all quality-fmt quality-vet quality-arch
 
 help: ## Hiển thị danh sách lệnh
@@ -210,6 +211,15 @@ run-notification-grpc: ## Chỉ chạy gRPC server notification (:9088)
 
 run-notification-http: ## Chỉ chạy HTTP gateway notification (:8088)
 	cd service/notification && go run ./cmd/http
+
+run-social: ## Chạy social local: gRPC :9091 + gateway :8091 (cần identity, notification)
+	bash scripts/run-service.sh social
+
+run-social-grpc: ## Chỉ chạy gRPC server social (:9091)
+	cd service/social && go run ./cmd/grpc
+
+run-social-http: ## Chỉ chạy HTTP gateway social (:8091)
+	cd service/social && go run ./cmd/http
 
 run-report: ## Chạy report local: gRPC :9087 + gateway :8087 (cần task service)
 	bash scripts/run-service.sh report

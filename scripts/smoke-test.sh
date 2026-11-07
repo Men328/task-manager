@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# Smoke test end-to-end: build 10 service (mỗi service gồm gRPC server + gateway),
+# Smoke test end-to-end: build 11 service (mỗi service gồm gRPC server + gateway),
 # chạy ở port mặc định, gọi API thật, rồi tắt.
 # Yêu cầu: go, node >= 20 (dùng fetch), curl.
-# Port 8081-8090 và 9081-9090 phải đang trống.
+# Port 8081-8091 và 9081-9091 phải đang trống.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 BIN_DIR="${TMPDIR:-/tmp}/task-manager-smoke"
 mkdir -p "$BIN_DIR"
+
+# Session giả cho social: gateway và smoke-test.mjs phải dùng chung secret.
+export SMOKE_SESSION_SECRET="smoke-session-secret-0123456789"
 
 log() { printf '\033[36m==>\033[0m %s\n' "$*"; }
 
@@ -33,6 +36,8 @@ go build -o "$BIN_DIR/report-grpc" ./service/report/cmd/grpc
 go build -o "$BIN_DIR/report-http" ./service/report/cmd/http
 go build -o "$BIN_DIR/notification-grpc" ./service/notification/cmd/grpc
 go build -o "$BIN_DIR/notification-http" ./service/notification/cmd/http
+go build -o "$BIN_DIR/social-grpc" ./service/social/cmd/grpc
+go build -o "$BIN_DIR/social-http" ./service/social/cmd/http
 
 log "start service"
 "$BIN_DIR/identity-grpc" >"$BIN_DIR/identity-grpc.log" 2>&1 &
@@ -75,6 +80,10 @@ REPORT_HTTP_PID=$!
 NOTIFICATION_GRPC_PID=$!
 "$BIN_DIR/notification-http" >"$BIN_DIR/notification-http.log" 2>&1 &
 NOTIFICATION_HTTP_PID=$!
+"$BIN_DIR/social-grpc" >"$BIN_DIR/social-grpc.log" 2>&1 &
+SOCIAL_GRPC_PID=$!
+SESSION_SECRET="$SMOKE_SESSION_SECRET" "$BIN_DIR/social-http" >"$BIN_DIR/social-http.log" 2>&1 &
+SOCIAL_HTTP_PID=$!
 
 cleanup() {
   kill "$IDENTITY_HTTP_PID" "$IDENTITY_GRPC_PID" \
@@ -86,7 +95,8 @@ cleanup() {
     "$ATTACHMENT_HTTP_PID" "$ATTACHMENT_GRPC_PID" \
     "$MAIL_HTTP_PID" "$MAIL_GRPC_PID" \
     "$REPORT_HTTP_PID" "$REPORT_GRPC_PID" \
-    "$NOTIFICATION_HTTP_PID" "$NOTIFICATION_GRPC_PID" 2>/dev/null || true
+    "$NOTIFICATION_HTTP_PID" "$NOTIFICATION_GRPC_PID" \
+    "$SOCIAL_HTTP_PID" "$SOCIAL_GRPC_PID" 2>/dev/null || true
   wait 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
@@ -101,7 +111,8 @@ for _ in $(seq 1 60); do
     && curl -sf localhost:8084/healthz >/dev/null 2>&1 \
     && curl -sf localhost:8088/healthz >/dev/null 2>&1 \
     && curl -sf localhost:8089/healthz >/dev/null 2>&1 \
-    && curl -sf localhost:8090/healthz >/dev/null 2>&1; then
+    && curl -sf localhost:8090/healthz >/dev/null 2>&1 \
+    && curl -sf localhost:8091/healthz >/dev/null 2>&1; then
     break
   fi
   sleep 0.25
@@ -116,7 +127,8 @@ if ! curl -sf localhost:8081/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8084/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8088/healthz >/dev/null 2>&1 \
   || ! curl -sf localhost:8089/healthz >/dev/null 2>&1 \
-  || ! curl -sf localhost:8090/healthz >/dev/null 2>&1; then
+  || ! curl -sf localhost:8090/healthz >/dev/null 2>&1 \
+  || ! curl -sf localhost:8091/healthz >/dev/null 2>&1; then
   echo "Service không khởi động được. Log:" >&2
   tail -20 \
     "$BIN_DIR/identity-grpc.log" "$BIN_DIR/identity-http.log" \
@@ -128,7 +140,8 @@ if ! curl -sf localhost:8081/healthz >/dev/null 2>&1 \
     "$BIN_DIR/attachment-grpc.log" "$BIN_DIR/attachment-http.log" \
     "$BIN_DIR/mail-provider-grpc.log" "$BIN_DIR/mail-provider-http.log" \
     "$BIN_DIR/report-grpc.log" "$BIN_DIR/report-http.log" \
-    "$BIN_DIR/notification-grpc.log" "$BIN_DIR/notification-http.log" >&2
+    "$BIN_DIR/notification-grpc.log" "$BIN_DIR/notification-http.log" \
+    "$BIN_DIR/social-grpc.log" "$BIN_DIR/social-http.log" >&2
   exit 1
 fi
 
