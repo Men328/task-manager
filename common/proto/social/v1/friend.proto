@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package social.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/social/v1;socialv1";
+
+// Toàn bộ RPC là nội bộ: cố ý KHÔNG khai báo google.api.http vì gateway sinh tự
+// động không kiểm tra token. HTTP đi qua route viết tay ở service/social/cmd/http,
+// nơi profile_id được lấy từ session token. Mọi field profile_id là người gọi.
+
+// FriendProfile là phần hồ sơ được phép cho người dùng khác thấy.
+message FriendProfile {
+  string id = 1;
+  string email = 2;
+  string display_name = 3;
+  string avatar_url = 4;
+}
+
+message Friend {
+  FriendProfile profile = 1;
+  google.protobuf.Timestamp friends_since = 2;
+}
+
+// FriendRequest là lời mời đang chờ; profile là phía bên kia của lời mời.
+message FriendRequest {
+  string id = 1;
+  FriendProfile profile = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message SearchByEmailRequest {
+  string profile_id = 1;
+  string email = 2;
+}
+
+// profile không được set khi không có tài khoản khớp.
+// relation: none | self | friend | outgoing | incoming.
+message SearchByEmailResponse {
+  FriendProfile profile = 1;
+  string relation = 2;
+}
+
+message ListFriendsRequest {
+  string profile_id = 1;
+}
+
+message ListFriendsResponse {
+  repeated Friend friends = 1;
+}
+
+message RemoveFriendRequest {
+  string profile_id = 1;
+  string friend_id = 2;
+}
+
+message RemoveFriendResponse {}
+
+message ListFriendRequestsRequest {
+  string profile_id = 1;
+}
+
+message ListFriendRequestsResponse {
+  repeated FriendRequest incoming = 1;
+  repeated FriendRequest outgoing = 2;
+}
+
+message SendFriendRequestRequest {
+  string profile_id = 1;
+  string target_id = 2;
+}
+
+// relation: outgoing, hoặc friend khi đối phương đã mời trước nên tự thành bạn.
+message SendFriendRequestResponse {
+  string relation = 1;
+}
+
+message AcceptFriendRequestRequest {
+  string profile_id = 1;
+  string request_id = 2;
+}
+
+message AcceptFriendRequestResponse {}
+
+message DeclineFriendRequestRequest {
+  string profile_id = 1;
+  string request_id = 2;
+}
+
+message DeclineFriendRequestResponse {}
+
+message CancelFriendRequestRequest {
+  string profile_id = 1;
+  string request_id = 2;
+}
+
+message CancelFriendRequestResponse {}
+
+service FriendService {
+  rpc SearchByEmail(SearchByEmailRequest) returns (SearchByEmailResponse);
+  rpc ListFriends(ListFriendsRequest) returns (ListFriendsResponse);
+  rpc RemoveFriend(RemoveFriendRequest) returns (RemoveFriendResponse);
+  rpc ListFriendRequests(ListFriendRequestsRequest) returns (ListFriendRequestsResponse);
+  rpc SendFriendRequest(SendFriendRequestRequest) returns (SendFriendRequestResponse);
+  rpc AcceptFriendRequest(AcceptFriendRequestRequest) returns (AcceptFriendRequestResponse);
+  rpc DeclineFriendRequest(DeclineFriendRequestRequest) returns (DeclineFriendRequestResponse);
+  rpc CancelFriendRequest(CancelFriendRequestRequest) returns (CancelFriendRequestResponse);
+}

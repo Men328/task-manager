@@ -7,6 +7,7 @@ const (
 	TargetTypeSchedule = "schedule"
 	TargetTypeEvent    = "event"
 	TargetTypeBacklog  = "backlog"
+	TargetTypeFriend   = "friend"
 )
 
 const (
@@ -46,7 +47,7 @@ type Filter struct {
 
 func TargetTypeValid(targetType string) bool {
 	switch targetType {
-	case TargetTypeTask, TargetTypeSchedule, TargetTypeEvent, TargetTypeBacklog:
+	case TargetTypeTask, TargetTypeSchedule, TargetTypeEvent, TargetTypeBacklog, TargetTypeFriend:
 		return true
 	default:
 		return false
