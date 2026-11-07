@@ -17,34 +17,29 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
-import { useNotices } from '../../context';
+import { useAppDispatch, useNotices } from '../../context';
+import { fetchFriends } from '../../context/friends/friendsSlice';
 import { formatDateTime } from '../../lib/format';
+import { noticeTargetPath } from '../../lib/noticeTarget';
 import { tokens } from '../../theme';
-import { normalizeTargetType, type Notice } from '../../types';
+import type { Notice } from '../../types';
 import classes from './NotificationMenu.module.css';
 
 const TASK_REMINDER = 'TASK_REMINDER';
+const FRIEND_NOTICES = ['FRIEND_REQUEST', 'FRIEND_ACCEPTED'];
 /** Toast nhắc việc ở lâu hơn toast thường để người dùng kịp thấy. */
 const REMINDER_TOAST_MS = 20000;
-
-function targetPath(notice: Notice): string {
-  switch (normalizeTargetType(notice.targetType)) {
-    case 'schedule':
-      return '/calendar';
-    case 'event':
-      return '/events';
-    case 'backlog':
-      return '/backlog';
-    default:
-      return '/';
-  }
-}
 
 export function NotificationMenu() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [opened, setOpened] = useState(false);
   const { items, unreadCount, loading, markRead, markAllRead, refresh } = useNotices((notice) => {
+    // Menu luôn được mount trong layout nên danh sách bạn bè cập nhật ngay cả khi đang mở trang.
+    if (FRIEND_NOTICES.includes(notice.type)) {
+      void dispatch(fetchFriends());
+    }
     if (notice.type !== TASK_REMINDER) {
       return;
     }
@@ -89,7 +84,7 @@ export function NotificationMenu() {
     if (!notice.isRead) {
       void markRead([notice.id]);
     }
-    navigate(`${targetPath(notice)}?focus=${encodeURIComponent(notice.targetId)}`);
+    navigate(`${noticeTargetPath(notice.targetType)}?focus=${encodeURIComponent(notice.targetId)}`);
   };
 
   return (
