@@ -11,6 +11,7 @@ use (
 	./service/notification
 	./service/project
 	./service/report
+	./service/social
 	./service/task
 	./tools/quality
 )

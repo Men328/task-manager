@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 # Mỗi thư mục trong service/ (và common/) là 1 Go module riêng, quản lý bằng go.work.
 # Vì root không phải module nên `go build ./...` không dùng được -> loop từng module.
-MODULES := common service/attachment service/backlog service/calendar service/event service/identity service/mail-provider service/notification service/project service/report service/task tools/quality
+MODULES := common service/attachment service/backlog service/calendar service/event service/identity service/mail-provider service/notification service/project service/report service/social service/task tools/quality
 
 GOBIN ?= $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(GOBIN):$(PATH)
