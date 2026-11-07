@@ -103,7 +103,9 @@ và hai người có thể kết bạn lại từ đầu.
 Hai người gửi cùng lúc: unique index chặn dòng thứ hai; service bắt lỗi trùng rồi đọc
 lại và chuyển sang trường hợp "đối phương đã mời mình".
 
-Thông báo là best-effort: lỗi khi gọi `notification` chỉ ghi log, không làm hỏng thao tác.
+Thông báo là best-effort: lỗi khi gọi `notification` chỉ ghi log, không làm hỏng thao tác. Thông báo
+chạy trên context tách khỏi request với hạn 2 giây, để service phía sau bị treo không làm lỗi một
+thao tác đã xong.
 
 ### 5.4 HTTP API (đều bắt buộc bearer token)
 
@@ -137,7 +139,8 @@ Profile rút gọn gồm `id`, `email`, `displayName`, `avatarUrl`. Không trả
 - `BatchGetProfiles(ids)`: thêm `ListByIDs` vào repository (cả Postgres và in-memory),
   bỏ qua profile đã xóa mềm. Giới hạn 500 id mỗi lần gọi.
 
-**notification** — thêm `NOTICE_TARGET_TYPE_FRIEND = 5`.
+**notification** — thêm `NOTICE_TARGET_TYPE_FRIEND = 5`, nhận loại đích `friend` trong code và
+trong ràng buộc DB (migration `000016_notice_friend_target`).
 
 **Profile đã xóa mềm:** `BatchGetProfiles` không trả về nên social bỏ các dòng đó khỏi
 danh sách. Không dọn bảng `friendships`.
