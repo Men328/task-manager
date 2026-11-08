@@ -194,6 +194,20 @@ func (s *friendService) CancelRequest(ctx context.Context, profileID, requestID 
 	})
 }
 
+func (s *friendService) AreFriends(ctx context.Context, profileID, otherID string) (bool, error) {
+	if strings.TrimSpace(otherID) == "" || otherID == profileID {
+		return false, nil
+	}
+	row, err := s.friendships.GetByPair(ctx, profileID, otherID)
+	if errors.Is(err, model.ErrNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return row.Status == model.StatusAccepted, nil
+}
+
 func (s *friendService) deletePending(ctx context.Context, requestID string, allowed func(model.Friendship) bool) error {
 	row, err := s.friendships.Get(ctx, requestID)
 	if errors.Is(err, model.ErrNotFound) {

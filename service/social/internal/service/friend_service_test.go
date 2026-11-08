@@ -533,3 +533,29 @@ func TestAcceptNotifiesWithShortDetachedContext(t *testing.T) {
 	}
 	assertShortDetachedContext(t, f.notifier)
 }
+
+func TestAreFriendsOnlyForAcceptedPairs(t *testing.T) {
+	f := newFixture()
+	ctx := context.Background()
+	f.befriend(t, alice, bob)
+	f.invite(t, alice, carol)
+
+	cases := []struct {
+		name      string
+		a, b      string
+		wantMatch bool
+	}{
+		{"bạn bè theo chiều gửi", alice, bob, true},
+		{"bạn bè theo chiều nhận", bob, alice, true},
+		{"lời mời đang chờ", alice, carol, false},
+		{"người lạ", bob, carol, false},
+		{"chính mình", alice, alice, false},
+		{"thiếu id", alice, "", false},
+	}
+	for _, tc := range cases {
+		got, err := f.svc.AreFriends(ctx, tc.a, tc.b)
+		if err != nil || got != tc.wantMatch {
+			t.Fatalf("%s: phải %v, nhận %v (%v)", tc.name, tc.wantMatch, got, err)
+		}
+	}
+}

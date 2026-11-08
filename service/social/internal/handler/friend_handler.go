@@ -115,3 +115,15 @@ func (h *FriendHandler) CancelFriendRequest(ctx context.Context, req *socialv1.C
 	}
 	return &socialv1.CancelFriendRequestResponse{}, nil
 }
+
+func (h *FriendHandler) AreFriends(ctx context.Context, req *socialv1.AreFriendsRequest) (*socialv1.AreFriendsResponse, error) {
+	if err := dependency.ValidateProfileID(req.GetProfileId()); err != nil {
+		return nil, err
+	}
+
+	friends, err := h.friends.AreFriends(ctx, req.GetProfileId(), req.GetOtherId())
+	if err != nil {
+		return nil, dependency.ToGRPCError(err)
+	}
+	return &socialv1.AreFriendsResponse{Friends: friends}, nil
+}

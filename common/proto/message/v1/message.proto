@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package message.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "taskmanager/common/gen/go/message/v1;messagev1";
+
+// Toàn bộ RPC là nội bộ: cố ý KHÔNG khai báo google.api.http vì gateway sinh tự
+// động không kiểm tra token. HTTP đi qua route viết tay ở service/message/cmd/http,
+// nơi profile_id được lấy từ session token. Mọi field profile_id là người gọi.
+
+// ChatMessage vừa là response của API vừa là payload sự kiện: message-service
+// broadcast nó qua soketi (`message.created`) và đẩy vào Kafka topic
+// `chat.messages` (protojson, key = conversation_id) cho worker-service lưu DB.
+message ChatMessage {
+  string id = 1;
+  string conversation_id = 2;
+  string sender_id = 3;
+  string recipient_id = 4;
+  string body = 5;
+  // client_id do client tự sinh để khớp tin nhắn gửi lạc quan với bản server.
+  string client_id = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+// Conversation là cuộc trò chuyện 1-1 nhìn từ phía người gọi; peer_id là phía bên kia.
+message Conversation {
+  string id = 1;
+  string peer_id = 2;
+  ChatMessage last_message = 3;
+}
+
+message SendMessageRequest {
+  string profile_id = 1;
+  string peer_id = 2;
+  string body = 3;
+  string client_id = 4;
+}
+
+message SendMessageResponse {
+  ChatMessage message = 1;
+}
+
+// before rỗng = lấy trang mới nhất. Kết quả xếp từ cũ đến mới.
+message ListMessagesRequest {
+  string profile_id = 1;
+  string peer_id = 2;
+  google.protobuf.Timestamp before = 3;
+  int32 limit = 4;
+}
+
+message ListMessagesResponse {
+  repeated ChatMessage messages = 1;
+  bool has_more = 2;
+}
+
+message ListConversationsRequest {
+  string profile_id = 1;
+}
+
+message ListConversationsResponse {
+  repeated Conversation conversations = 1;
+}
+
+service MessageService {
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+}
