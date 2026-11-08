@@ -8,14 +8,20 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	notificationv1 "taskmanager/common/gen/go/notification/v1"
 
 	"taskmanager/service/worker/internal/config"
 	"taskmanager/service/worker/internal/handler"
+	"taskmanager/service/worker/internal/model"
 	"taskmanager/service/worker/internal/repository"
 	"taskmanager/service/worker/internal/service"
 )
@@ -54,14 +60,14 @@ func newMessageStore(pool *pgxpool.Pool) service.MessageStore {
 	return repository.NewPostgresMessageStore(pool)
 }
 
-func newMessageReader(lc fx.Lifecycle, cfg config.Config) (*kafka.Reader, error) {
+func newKafkaReader(lc fx.Lifecycle, cfg config.Config, topic, groupID string) (*kafka.Reader, error) {
 	if len(cfg.KafkaBrokers) == 0 {
 		return nil, errors.New("KAFKA_BROKERS là bắt buộc")
 	}
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:        cfg.KafkaBrokers,
-		GroupID:        cfg.KafkaMessageGroupID,
-		Topic:          cfg.KafkaMessageTopic,
+		GroupID:        groupID,
+		Topic:          topic,
 		MinBytes:       1,
 		MaxBytes:       10 << 20,
 		MaxWait:        500 * time.Millisecond,
@@ -76,36 +82,87 @@ func newMessageReader(lc fx.Lifecycle, cfg config.Config) (*kafka.Reader, error)
 	return reader, nil
 }
 
-func newMessageConsumer(reader *kafka.Reader, persister service.MessagePersister, cfg config.Config) *handler.MessageConsumer {
-	return handler.NewMessageConsumer(reader, persister, handler.RetryPolicy{
+func retryPolicy(cfg config.Config) handler.RetryPolicy {
+	return handler.RetryPolicy{
 		Initial:        cfg.RetryInitialBackoff,
 		Max:            cfg.RetryMaxBackoff,
 		PersistTimeout: cfg.PersistTimeout,
-	})
+	}
 }
 
-func runMessageConsumer(lc fx.Lifecycle, cfg config.Config, consumer *handler.MessageConsumer) {
+func newChatConsumer(lc fx.Lifecycle, cfg config.Config, persister service.MessagePersister) (*handler.Consumer, error) {
+	reader, err := newKafkaReader(lc, cfg, cfg.KafkaMessageTopic, cfg.KafkaMessageGroupID)
+	if err != nil {
+		return nil, err
+	}
+	name := cfg.KafkaMessageTopic + "/" + cfg.KafkaMessageGroupID
+	return handler.NewConsumer(name, reader, handler.NewChatMessageProcessor(persister), retryPolicy(cfg)), nil
+}
+
+func newTaskEventConsumer(lc fx.Lifecycle, cfg config.Config, events service.TaskEventHandler) (*handler.Consumer, error) {
+	reader, err := newKafkaReader(lc, cfg, cfg.KafkaTaskEventsTopic, cfg.KafkaTaskEventsGroupID)
+	if err != nil {
+		return nil, err
+	}
+	name := cfg.KafkaTaskEventsTopic + "/" + cfg.KafkaTaskEventsGroupID
+	return handler.NewConsumer(name, reader, handler.NewTaskEventProcessor(events), retryPolicy(cfg)), nil
+}
+
+func newNotificationConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(cfg.NotificationGRPCDialAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("dial gRPC notification (%s): %w", cfg.NotificationGRPCDialAddr, err)
+	}
+	lc.Append(fx.Hook{
+		OnStop: func(context.Context) error {
+			return conn.Close()
+		},
+	})
+	return conn, nil
+}
+
+func newTaskNotifier(conn *grpc.ClientConn, cfg config.Config) service.TaskNotifier {
+	return repository.NewNotificationClient(notificationv1.NewNoticeServiceClient(conn), cfg.UpstreamTimeout)
+}
+
+type noopBroadcaster struct{}
+
+func (noopBroadcaster) BroadcastUpdated(context.Context, model.Message) error { return nil }
+
+func newBroadcaster(cfg config.Config) service.MessageBroadcaster {
+	if !cfg.SoketiConfigured() {
+		slog.Warn("thiếu SOKETI_*: cập nhật thẻ task không được đẩy realtime")
+		return noopBroadcaster{}
+	}
+	return repository.NewSoketiBroadcaster(cfg.SoketiBaseURL, cfg.SoketiAppID, cfg.SoketiAppKey, cfg.SoketiAppSecret,
+		cfg.SoketiChatChannelPrefix, cfg.SoketiTimeout)
+}
+
+func runConsumers(lc fx.Lifecycle, consumers []*handler.Consumer) {
 	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
+	var wg sync.WaitGroup
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
-			slog.Info("worker consume kafka",
-				"service", cfg.ServiceName,
-				"brokers", cfg.KafkaBrokers,
-				"topic", cfg.KafkaMessageTopic,
-				"group_id", cfg.KafkaMessageGroupID,
-			)
-			go func() {
-				defer close(done)
-				if err := consumer.Run(ctx); err != nil {
-					slog.Error("consumer dừng bất thường", "error", err)
-				}
-			}()
+			for _, consumer := range consumers {
+				slog.Info("worker consume kafka", "consumer", consumer.Name())
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					if err := consumer.Run(ctx); err != nil {
+						slog.Error("consumer dừng bất thường", "consumer", consumer.Name(), "error", err)
+					}
+				}()
+			}
 			return nil
 		},
 		OnStop: func(stopCtx context.Context) error {
 			cancel()
+			done := make(chan struct{})
+			go func() {
+				wg.Wait()
+				close(done)
+			}()
 			select {
 			case <-done:
 			case <-stopCtx.Done():

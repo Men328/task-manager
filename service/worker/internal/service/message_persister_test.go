@@ -20,6 +20,10 @@ func (s *fakeStore) Save(_ context.Context, message model.Message) error {
 	return s.err
 }
 
+func (s *fakeStore) UpdateTaskStatus(context.Context, model.TaskStatusChanged) (model.Message, bool, error) {
+	return model.Message{}, false, nil
+}
+
 func validMessage() model.Message {
 	return model.Message{ID: "m1", ConversationID: "c1", SenderID: "a", RecipientID: "b", Body: "hi", CreatedAt: time.Now()}
 }
