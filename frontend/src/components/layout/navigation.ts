@@ -1,6 +1,5 @@
 import {
   IconArchive,
-  IconArrowsExchange,
   IconCalendarEvent,
   IconCalendarMonth,
   IconChartHistogram,
@@ -60,12 +59,6 @@ export const NAV_SECTIONS: NavSection[] = [
     labelKey: 'nav.groups.config',
     items: [
       { key: 'projects', labelKey: 'nav.projects', icon: IconFolders, to: '/projects' },
-      {
-        key: 'statuses',
-        labelKey: 'nav.statusesLifecycle',
-        icon: IconArrowsExchange,
-        to: '/statuses',
-      },
     ],
   },
 ];

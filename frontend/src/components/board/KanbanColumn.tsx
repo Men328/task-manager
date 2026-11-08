@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { ActionIcon, Box, Group, Menu, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
-import { IconDots, IconPlus, IconArrowsExchange } from '@tabler/icons-react';
+import { IconDots, IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
 import { statusColor } from '../../lib/tokens';
 import scrollClasses from '../../styles/scroll.module.css';
@@ -36,7 +35,6 @@ export function KanbanColumn({
 }: KanbanColumnProps) {
   const { t } = useTranslation();
   const [isOver, setIsOver] = useState(false);
-  const navigate = useNavigate();
   const color = statusColor(status.color, index);
 
   return (
@@ -95,12 +93,6 @@ export function KanbanColumn({
             <Menu.Dropdown>
               <Menu.Item leftSection={<IconPlus size={14} />} onClick={() => onAddTask(status.id)}>
                 {t('kanban.addToColumn')}
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<IconArrowsExchange size={14} />}
-                onClick={() => navigate('/statuses')}
-              >
-                {t('kanban.viewLifecycle')}
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
