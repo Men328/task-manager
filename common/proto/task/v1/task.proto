@@ -4,6 +4,7 @@ package task.v1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
+import "task/v1/status.proto";
 
 option go_package = "taskmanager/common/gen/go/task/v1;taskv1";
 
@@ -58,6 +59,10 @@ message Task {
   string recurrence_tz = 19;
   // Id task đầu chuỗi lặp; mọi lần lặp cùng chuỗi có cùng giá trị.
   string recurrence_series_id = 20;
+  // Người đã giao task này qua tin nhắn chat; rỗng = tự tạo.
+  string requested_by = 21;
+  // Tin nhắn chat chứa task (message.messages.id); rỗng = không tạo từ chat.
+  string source_message_id = 22;
 }
 
 message CreateTaskRequest {
@@ -82,6 +87,41 @@ message CreateTaskRequest {
 
 message CreateTaskResponse {
   Task task = 1;
+}
+
+// Nội bộ (message-service): tạo task cho profile khác từ tin nhắn chat.
+// Không có google.api.http nên không lộ qua gateway.
+message CreateTaskFromMessageRequest {
+  // Người nhận task.
+  string profile_id = 1;
+  // Rỗng = dự án mặc định của người nhận.
+  string project_id = 2;
+  string title = 3;
+  string description = 4;
+  TaskPriority priority = 5;
+  google.protobuf.Timestamp due_at = 6;
+  string requested_by = 7;
+  string source_message_id = 8;
+}
+
+message CreateTaskFromMessageResponse {
+  Task task = 1;
+  TaskStatus status = 2;
+}
+
+// Sự kiện Kafka topic `task.events` (protojson, key = task_id). Chỉ phát cho task
+// có requested_by (giao qua chat) để worker báo lại người giao.
+message TaskStatusChangedEvent {
+  string event_id = 1;
+  string task_id = 2;
+  // Chủ task (người nhận).
+  string profile_id = 3;
+  string title = 4;
+  string requested_by = 5;
+  string source_message_id = 6;
+  TaskStatus from_status = 7;
+  TaskStatus to_status = 8;
+  google.protobuf.Timestamp changed_at = 9;
 }
 
 message GetTaskRequest {
@@ -184,6 +224,8 @@ service TaskService {
       body: "*"
     };
   }
+
+  rpc CreateTaskFromMessage(CreateTaskFromMessageRequest) returns (CreateTaskFromMessageResponse);
 
   rpc GetTask(GetTaskRequest) returns (GetTaskResponse) {
     option (google.api.http) = {get: "/v1/tasks/{id}"};
