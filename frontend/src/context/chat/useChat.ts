@@ -2,7 +2,15 @@ import { useCallback, useMemo } from 'react';
 
 import { newClientId } from '../../lib/chatMessages';
 import { useAppDispatch, useAppSelector } from '../hooks';
-import { fetchConversations, fetchMessages, sendChatMessage, setActivePeer, type ChatThread } from './chatSlice';
+import {
+  fetchConversations,
+  fetchMessages,
+  sendChatMessage,
+  sendChatTask,
+  setActivePeer,
+  type ChatThread,
+} from './chatSlice';
+import type { ChatTaskDraft } from '../../types';
 
 const EMPTY_THREAD: ChatThread = { messages: [], hasMore: false, loading: false, loaded: false, error: null };
 
@@ -36,6 +44,16 @@ export function useChat(peerId: string | null) {
     [dispatch, peerId],
   );
 
+  const sendTask = useCallback(
+    (draft: ChatTaskDraft) => {
+      if (!peerId) {
+        return Promise.reject(new Error('no peer'));
+      }
+      return dispatch(sendChatTask({ peerId, draft, clientId: newClientId() })).unwrap();
+    },
+    [dispatch, peerId],
+  );
+
   const activate = useCallback(
     (value: string | null) => {
       dispatch(setActivePeer(value));
@@ -57,10 +75,23 @@ export function useChat(peerId: string | null) {
       loadLatest,
       loadOlder,
       send,
+      sendTask,
       activate,
       reloadConversations,
     }),
-    [profileId, thread, lastByPeer, unreadByPeer, conversationsError, loadLatest, loadOlder, send, activate, reloadConversations],
+    [
+      profileId,
+      thread,
+      lastByPeer,
+      unreadByPeer,
+      conversationsError,
+      loadLatest,
+      loadOlder,
+      send,
+      sendTask,
+      activate,
+      reloadConversations,
+    ],
   );
 }
 

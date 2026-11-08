@@ -32,16 +32,6 @@ type SoketiBroadcaster struct {
 	now           func() time.Time
 }
 
-type soketiMessage struct {
-	ID             string `json:"id"`
-	ConversationID string `json:"conversationId"`
-	SenderID       string `json:"senderId"`
-	RecipientID    string `json:"recipientId"`
-	Body           string `json:"body"`
-	ClientID       string `json:"clientId"`
-	CreatedAt      string `json:"createdAt"`
-}
-
 type soketiEvent struct {
 	Name     string   `json:"name"`
 	Channels []string `json:"channels"`
@@ -68,17 +58,9 @@ func ChatChannelName(prefix, profileID string) string {
 }
 
 func (b *SoketiBroadcaster) Broadcast(ctx context.Context, message model.Message) error {
-	payload, err := json.Marshal(soketiMessage{
-		ID:             message.ID,
-		ConversationID: message.ConversationID,
-		SenderID:       message.SenderID,
-		RecipientID:    message.RecipientID,
-		Body:           message.Body,
-		ClientID:       message.ClientID,
-		CreatedAt:      message.CreatedAt.UTC().Format(time.RFC3339Nano),
-	})
+	payload, err := EncodeMessageEvent(message)
 	if err != nil {
-		return fmt.Errorf("mã hoá tin nhắn: %w", err)
+		return err
 	}
 
 	event, err := json.Marshal(soketiEvent{

@@ -11,6 +11,8 @@ export function noticeTargetPath(targetType: string): string {
       return '/backlog';
     case 'friend':
       return '/friends';
+    case 'message':
+      return '/messages';
     default:
       return '/';
   }

@@ -33,8 +33,10 @@ type ChatMessage struct {
 	RecipientId    string                 `protobuf:"bytes,4,opt,name=recipient_id,json=recipientId,proto3" json:"recipient_id,omitempty"`
 	Body           string                 `protobuf:"bytes,5,opt,name=body,proto3" json:"body,omitempty"`
 	// client_id do client tự sinh để khớp tin nhắn gửi lạc quan với bản server.
-	ClientId      string                 `protobuf:"bytes,6,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ClientId  string                 `protobuf:"bytes,6,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Có khi tin nhắn giao task (lệnh /task); trạng thái được worker cập nhật theo task.events.
+	Task          *TaskRef `protobuf:"bytes,8,opt,name=task,proto3" json:"task,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -118,6 +120,98 @@ func (x *ChatMessage) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ChatMessage) GetTask() *TaskRef {
+	if x != nil {
+		return x.Task
+	}
+	return nil
+}
+
+type TaskRef struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	TaskId     string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Title      string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	StatusName string                 `protobuf:"bytes,3,opt,name=status_name,json=statusName,proto3" json:"status_name,omitempty"`
+	// todo | in_progress | done | cancelled
+	StatusCategory  string                 `protobuf:"bytes,4,opt,name=status_category,json=statusCategory,proto3" json:"status_category,omitempty"`
+	StatusColor     string                 `protobuf:"bytes,5,opt,name=status_color,json=statusColor,proto3" json:"status_color,omitempty"`
+	StatusChangedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=status_changed_at,json=statusChangedAt,proto3" json:"status_changed_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *TaskRef) Reset() {
+	*x = TaskRef{}
+	mi := &file_message_v1_message_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskRef) ProtoMessage() {}
+
+func (x *TaskRef) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskRef.ProtoReflect.Descriptor instead.
+func (*TaskRef) Descriptor() ([]byte, []int) {
+	return file_message_v1_message_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *TaskRef) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *TaskRef) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *TaskRef) GetStatusName() string {
+	if x != nil {
+		return x.StatusName
+	}
+	return ""
+}
+
+func (x *TaskRef) GetStatusCategory() string {
+	if x != nil {
+		return x.StatusCategory
+	}
+	return ""
+}
+
+func (x *TaskRef) GetStatusColor() string {
+	if x != nil {
+		return x.StatusColor
+	}
+	return ""
+}
+
+func (x *TaskRef) GetStatusChangedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StatusChangedAt
+	}
+	return nil
+}
+
 // Conversation là cuộc trò chuyện 1-1 nhìn từ phía người gọi; peer_id là phía bên kia.
 type Conversation struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -130,7 +224,7 @@ type Conversation struct {
 
 func (x *Conversation) Reset() {
 	*x = Conversation{}
-	mi := &file_message_v1_message_proto_msgTypes[1]
+	mi := &file_message_v1_message_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -142,7 +236,7 @@ func (x *Conversation) String() string {
 func (*Conversation) ProtoMessage() {}
 
 func (x *Conversation) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[1]
+	mi := &file_message_v1_message_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -155,7 +249,7 @@ func (x *Conversation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Conversation.ProtoReflect.Descriptor instead.
 func (*Conversation) Descriptor() ([]byte, []int) {
-	return file_message_v1_message_proto_rawDescGZIP(), []int{1}
+	return file_message_v1_message_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Conversation) GetId() string {
@@ -191,7 +285,7 @@ type SendMessageRequest struct {
 
 func (x *SendMessageRequest) Reset() {
 	*x = SendMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[2]
+	mi := &file_message_v1_message_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -203,7 +297,7 @@ func (x *SendMessageRequest) String() string {
 func (*SendMessageRequest) ProtoMessage() {}
 
 func (x *SendMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[2]
+	mi := &file_message_v1_message_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -216,7 +310,7 @@ func (x *SendMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendMessageRequest.ProtoReflect.Descriptor instead.
 func (*SendMessageRequest) Descriptor() ([]byte, []int) {
-	return file_message_v1_message_proto_rawDescGZIP(), []int{2}
+	return file_message_v1_message_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SendMessageRequest) GetProfileId() string {
@@ -256,7 +350,7 @@ type SendMessageResponse struct {
 
 func (x *SendMessageResponse) Reset() {
 	*x = SendMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[3]
+	mi := &file_message_v1_message_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -268,7 +362,7 @@ func (x *SendMessageResponse) String() string {
 func (*SendMessageResponse) ProtoMessage() {}
 
 func (x *SendMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[3]
+	mi := &file_message_v1_message_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -281,10 +375,245 @@ func (x *SendMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendMessageResponse.ProtoReflect.Descriptor instead.
 func (*SendMessageResponse) Descriptor() ([]byte, []int) {
-	return file_message_v1_message_proto_rawDescGZIP(), []int{3}
+	return file_message_v1_message_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SendMessageResponse) GetMessage() *ChatMessage {
+	if x != nil {
+		return x.Message
+	}
+	return nil
+}
+
+// Giao task cho peer: tạo task trong dự án mặc định của peer rồi gửi tin nhắn kèm TaskRef.
+type SendTaskMessageRequest struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ProfileId   string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	PeerId      string                 `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
+	Title       string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Description string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	// low | medium | high | urgent; rỗng = medium.
+	Priority      string                 `protobuf:"bytes,5,opt,name=priority,proto3" json:"priority,omitempty"`
+	DueAt         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=due_at,json=dueAt,proto3" json:"due_at,omitempty"`
+	ClientId      string                 `protobuf:"bytes,7,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendTaskMessageRequest) Reset() {
+	*x = SendTaskMessageRequest{}
+	mi := &file_message_v1_message_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendTaskMessageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendTaskMessageRequest) ProtoMessage() {}
+
+func (x *SendTaskMessageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendTaskMessageRequest.ProtoReflect.Descriptor instead.
+func (*SendTaskMessageRequest) Descriptor() ([]byte, []int) {
+	return file_message_v1_message_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SendTaskMessageRequest) GetProfileId() string {
+	if x != nil {
+		return x.ProfileId
+	}
+	return ""
+}
+
+func (x *SendTaskMessageRequest) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+func (x *SendTaskMessageRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *SendTaskMessageRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *SendTaskMessageRequest) GetPriority() string {
+	if x != nil {
+		return x.Priority
+	}
+	return ""
+}
+
+func (x *SendTaskMessageRequest) GetDueAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.DueAt
+	}
+	return nil
+}
+
+func (x *SendTaskMessageRequest) GetClientId() string {
+	if x != nil {
+		return x.ClientId
+	}
+	return ""
+}
+
+type SendTaskMessageResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       *ChatMessage           `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendTaskMessageResponse) Reset() {
+	*x = SendTaskMessageResponse{}
+	mi := &file_message_v1_message_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendTaskMessageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendTaskMessageResponse) ProtoMessage() {}
+
+func (x *SendTaskMessageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendTaskMessageResponse.ProtoReflect.Descriptor instead.
+func (*SendTaskMessageResponse) Descriptor() ([]byte, []int) {
+	return file_message_v1_message_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SendTaskMessageResponse) GetMessage() *ChatMessage {
+	if x != nil {
+		return x.Message
+	}
+	return nil
+}
+
+// Chỉ trả về khi profile_id là người gửi hoặc người nhận.
+type GetMessageRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProfileId     string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	MessageId     string                 `protobuf:"bytes,2,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMessageRequest) Reset() {
+	*x = GetMessageRequest{}
+	mi := &file_message_v1_message_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMessageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMessageRequest) ProtoMessage() {}
+
+func (x *GetMessageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMessageRequest.ProtoReflect.Descriptor instead.
+func (*GetMessageRequest) Descriptor() ([]byte, []int) {
+	return file_message_v1_message_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetMessageRequest) GetProfileId() string {
+	if x != nil {
+		return x.ProfileId
+	}
+	return ""
+}
+
+func (x *GetMessageRequest) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
+}
+
+type GetMessageResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       *ChatMessage           `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMessageResponse) Reset() {
+	*x = GetMessageResponse{}
+	mi := &file_message_v1_message_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMessageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMessageResponse) ProtoMessage() {}
+
+func (x *GetMessageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMessageResponse.ProtoReflect.Descriptor instead.
+func (*GetMessageResponse) Descriptor() ([]byte, []int) {
+	return file_message_v1_message_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetMessageResponse) GetMessage() *ChatMessage {
 	if x != nil {
 		return x.Message
 	}
@@ -304,7 +633,7 @@ type ListMessagesRequest struct {
 
 func (x *ListMessagesRequest) Reset() {
 	*x = ListMessagesRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[4]
+	mi := &file_message_v1_message_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -316,7 +645,7 @@ func (x *ListMessagesRequest) String() string {
 func (*ListMessagesRequest) ProtoMessage() {}
 
 func (x *ListMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[4]
+	mi := &file_message_v1_message_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -329,7 +658,7 @@ func (x *ListMessagesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMessagesRequest.ProtoReflect.Descriptor instead.
 func (*ListMessagesRequest) Descriptor() ([]byte, []int) {
-	return file_message_v1_message_proto_rawDescGZIP(), []int{4}
+	return file_message_v1_message_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListMessagesRequest) GetProfileId() string {
@@ -370,7 +699,7 @@ type ListMessagesResponse struct {
 
 func (x *ListMessagesResponse) Reset() {
 	*x = ListMessagesResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[5]
+	mi := &file_message_v1_message_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -382,7 +711,7 @@ func (x *ListMessagesResponse) String() string {
 func (*ListMessagesResponse) ProtoMessage() {}
 
 func (x *ListMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[5]
+	mi := &file_message_v1_message_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -395,7 +724,7 @@ func (x *ListMessagesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMessagesResponse.ProtoReflect.Descriptor instead.
 func (*ListMessagesResponse) Descriptor() ([]byte, []int) {
-	return file_message_v1_message_proto_rawDescGZIP(), []int{5}
+	return file_message_v1_message_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListMessagesResponse) GetMessages() []*ChatMessage {
@@ -421,7 +750,7 @@ type ListConversationsRequest struct {
 
 func (x *ListConversationsRequest) Reset() {
 	*x = ListConversationsRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[6]
+	mi := &file_message_v1_message_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -433,7 +762,7 @@ func (x *ListConversationsRequest) String() string {
 func (*ListConversationsRequest) ProtoMessage() {}
 
 func (x *ListConversationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[6]
+	mi := &file_message_v1_message_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -446,7 +775,7 @@ func (x *ListConversationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationsRequest.ProtoReflect.Descriptor instead.
 func (*ListConversationsRequest) Descriptor() ([]byte, []int) {
-	return file_message_v1_message_proto_rawDescGZIP(), []int{6}
+	return file_message_v1_message_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListConversationsRequest) GetProfileId() string {
@@ -465,7 +794,7 @@ type ListConversationsResponse struct {
 
 func (x *ListConversationsResponse) Reset() {
 	*x = ListConversationsResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[7]
+	mi := &file_message_v1_message_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -477,7 +806,7 @@ func (x *ListConversationsResponse) String() string {
 func (*ListConversationsResponse) ProtoMessage() {}
 
 func (x *ListConversationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[7]
+	mi := &file_message_v1_message_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -490,7 +819,7 @@ func (x *ListConversationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationsResponse.ProtoReflect.Descriptor instead.
 func (*ListConversationsResponse) Descriptor() ([]byte, []int) {
-	return file_message_v1_message_proto_rawDescGZIP(), []int{7}
+	return file_message_v1_message_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListConversationsResponse) GetConversations() []*Conversation {
@@ -505,7 +834,7 @@ var File_message_v1_message_proto protoreflect.FileDescriptor
 const file_message_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"\x18message/v1/message.proto\x12\n" +
-	"message.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf2\x01\n" +
+	"message.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9b\x02\n" +
 	"\vChatMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0fconversation_id\x18\x02 \x01(\tR\x0econversationId\x12\x1b\n" +
@@ -514,7 +843,16 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\x04body\x18\x05 \x01(\tR\x04body\x12\x1b\n" +
 	"\tclient_id\x18\x06 \x01(\tR\bclientId\x129\n" +
 	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"s\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12'\n" +
+	"\x04task\x18\b \x01(\v2\x13.message.v1.TaskRefR\x04task\"\xed\x01\n" +
+	"\aTaskRef\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1f\n" +
+	"\vstatus_name\x18\x03 \x01(\tR\n" +
+	"statusName\x12'\n" +
+	"\x0fstatus_category\x18\x04 \x01(\tR\x0estatusCategory\x12!\n" +
+	"\fstatus_color\x18\x05 \x01(\tR\vstatusColor\x12F\n" +
+	"\x11status_changed_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x0fstatusChangedAt\"s\n" +
 	"\fConversation\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\apeer_id\x18\x02 \x01(\tR\x06peerId\x12:\n" +
@@ -526,6 +864,24 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\x04body\x18\x03 \x01(\tR\x04body\x12\x1b\n" +
 	"\tclient_id\x18\x04 \x01(\tR\bclientId\"H\n" +
 	"\x13SendMessageResponse\x121\n" +
+	"\amessage\x18\x01 \x01(\v2\x17.message.v1.ChatMessageR\amessage\"\xf4\x01\n" +
+	"\x16SendTaskMessageRequest\x12\x1d\n" +
+	"\n" +
+	"profile_id\x18\x01 \x01(\tR\tprofileId\x12\x17\n" +
+	"\apeer_id\x18\x02 \x01(\tR\x06peerId\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x1a\n" +
+	"\bpriority\x18\x05 \x01(\tR\bpriority\x121\n" +
+	"\x06due_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x05dueAt\x12\x1b\n" +
+	"\tclient_id\x18\a \x01(\tR\bclientId\"L\n" +
+	"\x17SendTaskMessageResponse\x121\n" +
+	"\amessage\x18\x01 \x01(\v2\x17.message.v1.ChatMessageR\amessage\"Q\n" +
+	"\x11GetMessageRequest\x12\x1d\n" +
+	"\n" +
+	"profile_id\x18\x01 \x01(\tR\tprofileId\x12\x1d\n" +
+	"\n" +
+	"message_id\x18\x02 \x01(\tR\tmessageId\"G\n" +
+	"\x12GetMessageResponse\x121\n" +
 	"\amessage\x18\x01 \x01(\v2\x17.message.v1.ChatMessageR\amessage\"\x97\x01\n" +
 	"\x13ListMessagesRequest\x12\x1d\n" +
 	"\n" +
@@ -540,9 +896,12 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\"[\n" +
 	"\x19ListConversationsResponse\x12>\n" +
-	"\rconversations\x18\x01 \x03(\v2\x18.message.v1.ConversationR\rconversations2\x95\x02\n" +
+	"\rconversations\x18\x01 \x03(\v2\x18.message.v1.ConversationR\rconversations2\xbe\x03\n" +
 	"\x0eMessageService\x12N\n" +
-	"\vSendMessage\x12\x1e.message.v1.SendMessageRequest\x1a\x1f.message.v1.SendMessageResponse\x12Q\n" +
+	"\vSendMessage\x12\x1e.message.v1.SendMessageRequest\x1a\x1f.message.v1.SendMessageResponse\x12Z\n" +
+	"\x0fSendTaskMessage\x12\".message.v1.SendTaskMessageRequest\x1a#.message.v1.SendTaskMessageResponse\x12K\n" +
+	"\n" +
+	"GetMessage\x12\x1d.message.v1.GetMessageRequest\x1a\x1e.message.v1.GetMessageResponse\x12Q\n" +
 	"\fListMessages\x12\x1f.message.v1.ListMessagesRequest\x1a .message.v1.ListMessagesResponse\x12`\n" +
 	"\x11ListConversations\x12$.message.v1.ListConversationsRequest\x1a%.message.v1.ListConversationsResponseB0Z.taskmanager/common/gen/go/message/v1;messagev1b\x06proto3"
 
@@ -558,36 +917,50 @@ func file_message_v1_message_proto_rawDescGZIP() []byte {
 	return file_message_v1_message_proto_rawDescData
 }
 
-var file_message_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_message_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_message_v1_message_proto_goTypes = []any{
 	(*ChatMessage)(nil),               // 0: message.v1.ChatMessage
-	(*Conversation)(nil),              // 1: message.v1.Conversation
-	(*SendMessageRequest)(nil),        // 2: message.v1.SendMessageRequest
-	(*SendMessageResponse)(nil),       // 3: message.v1.SendMessageResponse
-	(*ListMessagesRequest)(nil),       // 4: message.v1.ListMessagesRequest
-	(*ListMessagesResponse)(nil),      // 5: message.v1.ListMessagesResponse
-	(*ListConversationsRequest)(nil),  // 6: message.v1.ListConversationsRequest
-	(*ListConversationsResponse)(nil), // 7: message.v1.ListConversationsResponse
-	(*timestamppb.Timestamp)(nil),     // 8: google.protobuf.Timestamp
+	(*TaskRef)(nil),                   // 1: message.v1.TaskRef
+	(*Conversation)(nil),              // 2: message.v1.Conversation
+	(*SendMessageRequest)(nil),        // 3: message.v1.SendMessageRequest
+	(*SendMessageResponse)(nil),       // 4: message.v1.SendMessageResponse
+	(*SendTaskMessageRequest)(nil),    // 5: message.v1.SendTaskMessageRequest
+	(*SendTaskMessageResponse)(nil),   // 6: message.v1.SendTaskMessageResponse
+	(*GetMessageRequest)(nil),         // 7: message.v1.GetMessageRequest
+	(*GetMessageResponse)(nil),        // 8: message.v1.GetMessageResponse
+	(*ListMessagesRequest)(nil),       // 9: message.v1.ListMessagesRequest
+	(*ListMessagesResponse)(nil),      // 10: message.v1.ListMessagesResponse
+	(*ListConversationsRequest)(nil),  // 11: message.v1.ListConversationsRequest
+	(*ListConversationsResponse)(nil), // 12: message.v1.ListConversationsResponse
+	(*timestamppb.Timestamp)(nil),     // 13: google.protobuf.Timestamp
 }
 var file_message_v1_message_proto_depIdxs = []int32{
-	8, // 0: message.v1.ChatMessage.created_at:type_name -> google.protobuf.Timestamp
-	0, // 1: message.v1.Conversation.last_message:type_name -> message.v1.ChatMessage
-	0, // 2: message.v1.SendMessageResponse.message:type_name -> message.v1.ChatMessage
-	8, // 3: message.v1.ListMessagesRequest.before:type_name -> google.protobuf.Timestamp
-	0, // 4: message.v1.ListMessagesResponse.messages:type_name -> message.v1.ChatMessage
-	1, // 5: message.v1.ListConversationsResponse.conversations:type_name -> message.v1.Conversation
-	2, // 6: message.v1.MessageService.SendMessage:input_type -> message.v1.SendMessageRequest
-	4, // 7: message.v1.MessageService.ListMessages:input_type -> message.v1.ListMessagesRequest
-	6, // 8: message.v1.MessageService.ListConversations:input_type -> message.v1.ListConversationsRequest
-	3, // 9: message.v1.MessageService.SendMessage:output_type -> message.v1.SendMessageResponse
-	5, // 10: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
-	7, // 11: message.v1.MessageService.ListConversations:output_type -> message.v1.ListConversationsResponse
-	9, // [9:12] is the sub-list for method output_type
-	6, // [6:9] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	13, // 0: message.v1.ChatMessage.created_at:type_name -> google.protobuf.Timestamp
+	1,  // 1: message.v1.ChatMessage.task:type_name -> message.v1.TaskRef
+	13, // 2: message.v1.TaskRef.status_changed_at:type_name -> google.protobuf.Timestamp
+	0,  // 3: message.v1.Conversation.last_message:type_name -> message.v1.ChatMessage
+	0,  // 4: message.v1.SendMessageResponse.message:type_name -> message.v1.ChatMessage
+	13, // 5: message.v1.SendTaskMessageRequest.due_at:type_name -> google.protobuf.Timestamp
+	0,  // 6: message.v1.SendTaskMessageResponse.message:type_name -> message.v1.ChatMessage
+	0,  // 7: message.v1.GetMessageResponse.message:type_name -> message.v1.ChatMessage
+	13, // 8: message.v1.ListMessagesRequest.before:type_name -> google.protobuf.Timestamp
+	0,  // 9: message.v1.ListMessagesResponse.messages:type_name -> message.v1.ChatMessage
+	2,  // 10: message.v1.ListConversationsResponse.conversations:type_name -> message.v1.Conversation
+	3,  // 11: message.v1.MessageService.SendMessage:input_type -> message.v1.SendMessageRequest
+	5,  // 12: message.v1.MessageService.SendTaskMessage:input_type -> message.v1.SendTaskMessageRequest
+	7,  // 13: message.v1.MessageService.GetMessage:input_type -> message.v1.GetMessageRequest
+	9,  // 14: message.v1.MessageService.ListMessages:input_type -> message.v1.ListMessagesRequest
+	11, // 15: message.v1.MessageService.ListConversations:input_type -> message.v1.ListConversationsRequest
+	4,  // 16: message.v1.MessageService.SendMessage:output_type -> message.v1.SendMessageResponse
+	6,  // 17: message.v1.MessageService.SendTaskMessage:output_type -> message.v1.SendTaskMessageResponse
+	8,  // 18: message.v1.MessageService.GetMessage:output_type -> message.v1.GetMessageResponse
+	10, // 19: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
+	12, // 20: message.v1.MessageService.ListConversations:output_type -> message.v1.ListConversationsResponse
+	16, // [16:21] is the sub-list for method output_type
+	11, // [11:16] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_message_v1_message_proto_init() }
@@ -601,7 +974,7 @@ func file_message_v1_message_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_message_v1_message_proto_rawDesc), len(file_message_v1_message_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

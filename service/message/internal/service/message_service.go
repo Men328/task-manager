@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 	"time"
@@ -23,15 +24,17 @@ type messageService struct {
 	friends     FriendChecker
 	broadcaster Broadcaster
 	publisher   EventPublisher
+	tasks       TaskCreator
 	now         func() time.Time
 }
 
-func NewMessageService(reader MessageReader, friends FriendChecker, broadcaster Broadcaster, publisher EventPublisher) MessageService {
+func NewMessageService(reader MessageReader, friends FriendChecker, broadcaster Broadcaster, publisher EventPublisher, tasks TaskCreator) MessageService {
 	return &messageService{
 		reader:      reader,
 		friends:     friends,
 		broadcaster: broadcaster,
 		publisher:   publisher,
+		tasks:       tasks,
 		now:         time.Now,
 	}
 }
@@ -45,6 +48,61 @@ func (s *messageService) Send(ctx context.Context, profileID, peerID, body, clie
 	if err != nil {
 		return model.Message{}, err
 	}
+	message, err := s.prepare(ctx, profileID, peer, clientID)
+	if err != nil {
+		return model.Message{}, err
+	}
+	message.Body = text
+	return s.deliver(ctx, message)
+}
+
+func (s *messageService) SendTask(ctx context.Context, profileID, peerID string, draft model.TaskDraft, clientID string) (model.Message, error) {
+	peer, err := s.normalizePeer(profileID, peerID)
+	if err != nil {
+		return model.Message{}, err
+	}
+	draft, err = normalizeDraft(draft)
+	if err != nil {
+		return model.Message{}, err
+	}
+	message, err := s.prepare(ctx, profileID, peer, clientID)
+	if err != nil {
+		return model.Message{}, err
+	}
+
+	ref, err := s.tasks.CreateForMessage(ctx, model.TaskRequest{
+		RecipientID: peer,
+		RequestedBy: profileID,
+		MessageID:   message.ID,
+		Draft:       draft,
+	})
+	if err != nil {
+		return model.Message{}, err
+	}
+	message.Body = draft.Title
+	message.Task = &ref
+	return s.deliver(ctx, message)
+}
+
+func (s *messageService) Get(ctx context.Context, profileID, messageID string) (model.Message, error) {
+	parsed, err := uuid.Parse(strings.TrimSpace(messageID))
+	if err != nil {
+		return model.Message{}, model.NewError(model.ErrorKindInvalidArgument, "message_id không hợp lệ")
+	}
+	message, err := s.reader.GetMessage(ctx, parsed.String())
+	if errors.Is(err, model.ErrNotFound) {
+		return model.Message{}, model.NewError(model.ErrorKindMessageNotFound, "không tìm thấy tin nhắn")
+	}
+	if err != nil {
+		return model.Message{}, err
+	}
+	if !strings.EqualFold(message.SenderID, profileID) && !strings.EqualFold(message.RecipientID, profileID) {
+		return model.Message{}, model.NewError(model.ErrorKindMessageNotFound, "không tìm thấy tin nhắn")
+	}
+	return message, nil
+}
+
+func (s *messageService) prepare(ctx context.Context, profileID, peer, clientID string) (model.Message, error) {
 	clientID = strings.TrimSpace(clientID)
 	if len(clientID) > model.MaxClientIDBytes {
 		return model.Message{}, model.NewError(model.ErrorKindInvalidArgument, "client_id quá dài")
@@ -62,16 +120,17 @@ func (s *messageService) Send(ctx context.Context, profileID, peerID, body, clie
 	if err != nil {
 		return model.Message{}, err
 	}
-	message := model.Message{
+	return model.Message{
 		ID:             id.String(),
 		ConversationID: ConversationID(profileID, peer),
 		SenderID:       profileID,
 		RecipientID:    peer,
-		Body:           text,
 		ClientID:       clientID,
 		CreatedAt:      s.now().UTC().Truncate(time.Microsecond),
-	}
+	}, nil
+}
 
+func (s *messageService) deliver(ctx context.Context, message model.Message) (model.Message, error) {
 	if err := s.broadcaster.Broadcast(ctx, message); err != nil {
 		slog.Warn("broadcast tin nhắn qua soketi thất bại", "message_id", message.ID, "error", err)
 	}
@@ -138,4 +197,28 @@ func normalizeBody(body string) (string, error) {
 		return "", model.NewError(model.ErrorKindBodyTooLong, "tin nhắn dài quá %d ký tự", model.MaxBodyRunes)
 	}
 	return text, nil
+}
+
+var taskPriorities = map[string]bool{"": true, "low": true, "medium": true, "high": true, "urgent": true}
+
+func normalizeDraft(draft model.TaskDraft) (model.TaskDraft, error) {
+	draft.Title = strings.TrimSpace(draft.Title)
+	draft.Description = strings.TrimSpace(draft.Description)
+	draft.Priority = strings.ToLower(strings.TrimSpace(draft.Priority))
+	if draft.Title == "" {
+		return model.TaskDraft{}, model.NewError(model.ErrorKindTaskTitleRequired, "thiếu tiêu đề task")
+	}
+	if !utf8.ValidString(draft.Title) || !utf8.ValidString(draft.Description) {
+		return model.TaskDraft{}, model.NewError(model.ErrorKindInvalidArgument, "nội dung task không phải UTF-8")
+	}
+	if utf8.RuneCountInString(draft.Title) > model.MaxTaskTitleRunes || utf8.RuneCountInString(draft.Description) > model.MaxTaskDescriptionRunes {
+		return model.TaskDraft{}, model.NewError(model.ErrorKindInvalidArgument, "tiêu đề hoặc mô tả task quá dài")
+	}
+	if !taskPriorities[draft.Priority] {
+		return model.TaskDraft{}, model.NewError(model.ErrorKindInvalidArgument, "priority không hợp lệ")
+	}
+	if draft.Priority == "" {
+		draft.Priority = "medium"
+	}
+	return draft, nil
 }

@@ -61,7 +61,7 @@ func runConsumer(t *testing.T, reader *fakeReader, persister *fakePersister) []t
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	reader.cancel = cancel
-	consumer := NewMessageConsumer(reader, persister, RetryPolicy{Initial: time.Millisecond, Max: 4 * time.Millisecond, PersistTimeout: time.Second})
+	consumer := NewConsumer("chat", reader, NewChatMessageProcessor(persister), RetryPolicy{Initial: time.Millisecond, Max: 4 * time.Millisecond, PersistTimeout: time.Second})
 	var sleeps []time.Duration
 	consumer.sleep = func(ctx context.Context, d time.Duration) error {
 		sleeps = append(sleeps, d)
@@ -124,7 +124,7 @@ func TestConsumerDoesNotCommitWhenStoppedMidRetry(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	reader := &fakeReader{records: []kafka.Message{event(3, "m1")}, cancel: cancel}
 	persister := &fakePersister{failures: 100, err: errors.New("db down")}
-	consumer := NewMessageConsumer(reader, persister, RetryPolicy{Initial: time.Millisecond, Max: time.Millisecond, PersistTimeout: time.Second})
+	consumer := NewConsumer("chat", reader, NewChatMessageProcessor(persister), RetryPolicy{Initial: time.Millisecond, Max: time.Millisecond, PersistTimeout: time.Second})
 	consumer.sleep = func(context.Context, time.Duration) error {
 		cancel()
 		return context.Canceled
@@ -135,5 +135,29 @@ func TestConsumerDoesNotCommitWhenStoppedMidRetry(t *testing.T) {
 	}
 	if len(reader.committed) != 0 {
 		t.Fatal("chưa lưu được thì không được commit để consumer khác xử lý lại")
+	}
+}
+
+type fakeTaskHandler struct {
+	events []model.TaskStatusChanged
+}
+
+func (h *fakeTaskHandler) Handle(_ context.Context, event model.TaskStatusChanged) error {
+	h.events = append(h.events, event)
+	return nil
+}
+
+func TestTaskEventProcessorDecodesAndHandles(t *testing.T) {
+	handler := &fakeTaskHandler{}
+	value := []byte(`{"taskId":"t1","requestedBy":"alice","sourceMessageId":"m1","toStatus":{"name":"Done"},"changedAt":"2026-11-08T10:00:00Z"}`)
+
+	if err := NewTaskEventProcessor(handler).Process(context.Background(), value); err != nil {
+		t.Fatalf("process: %v", err)
+	}
+	if len(handler.events) != 1 || handler.events[0].TaskID != "t1" || handler.events[0].ToStatusName != "Done" {
+		t.Fatalf("phải chuyển sự kiện đã decode, nhận %+v", handler.events)
+	}
+	if err := NewTaskEventProcessor(handler).Process(context.Background(), []byte("x")); !errors.Is(err, model.ErrPermanent) {
+		t.Fatalf("payload hỏng là lỗi vĩnh viễn, nhận %v", err)
 	}
 }

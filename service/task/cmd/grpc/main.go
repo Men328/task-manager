@@ -22,6 +22,7 @@ func main() {
 			fx.Annotate(newProjectConn, fx.ResultTags(`name:"project"`)),
 			fx.Annotate(newProjectServiceClient, fx.ParamTags(`name:"project"`)),
 			newProjectChecker,
+			newTaskEventPublisher,
 			fx.Annotate(newNotificationConn, fx.ResultTags(`name:"notification"`)),
 			fx.Annotate(newNoticeServiceClient, fx.ParamTags(`name:"notification"`)),
 			newReminderWorker,

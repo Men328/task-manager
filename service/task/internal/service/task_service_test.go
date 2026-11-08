@@ -181,8 +181,12 @@ func (f *fakeProjectChecker) CheckAssignable(_ context.Context, _, projectID str
 	return f.err
 }
 
+func (f *fakeProjectChecker) DefaultProjectID(_ context.Context, profileID string) (string, error) {
+	return "default-" + profileID, f.err
+}
+
 func newTestTaskService(repo *fakeTaskRepo, checker *fakeProjectChecker) TaskService {
-	return NewTaskService(repo, fakeTaskStatusRepo{}, fakeTaskTransitionRepo{}, checker)
+	return NewTaskService(repo, fakeTaskStatusRepo{}, fakeTaskTransitionRepo{}, checker, nil)
 }
 
 func strPtr(s string) *string { return &s }

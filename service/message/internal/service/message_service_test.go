@@ -86,8 +86,30 @@ func (r *fakeReader) ListMessages(_ context.Context, conversationID string, befo
 	return r.messages, nil
 }
 
+func (r *fakeReader) GetMessage(_ context.Context, id string) (model.Message, error) {
+	for _, m := range r.messages {
+		if m.ID == id {
+			return m, nil
+		}
+	}
+	return model.Message{}, model.ErrNotFound
+}
+
 func (r *fakeReader) ListConversations(_ context.Context, _ string, _ int) ([]model.Conversation, error) {
 	return r.conversations, r.err
+}
+
+type fakeTasks struct {
+	requests []model.TaskRequest
+	err      error
+}
+
+func (f *fakeTasks) CreateForMessage(_ context.Context, request model.TaskRequest) (model.TaskRef, error) {
+	f.requests = append(f.requests, request)
+	if f.err != nil {
+		return model.TaskRef{}, f.err
+	}
+	return model.TaskRef{TaskID: "t1", Title: request.Draft.Title, StatusName: "To do", StatusCategory: "todo"}, nil
 }
 
 type fixture struct {
@@ -96,6 +118,7 @@ type fixture struct {
 	broadcaster *fakeBroadcaster
 	publisher   *fakePublisher
 	reader      *fakeReader
+	tasks       *fakeTasks
 }
 
 func newFixture() *fixture {
@@ -105,8 +128,9 @@ func newFixture() *fixture {
 		broadcaster: &fakeBroadcaster{},
 		publisher:   &fakePublisher{},
 		reader:      &fakeReader{},
+		tasks:       &fakeTasks{},
 	}
-	f.svc = service.NewMessageService(f.reader, f.friends, f.broadcaster, f.publisher)
+	f.svc = service.NewMessageService(f.reader, f.friends, f.broadcaster, f.publisher, f.tasks)
 	return f
 }
 
@@ -124,7 +148,7 @@ func TestSendBroadcastsThenPublishes(t *testing.T) {
 	publisher := &fakePublisher{order: &order}
 	first, second := service.OrderedPair(alice, bob)
 	friends := &fakeFriends{pairs: map[string]bool{first + ":" + second: true}}
-	svc := service.NewMessageService(&fakeReader{}, friends, broadcaster, publisher)
+	svc := service.NewMessageService(&fakeReader{}, friends, broadcaster, publisher, &fakeTasks{})
 
 	message, err := svc.Send(context.Background(), alice, bob, "  xin chào  ", "c-1")
 	if err != nil {

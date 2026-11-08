@@ -28,6 +28,8 @@ type stubMessageClient struct {
 	err   error
 	send  *messagev1.SendMessageRequest
 	list  *messagev1.ListMessagesRequest
+	task  *messagev1.SendTaskMessageRequest
+	get   *messagev1.GetMessageRequest
 }
 
 func (c *stubMessageClient) SendMessage(_ context.Context, in *messagev1.SendMessageRequest, _ ...grpc.CallOption) (*messagev1.SendMessageResponse, error) {
@@ -40,6 +42,18 @@ func (c *stubMessageClient) ListMessages(_ context.Context, in *messagev1.ListMe
 	c.calls++
 	c.list = in
 	return &messagev1.ListMessagesResponse{}, c.err
+}
+
+func (c *stubMessageClient) SendTaskMessage(_ context.Context, in *messagev1.SendTaskMessageRequest, _ ...grpc.CallOption) (*messagev1.SendTaskMessageResponse, error) {
+	c.calls++
+	c.task = in
+	return &messagev1.SendTaskMessageResponse{Message: &messagev1.ChatMessage{Id: "m1"}}, c.err
+}
+
+func (c *stubMessageClient) GetMessage(_ context.Context, in *messagev1.GetMessageRequest, _ ...grpc.CallOption) (*messagev1.GetMessageResponse, error) {
+	c.calls++
+	c.get = in
+	return &messagev1.GetMessageResponse{Message: &messagev1.ChatMessage{Id: in.GetMessageId()}}, c.err
 }
 
 func (c *stubMessageClient) ListConversations(context.Context, *messagev1.ListConversationsRequest, ...grpc.CallOption) (*messagev1.ListConversationsResponse, error) {
@@ -95,6 +109,8 @@ var allRoutes = []struct{ method, path, body string }{
 	{http.MethodGet, "/v1/conversations", ""},
 	{http.MethodGet, "/v1/conversations/p1/messages", ""},
 	{http.MethodPost, "/v1/conversations/p1/messages", `{"body":"hi"}`},
+	{http.MethodPost, "/v1/conversations/p1/tasks", `{"title":"x"}`},
+	{http.MethodGet, "/v1/messages/m1", ""},
 }
 
 func TestRoutesRejectMissingOrInvalidToken(t *testing.T) {
@@ -201,5 +217,46 @@ func TestUpstreamTimeoutFitsInsideRouteTimeout(t *testing.T) {
 	cfg := config.Load()
 	if cfg.UpstreamTimeout+cfg.SoketiTimeout >= routeTimeout {
 		t.Fatalf("social %v + soketi %v phải ngắn hơn hạn route %v", cfg.UpstreamTimeout, cfg.SoketiTimeout, routeTimeout)
+	}
+}
+
+func TestSendTaskParsesBodyAndTakesRequesterFromToken(t *testing.T) {
+	client := &stubMessageClient{}
+	token := signToken(t, testSecret, "A", time.Hour)
+
+	recorder := call(newTestMux(t, client), http.MethodPost, "/v1/conversations/B/tasks", token,
+		`{"title":"Mua sữa","description":"2 hộp","priority":"high","due_at":"2026-11-10T09:00:00Z","client_id":"c1","profile_id":"C"}`)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("phải 200, nhận %d %s", recorder.Code, recorder.Body.String())
+	}
+	in := client.task
+	if in.GetProfileId() != "A" || in.GetPeerId() != "B" || in.GetTitle() != "Mua sữa" || in.GetPriority() != "high" || in.GetClientId() != "c1" {
+		t.Fatalf("request sai: %+v", in)
+	}
+	if !in.GetDueAt().AsTime().Equal(time.Date(2026, 11, 10, 9, 0, 0, 0, time.UTC)) {
+		t.Fatalf("due_at sai: %v", in.GetDueAt())
+	}
+
+	client = &stubMessageClient{}
+	recorder = call(newTestMux(t, client), http.MethodPost, "/v1/conversations/B/tasks", token, `{"title":"x","due_at":"mai"}`)
+	if recorder.Code != http.StatusBadRequest || client.calls != 0 {
+		t.Fatalf("due_at sai định dạng phải 400, nhận %d", recorder.Code)
+	}
+}
+
+func TestGetMessageUsesCallerFromToken(t *testing.T) {
+	client := &stubMessageClient{}
+	token := signToken(t, testSecret, "A", time.Hour)
+
+	call(newTestMux(t, client), http.MethodGet, "/v1/messages/m9", token, "")
+	if client.get.GetProfileId() != "A" || client.get.GetMessageId() != "m9" {
+		t.Fatalf("request sai: %+v", client.get)
+	}
+
+	client = &stubMessageClient{err: status.Error(codes.NotFound, "x")}
+	recorder := call(newTestMux(t, client), http.MethodGet, "/v1/messages/m9", token, "")
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("phải 404, nhận %d", recorder.Code)
 	}
 }

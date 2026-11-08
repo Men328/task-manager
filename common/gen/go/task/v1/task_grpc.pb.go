@@ -19,12 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TaskService_CreateTask_FullMethodName       = "/task.v1.TaskService/CreateTask"
-	TaskService_GetTask_FullMethodName          = "/task.v1.TaskService/GetTask"
-	TaskService_ListTasks_FullMethodName        = "/task.v1.TaskService/ListTasks"
-	TaskService_UpdateTask_FullMethodName       = "/task.v1.TaskService/UpdateTask"
-	TaskService_DeleteTask_FullMethodName       = "/task.v1.TaskService/DeleteTask"
-	TaskService_ChangeTaskStatus_FullMethodName = "/task.v1.TaskService/ChangeTaskStatus"
+	TaskService_CreateTask_FullMethodName            = "/task.v1.TaskService/CreateTask"
+	TaskService_CreateTaskFromMessage_FullMethodName = "/task.v1.TaskService/CreateTaskFromMessage"
+	TaskService_GetTask_FullMethodName               = "/task.v1.TaskService/GetTask"
+	TaskService_ListTasks_FullMethodName             = "/task.v1.TaskService/ListTasks"
+	TaskService_UpdateTask_FullMethodName            = "/task.v1.TaskService/UpdateTask"
+	TaskService_DeleteTask_FullMethodName            = "/task.v1.TaskService/DeleteTask"
+	TaskService_ChangeTaskStatus_FullMethodName      = "/task.v1.TaskService/ChangeTaskStatus"
 )
 
 // TaskServiceClient is the client API for TaskService service.
@@ -32,6 +33,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TaskServiceClient interface {
 	CreateTask(ctx context.Context, in *CreateTaskRequest, opts ...grpc.CallOption) (*CreateTaskResponse, error)
+	CreateTaskFromMessage(ctx context.Context, in *CreateTaskFromMessageRequest, opts ...grpc.CallOption) (*CreateTaskFromMessageResponse, error)
 	GetTask(ctx context.Context, in *GetTaskRequest, opts ...grpc.CallOption) (*GetTaskResponse, error)
 	ListTasks(ctx context.Context, in *ListTasksRequest, opts ...grpc.CallOption) (*ListTasksResponse, error)
 	UpdateTask(ctx context.Context, in *UpdateTaskRequest, opts ...grpc.CallOption) (*UpdateTaskResponse, error)
@@ -52,6 +54,16 @@ func (c *taskServiceClient) CreateTask(ctx context.Context, in *CreateTaskReques
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateTaskResponse)
 	err := c.cc.Invoke(ctx, TaskService_CreateTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *taskServiceClient) CreateTaskFromMessage(ctx context.Context, in *CreateTaskFromMessageRequest, opts ...grpc.CallOption) (*CreateTaskFromMessageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateTaskFromMessageResponse)
+	err := c.cc.Invoke(ctx, TaskService_CreateTaskFromMessage_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -113,6 +125,7 @@ func (c *taskServiceClient) ChangeTaskStatus(ctx context.Context, in *ChangeTask
 // for forward compatibility.
 type TaskServiceServer interface {
 	CreateTask(context.Context, *CreateTaskRequest) (*CreateTaskResponse, error)
+	CreateTaskFromMessage(context.Context, *CreateTaskFromMessageRequest) (*CreateTaskFromMessageResponse, error)
 	GetTask(context.Context, *GetTaskRequest) (*GetTaskResponse, error)
 	ListTasks(context.Context, *ListTasksRequest) (*ListTasksResponse, error)
 	UpdateTask(context.Context, *UpdateTaskRequest) (*UpdateTaskResponse, error)
@@ -131,6 +144,9 @@ type UnimplementedTaskServiceServer struct{}
 
 func (UnimplementedTaskServiceServer) CreateTask(context.Context, *CreateTaskRequest) (*CreateTaskResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateTask not implemented")
+}
+func (UnimplementedTaskServiceServer) CreateTaskFromMessage(context.Context, *CreateTaskFromMessageRequest) (*CreateTaskFromMessageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateTaskFromMessage not implemented")
 }
 func (UnimplementedTaskServiceServer) GetTask(context.Context, *GetTaskRequest) (*GetTaskResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetTask not implemented")
@@ -182,6 +198,24 @@ func _TaskService_CreateTask_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(TaskServiceServer).CreateTask(ctx, req.(*CreateTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TaskService_CreateTaskFromMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateTaskFromMessageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TaskServiceServer).CreateTaskFromMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TaskService_CreateTaskFromMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TaskServiceServer).CreateTaskFromMessage(ctx, req.(*CreateTaskFromMessageRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -286,6 +320,10 @@ var TaskService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateTask",
 			Handler:    _TaskService_CreateTask_Handler,
+		},
+		{
+			MethodName: "CreateTaskFromMessage",
+			Handler:    _TaskService_CreateTaskFromMessage_Handler,
 		},
 		{
 			MethodName: "GetTask",

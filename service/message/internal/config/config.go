@@ -21,6 +21,7 @@ type Config struct {
 	SessionSecret string
 
 	SocialGRPCDialAddr string
+	TaskGRPCDialAddr   string
 	UpstreamTimeout    time.Duration
 
 	SoketiBaseURL           string
@@ -44,6 +45,7 @@ func Load() Config {
 		DatabaseURL:             os.Getenv("DATABASE_URL"),
 		SessionSecret:           os.Getenv("SESSION_SECRET"),
 		SocialGRPCDialAddr:      getenv("SOCIAL_GRPC_DIAL_ADDR", "localhost:9091"),
+		TaskGRPCDialAddr:        getenv("TASK_GRPC_DIAL_ADDR", "localhost:9082"),
 		UpstreamTimeout:         getduration("UPSTREAM_TIMEOUT", 5*time.Second),
 		SoketiBaseURL:           getenv("SOKETI_BASE_URL", "http://localhost:6001"),
 		SoketiAppID:             os.Getenv("SOKETI_APP_ID"),

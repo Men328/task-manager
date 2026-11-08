@@ -17,6 +17,7 @@ type taskService struct {
 	statuses    StatusRepository
 	transitions TransitionRepository
 	projects    ProjectChecker
+	events      TaskEventPublisher
 }
 
 func NewTaskService(
@@ -24,8 +25,39 @@ func NewTaskService(
 	statuses StatusRepository,
 	transitions TransitionRepository,
 	projects ProjectChecker,
+	events TaskEventPublisher,
 ) TaskService {
-	return &taskService{tasks: tasks, statuses: statuses, transitions: transitions, projects: projects}
+	return &taskService{tasks: tasks, statuses: statuses, transitions: transitions, projects: projects, events: events}
+}
+
+func (s *taskService) CreateFromMessage(ctx context.Context, t model.Task) (model.Task, model.Status, error) {
+	if strings.TrimSpace(t.RequestedBy) == "" || strings.TrimSpace(t.SourceMessageID) == "" {
+		return model.Task{}, model.Status{}, model.NewError(model.ErrorKindInvalidArgument, "thiếu người giao hoặc tin nhắn nguồn")
+	}
+	if t.RequestedBy == t.ProfileID {
+		return model.Task{}, model.Status{}, model.NewError(model.ErrorKindInvalidArgument, "không tự giao task cho chính mình qua chat")
+	}
+	t.ParentTaskID = ""
+	t.StatusID = ""
+	t.RecurrenceRule = ""
+	t.RecurrenceTZ = ""
+	if strings.TrimSpace(t.ProjectID) == "" {
+		projectID, err := s.projects.DefaultProjectID(ctx, t.ProfileID)
+		if err != nil {
+			return model.Task{}, model.Status{}, err
+		}
+		t.ProjectID = projectID
+	}
+
+	created, err := s.Create(ctx, t)
+	if err != nil {
+		return model.Task{}, model.Status{}, err
+	}
+	status, err := s.statuses.Get(ctx, created.StatusID)
+	if err != nil {
+		return model.Task{}, model.Status{}, err
+	}
+	return created, status, nil
 }
 
 func (s *taskService) Create(ctx context.Context, t model.Task) (model.Task, error) {
@@ -269,6 +301,8 @@ func (s *taskService) ChangeStatus(ctx context.Context, id, statusID, note strin
 		ChangedAt:    time.Now().UTC(),
 	})
 
+	s.publishStatusChanged(ctx, task, updated, target)
+
 	result := model.StatusChange{Task: updated}
 	if target.Category == model.TaskStatusCategoryDone && updated.RecurrenceRule != "" && !s.nextOccurrenceExists(ctx, updated) {
 		next, spawned, err := s.spawnNextOccurrence(ctx, updated)
@@ -419,4 +453,18 @@ func reminderState(remindAt *time.Time, now time.Time) *time.Time {
 		return nil
 	}
 	return &now
+}
+
+func (s *taskService) publishStatusChanged(ctx context.Context, before, after model.Task, target model.Status) {
+	if s.events == nil || after.RequestedBy == "" || after.SourceMessageID == "" {
+		return
+	}
+	from, err := s.statuses.Get(ctx, before.StatusID)
+	if err != nil {
+		from = model.Status{ID: before.StatusID}
+	}
+	event := model.StatusChangedEvent{Task: after, From: from, To: target, ChangedAt: time.Now().UTC()}
+	if err := s.events.PublishStatusChanged(ctx, event); err != nil {
+		slog.Warn("không phát được sự kiện đổi trạng thái task", "task_id", after.ID, "error", err)
+	}
 }

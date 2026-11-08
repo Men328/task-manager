@@ -32,6 +32,8 @@ const (
 	NoticeTargetType_NOTICE_TARGET_TYPE_EVENT       NoticeTargetType = 3
 	NoticeTargetType_NOTICE_TARGET_TYPE_BACKLOG     NoticeTargetType = 4
 	NoticeTargetType_NOTICE_TARGET_TYPE_FRIEND      NoticeTargetType = 5
+	// Tin nhắn chat (target_id = message id), vd. task giao qua chat đổi trạng thái.
+	NoticeTargetType_NOTICE_TARGET_TYPE_MESSAGE NoticeTargetType = 6
 )
 
 // Enum value maps for NoticeTargetType.
@@ -43,6 +45,7 @@ var (
 		3: "NOTICE_TARGET_TYPE_EVENT",
 		4: "NOTICE_TARGET_TYPE_BACKLOG",
 		5: "NOTICE_TARGET_TYPE_FRIEND",
+		6: "NOTICE_TARGET_TYPE_MESSAGE",
 	}
 	NoticeTargetType_value = map[string]int32{
 		"NOTICE_TARGET_TYPE_UNSPECIFIED": 0,
@@ -51,6 +54,7 @@ var (
 		"NOTICE_TARGET_TYPE_EVENT":       3,
 		"NOTICE_TARGET_TYPE_BACKLOG":     4,
 		"NOTICE_TARGET_TYPE_FRIEND":      5,
+		"NOTICE_TARGET_TYPE_MESSAGE":     6,
 	}
 )
 
@@ -88,7 +92,7 @@ type Notice struct {
 	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	ProfileId string                 `protobuf:"bytes,2,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
 	// Nhãn nghiệp vụ: TASK_CREATED | SCHEDULE_CREATED | EVENT_CREATED | BACKLOG_CREATED |
-	// FRIEND_REQUEST | FRIEND_ACCEPTED.
+	// FRIEND_REQUEST | FRIEND_ACCEPTED | TASK_STATUS_CHANGED.
 	Type       string           `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
 	Title      string           `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
 	Body       string           `protobuf:"bytes,5,opt,name=body,proto3" json:"body,omitempty"`
@@ -688,14 +692,15 @@ const file_notification_v1_notice_proto_rawDesc = "" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12\x10\n" +
 	"\x03ids\x18\x02 \x03(\tR\x03ids\"1\n" +
 	"\x17MarkNoticesReadResponse\x12\x16\n" +
-	"\x06marked\x18\x01 \x01(\x05R\x06marked*\xd1\x01\n" +
+	"\x06marked\x18\x01 \x01(\x05R\x06marked*\xf1\x01\n" +
 	"\x10NoticeTargetType\x12\"\n" +
 	"\x1eNOTICE_TARGET_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17NOTICE_TARGET_TYPE_TASK\x10\x01\x12\x1f\n" +
 	"\x1bNOTICE_TARGET_TYPE_SCHEDULE\x10\x02\x12\x1c\n" +
 	"\x18NOTICE_TARGET_TYPE_EVENT\x10\x03\x12\x1e\n" +
 	"\x1aNOTICE_TARGET_TYPE_BACKLOG\x10\x04\x12\x1d\n" +
-	"\x19NOTICE_TARGET_TYPE_FRIEND\x10\x052\x9b\x03\n" +
+	"\x19NOTICE_TARGET_TYPE_FRIEND\x10\x05\x12\x1e\n" +
+	"\x1aNOTICE_TARGET_TYPE_MESSAGE\x10\x062\x9b\x03\n" +
 	"\rNoticeService\x12[\n" +
 	"\fCreateNotice\x12$.notification.v1.CreateNoticeRequest\x1a%.notification.v1.CreateNoticeResponse\x12X\n" +
 	"\vListNotices\x12#.notification.v1.ListNoticesRequest\x1a$.notification.v1.ListNoticesResponse\x12m\n" +

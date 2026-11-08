@@ -25,6 +25,16 @@ type Task struct {
 	RecurrenceTZ       string
 	RecurrenceSeriesID string
 	RecurrenceNextID   string
+
+	RequestedBy     string
+	SourceMessageID string
+}
+
+type StatusChangedEvent struct {
+	Task      Task
+	From      Status
+	To        Status
+	ChangedAt time.Time
 }
 
 type StatusChange struct {

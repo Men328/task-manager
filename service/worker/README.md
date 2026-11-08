@@ -2,12 +2,17 @@
 
 Service chuyên **consume Kafka**. Không có gRPC/HTTP API, chỉ `GET /healthz` (`:8094`, ping Postgres).
 Scale ngang bằng số replica — đây là thành phần dự kiến scale khi tải tăng.
+Cần Postgres, Kafka, notification-grpc và soketi.
 
-Hiện có 1 consumer:
+Mỗi replica chạy các consumer sau (mỗi consumer 1 goroutine, 1 consumer group riêng):
 
 | Topic | Group | Việc |
 |---|---|---|
-| `chat.messages` | `message-worker` | lưu tin nhắn vào `message.messages` + cập nhật `message.conversations` |
+| `chat.messages` | `message-worker` | lưu tin nhắn (kèm thẻ task nếu có) vào `message.messages` + cập nhật `message.conversations` |
+| `task.events` | `task-event-worker` | task giao qua chat đổi trạng thái: cập nhật thẻ trong tin nhắn, broadcast `message.updated` qua soketi, tạo notice `TASK_STATUS_CHANGED` (target `message`) cho người giao |
+
+Với `task.events`: sự kiện cũ hơn trạng thái đang lưu không ghi đè thẻ (so `task_status_changed_at`);
+nếu tin nhắn chưa kịp được lưu thì vẫn gửi notice, chỉ bỏ qua cập nhật thẻ.
 
 ## Đảm bảo
 
@@ -38,8 +43,8 @@ docker exec tm-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost
 
 1. Model + interface trong `internal/model`, `internal/service/interfaces.go`.
 2. Logic xử lý trong `internal/service`, decode payload trong `internal/dependency`.
-3. Vòng consume trong `internal/handler` (theo mẫu `MessageConsumer`).
-4. Wire reader + `fx.Invoke` trong `cmd/worker`.
+3. `Processor` trong `internal/handler/processors.go` (decode + gọi service).
+4. Thêm 1 provider `*handler.Consumer` vào group `consumers` trong `cmd/worker` — `runConsumers` tự chạy.
 
 ## Chạy
 
@@ -54,5 +59,9 @@ make run-worker   # cần postgres + kafka (docker compose up -d kafka-init post
 | `KAFKA_BROKERS` | `localhost:29092` |
 | `KAFKA_MESSAGE_TOPIC` | `chat.messages` |
 | `KAFKA_MESSAGE_GROUP_ID` | `message-worker` |
+| `KAFKA_TASK_EVENTS_TOPIC` / `KAFKA_TASK_EVENTS_GROUP_ID` | `task.events` / `task-event-worker` |
+| `NOTIFICATION_GRPC_DIAL_ADDR` | `localhost:9088` |
+| `SOKETI_BASE_URL` / `SOKETI_APP_ID` / `SOKETI_APP_KEY` / `SOKETI_APP_SECRET` | thiếu = không broadcast cập nhật thẻ |
+| `SOKETI_CHAT_CHANNEL_PREFIX` | `chat-` |
 | `RETRY_INITIAL_BACKOFF` / `RETRY_MAX_BACKOFF` | `500ms` / `30s` |
 | `PERSIST_TIMEOUT` | `10s` |

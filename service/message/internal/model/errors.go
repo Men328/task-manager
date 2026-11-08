@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrUnavailable = errors.New("upstream unavailable")
+	ErrNotFound    = errors.New("not found")
 )
 
 type ErrorKind string
@@ -17,6 +18,8 @@ const (
 	ErrorKindBodyTooLong       ErrorKind = "body_too_long"
 	ErrorKindCannotMessageSelf ErrorKind = "cannot_message_self"
 	ErrorKindNotFriends        ErrorKind = "not_friends"
+	ErrorKindTaskTitleRequired ErrorKind = "task_title_required"
+	ErrorKindMessageNotFound   ErrorKind = "message_not_found"
 )
 
 type Error struct {
