@@ -35,10 +35,11 @@ type ImportRule struct {
 }
 
 type CmdRules struct {
-	RequiredDirs   []string `json:"requiredDirs"`
-	RequireImports []string `json:"requireImports"`
-	ForbidImports  []string `json:"forbidImports"`
-	ForbidPatterns []string `json:"forbidPatterns"`
+	RequiredDirs          []string            `json:"requiredDirs"`
+	RequiredDirsByService map[string][]string `json:"requiredDirsByService"`
+	RequireImports        []string            `json:"requireImports"`
+	ForbidImports         []string            `json:"forbidImports"`
+	ForbidPatterns        []string            `json:"forbidPatterns"`
 }
 
 type violation struct {
@@ -332,7 +333,11 @@ func (c *checker) checkNoComments() {
 
 func (c *checker) checkCmd() {
 	for _, svc := range c.services() {
-		for _, reqDir := range c.cfg.Cmd.RequiredDirs {
+		requiredDirs := c.cfg.Cmd.RequiredDirs
+		if override, ok := c.cfg.Cmd.RequiredDirsByService[filepath.Base(svc)]; ok {
+			requiredDirs = override
+		}
+		for _, reqDir := range requiredDirs {
 			dir := filepath.Join(svc, filepath.FromSlash(reqDir))
 			files := allGoFiles(dir)
 			if len(files) == 0 {
