@@ -18,3 +18,15 @@ func TestFriendTargetTypeRoundTrip(t *testing.T) {
 		t.Fatalf("phải đổi ngược về FRIEND, nhận %v", got)
 	}
 }
+
+func TestMessageTargetTypeRoundTrip(t *testing.T) {
+	const message = notificationv1.NoticeTargetType_NOTICE_TARGET_TYPE_MESSAGE
+
+	stored := targetTypeFromProto(message)
+	if stored != model.TargetTypeMessage || !model.TargetTypeValid(stored) {
+		t.Fatalf("loại đích message phải hợp lệ, nhận %q", stored)
+	}
+	if got := targetTypeToProto(stored); got != message {
+		t.Fatalf("round trip sai: %v", got)
+	}
+}
