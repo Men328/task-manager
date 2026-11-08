@@ -3,7 +3,15 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('../../i18n', () => ({ default: { t: (key: string) => key } }));
 
 import { signOut } from '../session/sessionSlice';
-import { chatReducer, fetchMessages, messageReceived, sendChatMessage, setActivePeer } from './chatSlice';
+import {
+  chatReducer,
+  fetchMessages,
+  messageReceived,
+  messageUpdated,
+  sendChatMessage,
+  sendChatTask,
+  setActivePeer,
+} from './chatSlice';
 import type { ChatMessage } from '../../types';
 
 const me = 'me';
@@ -75,5 +83,22 @@ describe('chatSlice', () => {
 
     expect(state.threads).toEqual({});
     expect(state.unreadByPeer).toEqual({});
+  });
+
+  it('giao task: thêm tin kèm thẻ, cập nhật trạng thái theo message.updated, bỏ qua bản cũ hơn', () => {
+    const task = { taskId: 't1', title: 'Mua sữa', statusName: 'To do', statusCategory: 'todo' as const };
+    const sent: ChatMessage = { ...message('m1', me, bob, '2026-11-08T10:00:00Z', 'x'), task };
+    const arg = { peerId: bob, draft: { title: 'Mua sữa', description: '', priority: 'medium' as const, dueAt: '' }, clientId: 'x' };
+    let state = chatReducer(undefined, sendChatTask.fulfilled(sent, 'r', arg));
+    expect(state.threads[bob].messages[0].task?.statusName).toBe('To do');
+
+    const done = { ...sent, task: { ...task, statusName: 'Done', statusCategory: 'done' as const, statusChangedAt: '2026-11-08T11:00:00Z' } };
+    state = chatReducer(state, messageUpdated({ message: done, selfId: me }));
+    expect(state.threads[bob].messages[0].task?.statusCategory).toBe('done');
+    expect(state.lastByPeer[bob].task?.statusCategory).toBe('done');
+
+    const stale = { ...sent, task: { ...task, statusName: 'Doing', statusCategory: 'in_progress' as const, statusChangedAt: '2026-11-08T10:30:00Z' } };
+    state = chatReducer(state, messageUpdated({ message: stale, selfId: me }));
+    expect(state.threads[bob].messages[0].task?.statusCategory).toBe('done');
   });
 });

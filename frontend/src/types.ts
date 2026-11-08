@@ -133,7 +133,7 @@ export interface StatusChangeResult {
 }
 
 /** notification service: NOTIFICATION.notices — đối tượng notice trỏ tới. */
-export type NoticeTargetType = 'task' | 'schedule' | 'event' | 'backlog' | 'friend';
+export type NoticeTargetType = 'task' | 'schedule' | 'event' | 'backlog' | 'friend' | 'message';
 
 /**
  * notification service: NOTIFICATION.notices
@@ -156,7 +156,7 @@ export interface Notice {
   readAt?: string | null;
 }
 
-const NOTICE_TARGET_TYPES: NoticeTargetType[] = ['task', 'schedule', 'event', 'backlog', 'friend'];
+const NOTICE_TARGET_TYPES: NoticeTargetType[] = ['task', 'schedule', 'event', 'backlog', 'friend', 'message'];
 
 export function normalizeTargetType(value: string | null | undefined): NoticeTargetType | null {
   if (typeof value !== 'string') {
@@ -202,9 +202,32 @@ export interface ChatMessage {
   body: string;
   clientId: string;
   createdAt: string;
+  /** Có khi tin nhắn giao task (lệnh /task); trạng thái được cập nhật realtime. */
+  task?: ChatTaskRef | null;
   /** Chỉ có ở client: tin đang gửi (lạc quan) hoặc gửi hỏng. */
   pending?: boolean;
   failed?: boolean;
+}
+
+export type ChatTaskCategory = 'todo' | 'in_progress' | 'done' | 'cancelled' | '';
+
+export interface ChatTaskRef {
+  taskId: string;
+  title: string;
+  statusName: string;
+  statusCategory: ChatTaskCategory;
+  statusColor?: string;
+  statusChangedAt?: string | null;
+}
+
+export type ChatTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface ChatTaskDraft {
+  title: string;
+  description: string;
+  priority: ChatTaskPriority;
+  /** ISO 8601; rỗng = không có hạn. */
+  dueAt: string;
 }
 
 /** Cuộc trò chuyện nhìn từ phía mình; `peerId` là người bên kia. */

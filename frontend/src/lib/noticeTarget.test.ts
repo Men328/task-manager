@@ -6,6 +6,7 @@ describe('noticeTargetPath', () => {
   it.each([
     ['NOTICE_TARGET_TYPE_FRIEND', '/friends'],
     ['friend', '/friends'],
+    ['NOTICE_TARGET_TYPE_MESSAGE', '/messages'],
     ['NOTICE_TARGET_TYPE_EVENT', '/events'],
     ['NOTICE_TARGET_TYPE_SCHEDULE', '/calendar'],
     ['NOTICE_TARGET_TYPE_BACKLOG', '/backlog'],

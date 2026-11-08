@@ -55,7 +55,8 @@
     "empty": "No notifications yet",
     "loadError": "Could not load notifications",
     "reminderNoDue": "Time to work on this.",
-    "openTask": "Open"
+    "openTask": "Open",
+    "openMessage": "View message"
   },
   "taskDetail": {
     "title": "Task details",
@@ -649,5 +650,32 @@
     "newMessageFrom": "New message from {{name}}",
     "newMessage": "New message",
     "open": "Open"
+  },
+  "chatTask": {
+    "title": "Assign a task to {{name}}",
+    "hint": "The task goes into {{name}}'s default project. You'll be notified when {{name}} changes its status.",
+    "fieldTitle": "Title",
+    "fieldDescription": "Description",
+    "fieldPriority": "Priority",
+    "fieldDue": "Due",
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "cancel": "Cancel",
+    "submit": "Assign task",
+    "failed": "Couldn't assign the task",
+    "command": "Create a task for {{name}}",
+    "commandHint": "Press Enter to open the task form",
+    "commandWithTitle": "Title: {{title}}",
+    "menuLabel": "Commands",
+    "assignedTo": "Assigned to {{name}}",
+    "assignedBy": "{{name}} assigned you",
+    "unknownStatus": "Unknown status",
+    "open": "Open task",
+    "previewPrefix": "[Task]",
+    "openFailed": "Couldn't open the message"
   }
 }

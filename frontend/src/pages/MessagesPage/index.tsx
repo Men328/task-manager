@@ -1,19 +1,28 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { ActionIcon, Avatar, Badge, Box, Button, Group, Text, Textarea, ThemeIcon, Tooltip, UnstyledButton } from '@mantine/core';
-import { IconAlertCircle, IconArrowLeft, IconMessages, IconSend } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { IconAlertCircle, IconArrowLeft, IconChecklist, IconMessages, IconSend } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
+import { getErrorMessage } from '../../api/client';
+import { getMessage } from '../../api/message';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
-import { useChat, useFriends } from '../../context';
-import { compareMessages } from '../../lib/chatMessages';
+import { useAppSelector, useChat, useFriends } from '../../context';
+import { compareMessages, peerOf } from '../../lib/chatMessages';
+import { matchSlashCommand } from '../../lib/slashCommands';
 import scrollClasses from '../../styles/scroll.module.css';
 import { tokens } from '../../theme';
 import type { ChatMessage, Friend, FriendProfile } from '../../types';
+import { ChatTaskModal } from './ChatTaskModal';
 import classes from './MessagesPage.module.css';
+import { TaskCard } from './TaskCard';
 
 const MAX_BODY_LENGTH = 2000;
+/** Số trang cũ tối đa tải thêm khi tìm tin nhắn được notice trỏ tới. */
+const MAX_FOCUS_PAGES = 20;
+const FOCUS_HIGHLIGHT_MS = 2500;
 
 function formatTime(value: string, language: string): string {
   const date = new Date(value);
@@ -42,7 +51,8 @@ function ConversationRow({
   onSelect: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const preview = last ? `${last.senderId === selfId ? `${t('chat.you')}: ` : ''}${last.body}` : t('chat.noMessagesYet');
+  const text = last?.task ? `${t('chatTask.previewPrefix')} ${last.task.title}` : last?.body;
+  const preview = last ? `${last.senderId === selfId ? `${t('chat.you')}: ` : ''}${text}` : t('chat.noMessagesYet');
 
   return (
     <UnstyledButton className={classes.conversation} data-active={active} onClick={onSelect}>
@@ -75,16 +85,32 @@ function ConversationRow({
   );
 }
 
-function MessageBubble({ message, mine, onRetry }: { message: ChatMessage; mine: boolean; onRetry: () => void }) {
+function MessageBubble({
+  message,
+  mine,
+  peerName,
+  focused,
+  onRetry,
+}: {
+  message: ChatMessage;
+  mine: boolean;
+  peerName: string;
+  focused: boolean;
+  onRetry: () => void;
+}) {
   const { t, i18n } = useTranslation();
 
   return (
-    <Box className={classes.bubbleRow} data-mine={mine}>
-      <Box className={classes.bubble} data-mine={mine} data-pending={Boolean(message.pending)}>
-        <Text fz={13.5} className={classes.bubbleText}>
-          {message.body}
-        </Text>
-      </Box>
+    <Box className={classes.bubbleRow} data-mine={mine} data-focused={focused} data-message-id={message.id}>
+      {message.task ? (
+        <TaskCard task={message.task} mine={mine} peerName={peerName} />
+      ) : (
+        <Box className={classes.bubble} data-mine={mine} data-pending={Boolean(message.pending)}>
+          <Text fz={13.5} className={classes.bubbleText}>
+            {message.body}
+          </Text>
+        </Box>
+      )}
       <Group gap={4} className={classes.meta} data-mine={mine}>
         {message.failed ? (
           <>
@@ -108,16 +134,66 @@ function MessageBubble({ message, mine, onRetry }: { message: ChatMessage; mine:
 
 function Thread({ peer, onBack }: { peer: FriendProfile; onBack: () => void }) {
   const { t } = useTranslation();
-  const { profileId, thread, loadLatest, loadOlder, send, activate } = useChat(peer.id);
+  const { profileId, thread, loadLatest, loadOlder, send, sendTask, activate } = useChat(peer.id);
+  const [params, setParams] = useSearchParams();
+  const focusId = params.get('focus');
   const [draft, setDraft] = useState('');
+  const [slashDismissed, setSlashDismissed] = useState(false);
+  const [taskTitle, setTaskTitle] = useState<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const focusPages = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const lastId = thread.messages[thread.messages.length - 1]?.id;
+  const slash = slashDismissed ? null : matchSlashCommand(draft);
+
+  useEffect(() => {
+    focusPages.current = 0;
+  }, [focusId]);
+
+  useEffect(() => {
+    if (!focusId || !thread.loaded || thread.loading) {
+      return;
+    }
+    const clearFocus = () => {
+      setParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.delete('focus');
+          return next;
+        },
+        { replace: true },
+      );
+    };
+    const found = thread.messages.some((message) => message.id === focusId);
+    if (found) {
+      stickToBottom.current = false;
+      const element = scrollRef.current?.querySelector(`[data-message-id="${CSS.escape(focusId)}"]`);
+      element?.scrollIntoView({ block: 'center' });
+      setHighlightId(focusId);
+      clearFocus();
+      return;
+    }
+    if (thread.hasMore && focusPages.current < MAX_FOCUS_PAGES) {
+      focusPages.current += 1;
+      loadOlder();
+      return;
+    }
+    clearFocus();
+  }, [focusId, thread.loaded, thread.loading, thread.messages, thread.hasMore, loadOlder, setParams]);
+
+  useEffect(() => {
+    if (!highlightId) {
+      return;
+    }
+    const timer = window.setTimeout(() => setHighlightId(null), FOCUS_HIGHLIGHT_MS);
+    return () => window.clearTimeout(timer);
+  }, [highlightId]);
 
   useEffect(() => {
     activate(peer.id);
     loadLatest();
-    stickToBottom.current = true;
+    stickToBottom.current = !focusId;
     return () => activate(null);
   }, [activate, loadLatest, peer.id]);
 
@@ -135,7 +211,23 @@ function Thread({ peer, onBack }: { peer: FriendProfile; onBack: () => void }) {
     }
   };
 
+  const openTaskModal = (title: string) => {
+    setTaskTitle(title);
+    setDraft('');
+  };
+
+  const changeDraft = (value: string) => {
+    if (!value.startsWith('/')) {
+      setSlashDismissed(false);
+    }
+    setDraft(value);
+  };
+
   const submit = () => {
+    if (slash) {
+      openTaskModal(slash.argument);
+      return;
+    }
     const body = draft.trim();
     if (!body || body.length > MAX_BODY_LENGTH) {
       return;
@@ -146,6 +238,11 @@ function Thread({ peer, onBack }: { peer: FriendProfile; onBack: () => void }) {
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Escape' && slash) {
+      event.preventDefault();
+      setSlashDismissed(true);
+      return;
+    }
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       submit();
@@ -187,30 +284,79 @@ function Thread({ peer, onBack }: { peer: FriendProfile; onBack: () => void }) {
             key={message.clientId || message.id}
             message={message}
             mine={message.pending || message.failed ? true : message.senderId === profileId}
+            peerName={peer.displayName}
+            focused={highlightId === message.id}
             onRetry={() => send(message.body, message.clientId)}
           />
         ))}
       </Box>
 
-      <Group className={classes.composer} gap="sm" wrap="nowrap" align="flex-end">
-        <Textarea
-          flex={1}
-          autosize
-          minRows={1}
-          maxRows={5}
-          placeholder={t('chat.placeholder')}
-          aria-label={t('chat.placeholder')}
-          value={draft}
-          maxLength={MAX_BODY_LENGTH}
-          onChange={(event) => setDraft(event.currentTarget.value)}
-          onKeyDown={onKeyDown}
-        />
-        <Tooltip label={t('chat.send')}>
-          <ActionIcon size={36} radius="md" disabled={!draft.trim()} onClick={submit} aria-label={t('chat.send')}>
-            <IconSend size={17} />
-          </ActionIcon>
-        </Tooltip>
-      </Group>
+      <Box className={classes.composerWrap}>
+        {slash ? (
+          <Box className={classes.slashMenu} role="listbox" aria-label={t('chatTask.menuLabel')}>
+            {slash.commands.map((command, index) => (
+              <UnstyledButton
+                key={command.id}
+                className={classes.slashItem}
+                data-active={index === 0}
+                role="option"
+                aria-selected={index === 0}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => openTaskModal(slash.argument)}
+              >
+                <Group gap="sm" wrap="nowrap">
+                  <ThemeIcon size={28} radius={8} variant="light" color="brand">
+                    <IconChecklist size={16} />
+                  </ThemeIcon>
+                  <Box miw={0}>
+                    <Text fz={13} fw={700} c={tokens.text}>
+                      /task · {t('chatTask.command', { name: peer.displayName })}
+                    </Text>
+                    <Text fz={11.5} c={tokens.textMuted} truncate>
+                      {slash.argument ? t('chatTask.commandWithTitle', { title: slash.argument }) : t('chatTask.commandHint')}
+                    </Text>
+                  </Box>
+                </Group>
+              </UnstyledButton>
+            ))}
+          </Box>
+        ) : null}
+        <Group className={classes.composer} gap="sm" wrap="nowrap" align="flex-end">
+          <Tooltip label={t('chatTask.command', { name: peer.displayName })}>
+            <ActionIcon size={36} radius="md" variant="default" onClick={() => openTaskModal('')} aria-label={t('chatTask.command', { name: peer.displayName })}>
+              <IconChecklist size={17} />
+            </ActionIcon>
+          </Tooltip>
+          <Textarea
+            flex={1}
+            autosize
+            minRows={1}
+            maxRows={5}
+            placeholder={t('chat.placeholder')}
+            aria-label={t('chat.placeholder')}
+            value={draft}
+            maxLength={MAX_BODY_LENGTH}
+            onChange={(event) => changeDraft(event.currentTarget.value)}
+            onKeyDown={onKeyDown}
+          />
+          <Tooltip label={t('chat.send')}>
+            <ActionIcon size={36} radius="md" disabled={!draft.trim()} onClick={submit} aria-label={t('chat.send')}>
+              <IconSend size={17} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      </Box>
+
+      <ChatTaskModal
+        opened={taskTitle !== null}
+        peerName={peer.displayName}
+        initialTitle={taskTitle ?? ''}
+        onClose={() => setTaskTitle(null)}
+        onSubmit={(value) => {
+          stickToBottom.current = true;
+          return sendTask(value);
+        }}
+      />
     </Box>
   );
 }
@@ -219,8 +365,33 @@ export function MessagesPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { peerId } = useParams<{ peerId: string }>();
+  const [params] = useSearchParams();
+  const focusId = params.get('focus');
+  const token = useAppSelector((state) => state.session.token);
   const { friends, loading, error, reload } = useFriends();
   const { profileId, lastByPeer, unreadByPeer, conversationsError, reloadConversations } = useChat(null);
+
+  useEffect(() => {
+    if (peerId || !focusId || !token || !profileId) {
+      return;
+    }
+    let cancelled = false;
+    getMessage(token, focusId)
+      .then((message) => {
+        if (!cancelled) {
+          navigate(`/messages/${peerOf(message, profileId)}?focus=${encodeURIComponent(message.id)}`, { replace: true });
+        }
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) {
+          notifications.show({ title: t('chatTask.openFailed'), message: getErrorMessage(cause), color: 'red' });
+          navigate('/messages', { replace: true });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [peerId, focusId, token, profileId, navigate, t]);
 
   useEffect(() => {
     reload();
