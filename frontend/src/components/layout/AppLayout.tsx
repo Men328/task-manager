@@ -7,6 +7,7 @@ import { useProjectGate } from '../../context/project/useProjectGate';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../common/States';
 
 import classes from './AppLayout.module.css';
+import { ChatRealtime } from './ChatRealtime';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 
@@ -26,6 +27,7 @@ export function AppLayout() {
       padding={0}
       classNames={{ header: classes.header, navbar: classes.navbar, main: classes.main }}
     >
+      <ChatRealtime />
       <AppShell.Header>
         <TopBar navOpened={navOpened} onToggleNav={toggle} />
       </AppShell.Header>

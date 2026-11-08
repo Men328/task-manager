@@ -1,6 +1,6 @@
 {
   "_note": "Bộ mã lỗi chuẩn (canonical). Backend gắn mã này vào google.rpc.ErrorInfo; FE map mã sang message. Bản mirror cho FE: frontend/src/config/error_codes.json - sinh bằng `make error-codes`, không sửa tay.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "domain": "taskmanager",
   "defaultCode": "COMMON_INTERNAL",
   "codes": {
@@ -1171,6 +1171,42 @@
       "message": {
         "vi": "Email không hợp lệ.",
         "en": "The email address is invalid."
+      }
+    },
+    "MESSAGE_BODY_REQUIRED": {
+      "owner": "message",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Nội dung tin nhắn không được để trống.",
+        "en": "Message text is required."
+      }
+    },
+    "MESSAGE_BODY_TOO_LONG": {
+      "owner": "message",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Tin nhắn quá dài.",
+        "en": "The message is too long."
+      }
+    },
+    "MESSAGE_CANNOT_MESSAGE_SELF": {
+      "owner": "message",
+      "grpcCode": "InvalidArgument",
+      "httpStatus": 400,
+      "message": {
+        "vi": "Bạn không thể nhắn tin cho chính mình.",
+        "en": "You cannot message yourself."
+      }
+    },
+    "MESSAGE_NOT_FRIENDS": {
+      "owner": "message",
+      "grpcCode": "PermissionDenied",
+      "httpStatus": 403,
+      "message": {
+        "vi": "Chỉ có thể nhắn tin với bạn bè.",
+        "en": "You can only message your friends."
       }
     }
   }

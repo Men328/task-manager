@@ -97,6 +97,16 @@ message CancelFriendRequestRequest {
 
 message CancelFriendRequestResponse {}
 
+// AreFriends cho service khác (message) kiểm tra 2 profile đã là bạn bè chưa.
+message AreFriendsRequest {
+  string profile_id = 1;
+  string other_id = 2;
+}
+
+message AreFriendsResponse {
+  bool friends = 1;
+}
+
 service FriendService {
   rpc SearchByEmail(SearchByEmailRequest) returns (SearchByEmailResponse);
   rpc ListFriends(ListFriendsRequest) returns (ListFriendsResponse);
@@ -106,4 +116,5 @@ service FriendService {
   rpc AcceptFriendRequest(AcceptFriendRequestRequest) returns (AcceptFriendRequestResponse);
   rpc DeclineFriendRequest(DeclineFriendRequestRequest) returns (DeclineFriendRequestResponse);
   rpc CancelFriendRequest(CancelFriendRequestRequest) returns (CancelFriendRequestResponse);
+  rpc AreFriends(AreFriendsRequest) returns (AreFriendsResponse);
 }

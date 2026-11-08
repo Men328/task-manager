@@ -20,11 +20,12 @@ func newSoketiTestAuth(t *testing.T, appKey string, appSecret string) (*soketiAu
 	t.Helper()
 
 	cfg := config.Config{
-		SessionSecret:       testSecret,
-		SessionTTL:          time.Hour,
-		SoketiAppKey:        appKey,
-		SoketiAppSecret:     appSecret,
-		SoketiChannelPrefix: "noti-internal-",
+		SessionSecret:           testSecret,
+		SessionTTL:              time.Hour,
+		SoketiAppKey:            appKey,
+		SoketiAppSecret:         appSecret,
+		SoketiChannelPrefix:     "noti-internal-",
+		SoketiChatChannelPrefix: "chat-",
 	}
 	signer := newSessionSigner(cfg)
 	token, _, err := signer.issue("profile-1", "user@example.com", time.Now())
@@ -143,5 +144,23 @@ func TestSoketiAuthRejectsInvalidRequest(t *testing.T) {
 	}
 	if reason := errorReason(t, recorder.Body.Bytes()); reason != errorcode.IdentityAuthSoketiRequestInvalid {
 		t.Fatalf("reason = %q, muốn %q", reason, errorcode.IdentityAuthSoketiRequestInvalid)
+	}
+}
+
+func TestSoketiAuthSignsOwnChatChannelOnly(t *testing.T) {
+	auth, token := newSoketiTestAuth(t, "app-key", "app-secret")
+
+	cases := map[string]int{
+		"private-chat-profile-1":       http.StatusOK,
+		"private-chat-profile-2":       http.StatusForbidden,
+		"private-chat-profile-1-extra": http.StatusForbidden,
+		"private-other-profile-1":      http.StatusForbidden,
+	}
+	for channel, want := range cases {
+		recorder := httptest.NewRecorder()
+		auth.handle(recorder, soketiAuthRequestFor(t, token, "123.456", channel), nil)
+		if recorder.Code != want {
+			t.Fatalf("%s: status = %d, muốn %d", channel, recorder.Code, want)
+		}
 	}
 }

@@ -126,6 +126,11 @@ const (
 	SocialFriendNotFound        = "SOCIAL_FRIEND_NOT_FOUND"
 	SocialEmailInvalid          = "SOCIAL_EMAIL_INVALID"
 
+	MessageBodyRequired      = "MESSAGE_BODY_REQUIRED"
+	MessageBodyTooLong       = "MESSAGE_BODY_TOO_LONG"
+	MessageCannotMessageSelf = "MESSAGE_CANNOT_MESSAGE_SELF"
+	MessageNotFriends        = "MESSAGE_NOT_FRIENDS"
+
 	EventProfileIDRequired = "EVENT_PROFILE_ID_REQUIRED"
 	EventTitleRequired     = "EVENT_TITLE_REQUIRED"
 	EventIDRequired        = "EVENT_ID_REQUIRED"

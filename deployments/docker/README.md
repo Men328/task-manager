@@ -2,7 +2,7 @@
 
 | File | Việc |
 |---|---|
-| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + rustfs + soketi + identity(-grpc) + task(-grpc) + calendar(-grpc) + event(-grpc) + backlog(-grpc) + attachment(-grpc) + report(-grpc) + notification(-grpc) + mail-provider(-grpc) + frontend + cloudflared (profile `tunnel`) |
+| `docker-compose.yml` | Stack đầy đủ: postgres + migrate + rustfs + soketi + identity(-grpc) + task(-grpc) + calendar(-grpc) + event(-grpc) + backlog(-grpc) + attachment(-grpc) + report(-grpc) + notification(-grpc) + mail-provider(-grpc) + kafka + message(-grpc) + worker + frontend + cloudflared (profile `tunnel`) |
 
 Dockerfile nằm **trong từng service** (`service/identity/Dockerfile`, `service/task/Dockerfile`,
 `service/calendar/Dockerfile`, `service/event/Dockerfile`, `service/backlog/Dockerfile`,
@@ -62,6 +62,10 @@ trong network Docker nội bộ và được các container gọi nhau bằng t�
 | notification-grpc | tm-notification-grpc | nội bộ `notification-grpc:9088` | notice ở `notification.notices`; publish qua soketi |
 | social (gateway) | tm-social | nội bộ `social:8091` | API `/api/social`; verify session JWT, người gọi lấy từ token |
 | social-grpc | tm-social-grpc | nội bộ `social-grpc:9091` | bạn bè ở `social.friendships`; dial `identity-grpc` và `notification-grpc` |
+| kafka | tm-kafka | nội bộ `kafka:9092`, host `127.0.0.1:29092` | KRaft 1 node; topic `chat.messages` do `kafka-init` tạo (6 partition) |
+| message (gateway) | tm-message | nội bộ `message:8092` | API `/api/message`; verify session JWT |
+| message-grpc | tm-message-grpc | nội bộ `message-grpc:9092` | kiểm tra bạn bè (social), broadcast soketi `private-chat-<id>`, produce Kafka async |
+| worker | task-manager-worker-N | không publish port (health `:8094`) | consume `chat.messages` group `message-worker` -> Postgres; scale `--scale worker=N` |
 | soketi | tm-soketi | nội bộ `soketi:6001` (WS), debug `127.0.0.1:6001` | WebSocket giao thức Pusher; browser vào qua `/api/soketi` |
 | rustfs | tm-rustfs | API nội bộ `rustfs:9000`; console `127.0.0.1:9001` | object storage S3-compatible (thay MinIO OSS đã archive) |
 | postgres | tm-postgres | nội bộ `postgres:5432` | không publish ra host |
@@ -191,7 +195,9 @@ make migrate-down      # rollback 1 bước
 - `soketi` là WebSocket server giao thức Pusher. `notification-grpc` publish notice vào kênh private
   `private-noti-internal-<profile_id>` qua `SOKETI_BASE_URL`; browser subscribe qua nginx
   (`/api/soketi` -> `soketi:6001`) sau khi xin chữ ký uỷ quyền ở identity (`POST /v1/auth/soketi`).
-  `SOKETI_APP_KEY`/`SOKETI_APP_SECRET` phải khớp nhau giữa 3 nơi: soketi, identity, notification;
+  `message-grpc` publish tin nhắn (`message.created`) vào `private-chat-<profile_id>`; identity chỉ ký
+  kênh `private-noti-internal-<sub>` và `private-chat-<sub>` của chính người gọi.
+  `SOKETI_APP_KEY`/`SOKETI_APP_SECRET` phải khớp nhau giữa 4 nơi: soketi, identity, notification, message;
   app key còn được nhúng vào bundle frontend lúc build (build args của service `frontend`).
 - Credential object storage đặt trong `.env` (`RUSTFS_ACCESS_KEY`, `RUSTFS_SECRET_KEY`); đổi mật
   khẩu mặc định trước khi đưa console ra ngoài. MinIO OSS đã bị archive nên stack dùng RustFS

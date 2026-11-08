@@ -43,6 +43,9 @@
   ],
   "cmd": {
     "requiredDirs": ["cmd/grpc", "cmd/http"],
+    "requiredDirsByService": {
+      "worker": ["cmd/worker"]
+    },
     "requireImports": ["go.uber.org/fx"],
     "forbidImports": ["os/signal", "syscall"],
     "forbidPatterns": ["signal.NotifyContext", "SIGTERM", "SIGINT"]

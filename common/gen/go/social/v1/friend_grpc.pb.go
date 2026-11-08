@@ -27,6 +27,7 @@ const (
 	FriendService_AcceptFriendRequest_FullMethodName  = "/social.v1.FriendService/AcceptFriendRequest"
 	FriendService_DeclineFriendRequest_FullMethodName = "/social.v1.FriendService/DeclineFriendRequest"
 	FriendService_CancelFriendRequest_FullMethodName  = "/social.v1.FriendService/CancelFriendRequest"
+	FriendService_AreFriends_FullMethodName           = "/social.v1.FriendService/AreFriends"
 )
 
 // FriendServiceClient is the client API for FriendService service.
@@ -41,6 +42,7 @@ type FriendServiceClient interface {
 	AcceptFriendRequest(ctx context.Context, in *AcceptFriendRequestRequest, opts ...grpc.CallOption) (*AcceptFriendRequestResponse, error)
 	DeclineFriendRequest(ctx context.Context, in *DeclineFriendRequestRequest, opts ...grpc.CallOption) (*DeclineFriendRequestResponse, error)
 	CancelFriendRequest(ctx context.Context, in *CancelFriendRequestRequest, opts ...grpc.CallOption) (*CancelFriendRequestResponse, error)
+	AreFriends(ctx context.Context, in *AreFriendsRequest, opts ...grpc.CallOption) (*AreFriendsResponse, error)
 }
 
 type friendServiceClient struct {
@@ -131,6 +133,16 @@ func (c *friendServiceClient) CancelFriendRequest(ctx context.Context, in *Cance
 	return out, nil
 }
 
+func (c *friendServiceClient) AreFriends(ctx context.Context, in *AreFriendsRequest, opts ...grpc.CallOption) (*AreFriendsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AreFriendsResponse)
+	err := c.cc.Invoke(ctx, FriendService_AreFriends_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FriendServiceServer is the server API for FriendService service.
 // All implementations must embed UnimplementedFriendServiceServer
 // for forward compatibility.
@@ -143,6 +155,7 @@ type FriendServiceServer interface {
 	AcceptFriendRequest(context.Context, *AcceptFriendRequestRequest) (*AcceptFriendRequestResponse, error)
 	DeclineFriendRequest(context.Context, *DeclineFriendRequestRequest) (*DeclineFriendRequestResponse, error)
 	CancelFriendRequest(context.Context, *CancelFriendRequestRequest) (*CancelFriendRequestResponse, error)
+	AreFriends(context.Context, *AreFriendsRequest) (*AreFriendsResponse, error)
 	mustEmbedUnimplementedFriendServiceServer()
 }
 
@@ -176,6 +189,9 @@ func (UnimplementedFriendServiceServer) DeclineFriendRequest(context.Context, *D
 }
 func (UnimplementedFriendServiceServer) CancelFriendRequest(context.Context, *CancelFriendRequestRequest) (*CancelFriendRequestResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CancelFriendRequest not implemented")
+}
+func (UnimplementedFriendServiceServer) AreFriends(context.Context, *AreFriendsRequest) (*AreFriendsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AreFriends not implemented")
 }
 func (UnimplementedFriendServiceServer) mustEmbedUnimplementedFriendServiceServer() {}
 func (UnimplementedFriendServiceServer) testEmbeddedByValue()                       {}
@@ -342,6 +358,24 @@ func _FriendService_CancelFriendRequest_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FriendService_AreFriends_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AreFriendsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FriendServiceServer).AreFriends(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FriendService_AreFriends_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FriendServiceServer).AreFriends(ctx, req.(*AreFriendsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FriendService_ServiceDesc is the grpc.ServiceDesc for FriendService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -380,6 +414,10 @@ var FriendService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CancelFriendRequest",
 			Handler:    _FriendService_CancelFriendRequest_Handler,
+		},
+		{
+			MethodName: "AreFriends",
+			Handler:    _FriendService_AreFriends_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

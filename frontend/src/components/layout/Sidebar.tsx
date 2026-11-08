@@ -1,7 +1,8 @@
-import { Box, Group, Stack, Text, UnstyledButton } from '@mantine/core';
+import { Badge, Box, Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { useUnreadMessageCount } from '../../context';
 import scrollClasses from '../../styles/scroll.module.css';
 import { tokens } from '../../theme';
 import { NAV_SECTIONS, type NavItem } from './navigation';
@@ -38,10 +39,12 @@ function EmptySectionHint() {
 function NavItemRow({
   entry,
   active,
+  badge,
   onSelect,
 }: {
   entry: NavItem;
   active: boolean;
+  badge?: number;
   onSelect: (to: string) => void;
 }) {
   const { t } = useTranslation();
@@ -55,9 +58,14 @@ function NavItemRow({
     >
       <Group gap={10} wrap="nowrap">
         <Icon size={17} stroke={1.8} style={{ color: active ? tokens.brand : tokens.textMuted }} />
-        <Text fz={13} fw={active ? 700 : 500} c={active ? tokens.brand : tokens.navText}>
+        <Text fz={13} fw={active ? 700 : 500} c={active ? tokens.brand : tokens.navText} flex={1}>
           {t(labelKey)}
         </Text>
+        {badge ? (
+          <Badge size="sm" circle color="brand">
+            {badge > 9 ? '9+' : badge}
+          </Badge>
+        ) : null}
       </Group>
     </UnstyledButton>
   );
@@ -80,6 +88,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const unreadMessages = useUnreadMessageCount();
 
   const select = (to: string) => {
     navigate(to);
@@ -104,7 +113,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   <NavItemRow
                     key={entry.key}
                     entry={entry}
-                    active={pathname === entry.to}
+                    active={pathname === entry.to || (Boolean(entry.matchPrefix) && pathname.startsWith(`${entry.to}/`))}
+                    badge={entry.key === 'messages' ? unreadMessages : undefined}
                     onSelect={select}
                   />
                 ))}

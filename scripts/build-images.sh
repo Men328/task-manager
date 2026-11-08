@@ -25,7 +25,7 @@ if ! [[ "$BATCH_SIZE" =~ ^[1-9][0-9]*$ ]]; then
 fi
 
 # Thứ tự: project trước vì nhiều service phụ thuộc, frontend (npm build nặng) để cuối.
-DEFAULT_SERVICES="project-grpc identity-grpc task-grpc calendar-grpc event-grpc backlog-grpc attachment-grpc report-grpc mail-provider-grpc notification-grpc social-grpc frontend"
+DEFAULT_SERVICES="project-grpc identity-grpc task-grpc calendar-grpc event-grpc backlog-grpc attachment-grpc report-grpc mail-provider-grpc notification-grpc social-grpc message-grpc worker frontend"
 read -r -a services <<<"${SERVICES:-$DEFAULT_SERVICES}"
 
 total=${#services[@]}

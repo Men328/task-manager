@@ -14,8 +14,9 @@ import {
   ThemeIcon,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconSearch, IconUsers } from '@tabler/icons-react';
+import { IconMessage, IconSearch, IconUsers } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 import { getErrorMessage } from '../../api/client';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
@@ -49,6 +50,7 @@ function PersonRow({ profile, actions }: { profile: FriendProfile; actions: Reac
 
 export function FriendsPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { friends, incoming, outgoing, loading, error, reload, search, send, accept, decline, cancel, remove } =
     useFriends();
   const [tab, setTab] = useState<Tab>('friends');
@@ -224,9 +226,19 @@ export function FriendsPage() {
                     key={friend.profile.id}
                     profile={friend.profile}
                     actions={
-                      <Button size="xs" variant="default" onClick={() => setRemoving(friend.profile)}>
-                        {t('friends.removeAction')}
-                      </Button>
+                      <>
+                        <Button
+                          size="xs"
+                          variant="light"
+                          leftSection={<IconMessage size={14} />}
+                          onClick={() => navigate(`/messages/${friend.profile.id}`)}
+                        >
+                          {t('friends.messageAction')}
+                        </Button>
+                        <Button size="xs" variant="default" onClick={() => setRemoving(friend.profile)}>
+                          {t('friends.removeAction')}
+                        </Button>
+                      </>
                     }
                   />
                 ))

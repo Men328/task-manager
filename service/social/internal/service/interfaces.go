@@ -35,4 +35,5 @@ type FriendService interface {
 	AcceptRequest(ctx context.Context, profileID, requestID string) error
 	DeclineRequest(ctx context.Context, profileID, requestID string) error
 	CancelRequest(ctx context.Context, profileID, requestID string) error
+	AreFriends(ctx context.Context, profileID, otherID string) (bool, error)
 }

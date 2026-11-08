@@ -13,13 +13,16 @@ import (
 	"taskmanager/service/identity/internal/config"
 )
 
-const defaultChannelPrefix = "noti-internal-"
+const (
+	defaultChannelPrefix     = "noti-internal-"
+	defaultChatChannelPrefix = "chat-"
+)
 
 type soketiAuth struct {
-	appKey        string
-	appSecret     string
-	channelPrefix string
-	signer        *sessionSigner
+	appKey    string
+	appSecret string
+	prefixes  []string
+	signer    *sessionSigner
 }
 
 type soketiAuthRequest struct {
@@ -29,24 +32,35 @@ type soketiAuthRequest struct {
 }
 
 func newSoketiAuth(cfg config.Config, signer *sessionSigner) *soketiAuth {
-	prefix := strings.TrimSpace(cfg.SoketiChannelPrefix)
-	if prefix == "" {
-		prefix = defaultChannelPrefix
-	}
 	return &soketiAuth{
-		appKey:        strings.TrimSpace(cfg.SoketiAppKey),
-		appSecret:     strings.TrimSpace(cfg.SoketiAppSecret),
-		channelPrefix: prefix,
-		signer:        signer,
+		appKey:    strings.TrimSpace(cfg.SoketiAppKey),
+		appSecret: strings.TrimSpace(cfg.SoketiAppSecret),
+		prefixes: []string{
+			prefixOr(cfg.SoketiChannelPrefix, defaultChannelPrefix),
+			prefixOr(cfg.SoketiChatChannelPrefix, defaultChatChannelPrefix),
+		},
+		signer: signer,
 	}
+}
+
+func prefixOr(value, fallback string) string {
+	if prefix := strings.TrimSpace(value); prefix != "" {
+		return prefix
+	}
+	return fallback
 }
 
 func (s *soketiAuth) configured() bool {
 	return s.appKey != "" && s.appSecret != ""
 }
 
-func (s *soketiAuth) channelFor(profileID string) string {
-	return "private-" + s.channelPrefix + profileID
+func (s *soketiAuth) ownsChannel(profileID, channelName string) bool {
+	for _, prefix := range s.prefixes {
+		if channelName == "private-"+prefix+profileID {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *soketiAuth) handle(w http.ResponseWriter, r *http.Request, _ map[string]string) {
@@ -80,7 +94,7 @@ func (s *soketiAuth) handle(w http.ResponseWriter, r *http.Request, _ map[string
 		return
 	}
 
-	if request.ChannelName != s.channelFor(claims.Subject) {
+	if !s.ownsChannel(claims.Subject, request.ChannelName) {
 		writeAPIError(w, errorcode.IdentityAuthSoketiChannelForbidden)
 		return
 	}

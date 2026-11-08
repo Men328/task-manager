@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 # Mỗi thư mục trong service/ (và common/) là 1 Go module riêng, quản lý bằng go.work.
 # Vì root không phải module nên `go build ./...` không dùng được -> loop từng module.
-MODULES := common service/attachment service/backlog service/calendar service/event service/identity service/mail-provider service/notification service/project service/report service/social service/task tools/quality
+MODULES := common service/attachment service/backlog service/calendar service/event service/identity service/mail-provider service/message service/notification service/project service/report service/social service/task service/worker tools/quality
 
 GOBIN ?= $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(GOBIN):$(PATH)
@@ -28,6 +28,7 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
         run-notification run-notification-grpc run-notification-http \
         run-report run-report-grpc run-report-http \
         run-social run-social-grpc run-social-http \
+        run-message run-message-grpc run-message-http run-worker \
         quality-all quality-fmt quality-vet quality-arch
 
 help: ## Hiển thị danh sách lệnh
@@ -220,6 +221,18 @@ run-social-grpc: ## Chỉ chạy gRPC server social (:9091)
 
 run-social-http: ## Chỉ chạy HTTP gateway social (:8091)
 	cd service/social && go run ./cmd/http
+
+run-message: ## Chạy message local: gRPC :9092 + gateway :8092 (cần social, soketi, kafka)
+	bash scripts/run-service.sh message
+
+run-message-grpc: ## Chỉ chạy gRPC server message (:9092)
+	cd service/message && go run ./cmd/grpc
+
+run-message-http: ## Chỉ chạy HTTP gateway message (:8092)
+	cd service/message && go run ./cmd/http
+
+run-worker: ## Chạy worker local: Kafka consumer chat.messages -> Postgres (health :8094)
+	cd service/worker && go run ./cmd/worker
 
 run-report: ## Chạy report local: gRPC :9087 + gateway :8087 (cần task service)
 	bash scripts/run-service.sh report

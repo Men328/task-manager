@@ -24,6 +24,9 @@ export const PROJECT_BASE_URL: string =
 export const SOCIAL_BASE_URL: string =
   (import.meta.env.VITE_SOCIAL_API_URL as string | undefined) ?? '/api/social';
 
+export const MESSAGE_BASE_URL: string =
+  (import.meta.env.VITE_MESSAGE_API_URL as string | undefined) ?? '/api/message';
+
 export const EVENT_BASE_URL: string =
   (import.meta.env.VITE_EVENT_API_URL as string | undefined) ?? '/api/event';
 
@@ -53,6 +56,9 @@ export const projectApi = PROJECT_BASE_URL;
 
 /** Base URL used by the social service calls. */
 export const socialApi = SOCIAL_BASE_URL;
+
+/** Base URL used by the message service calls. */
+export const messageApi = MESSAGE_BASE_URL;
 
 /** Base URL used by the event service calls. */
 export const eventApi = EVENT_BASE_URL;

@@ -943,6 +943,103 @@ func (*CancelFriendRequestResponse) Descriptor() ([]byte, []int) {
 	return file_social_v1_friend_proto_rawDescGZIP(), []int{18}
 }
 
+// AreFriends cho service khác (message) kiểm tra 2 profile đã là bạn bè chưa.
+type AreFriendsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProfileId     string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	OtherId       string                 `protobuf:"bytes,2,opt,name=other_id,json=otherId,proto3" json:"other_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AreFriendsRequest) Reset() {
+	*x = AreFriendsRequest{}
+	mi := &file_social_v1_friend_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AreFriendsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AreFriendsRequest) ProtoMessage() {}
+
+func (x *AreFriendsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_social_v1_friend_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AreFriendsRequest.ProtoReflect.Descriptor instead.
+func (*AreFriendsRequest) Descriptor() ([]byte, []int) {
+	return file_social_v1_friend_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *AreFriendsRequest) GetProfileId() string {
+	if x != nil {
+		return x.ProfileId
+	}
+	return ""
+}
+
+func (x *AreFriendsRequest) GetOtherId() string {
+	if x != nil {
+		return x.OtherId
+	}
+	return ""
+}
+
+type AreFriendsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Friends       bool                   `protobuf:"varint,1,opt,name=friends,proto3" json:"friends,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AreFriendsResponse) Reset() {
+	*x = AreFriendsResponse{}
+	mi := &file_social_v1_friend_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AreFriendsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AreFriendsResponse) ProtoMessage() {}
+
+func (x *AreFriendsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_social_v1_friend_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AreFriendsResponse.ProtoReflect.Descriptor instead.
+func (*AreFriendsResponse) Descriptor() ([]byte, []int) {
+	return file_social_v1_friend_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *AreFriendsResponse) GetFriends() bool {
+	if x != nil {
+		return x.Friends
+	}
+	return false
+}
+
 var File_social_v1_friend_proto protoreflect.FileDescriptor
 
 const file_social_v1_friend_proto_rawDesc = "" +
@@ -1008,7 +1105,13 @@ const file_social_v1_friend_proto_rawDesc = "" +
 	"profile_id\x18\x01 \x01(\tR\tprofileId\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x02 \x01(\tR\trequestId\"\x1d\n" +
-	"\x1bCancelFriendRequestResponse2\xfa\x05\n" +
+	"\x1bCancelFriendRequestResponse\"M\n" +
+	"\x11AreFriendsRequest\x12\x1d\n" +
+	"\n" +
+	"profile_id\x18\x01 \x01(\tR\tprofileId\x12\x19\n" +
+	"\bother_id\x18\x02 \x01(\tR\aotherId\".\n" +
+	"\x12AreFriendsResponse\x12\x18\n" +
+	"\afriends\x18\x01 \x01(\bR\afriends2\xc5\x06\n" +
 	"\rFriendService\x12R\n" +
 	"\rSearchByEmail\x12\x1f.social.v1.SearchByEmailRequest\x1a .social.v1.SearchByEmailResponse\x12L\n" +
 	"\vListFriends\x12\x1d.social.v1.ListFriendsRequest\x1a\x1e.social.v1.ListFriendsResponse\x12O\n" +
@@ -1017,7 +1120,9 @@ const file_social_v1_friend_proto_rawDesc = "" +
 	"\x11SendFriendRequest\x12#.social.v1.SendFriendRequestRequest\x1a$.social.v1.SendFriendRequestResponse\x12d\n" +
 	"\x13AcceptFriendRequest\x12%.social.v1.AcceptFriendRequestRequest\x1a&.social.v1.AcceptFriendRequestResponse\x12g\n" +
 	"\x14DeclineFriendRequest\x12&.social.v1.DeclineFriendRequestRequest\x1a'.social.v1.DeclineFriendRequestResponse\x12d\n" +
-	"\x13CancelFriendRequest\x12%.social.v1.CancelFriendRequestRequest\x1a&.social.v1.CancelFriendRequestResponseB.Z,taskmanager/common/gen/go/social/v1;socialv1b\x06proto3"
+	"\x13CancelFriendRequest\x12%.social.v1.CancelFriendRequestRequest\x1a&.social.v1.CancelFriendRequestResponse\x12I\n" +
+	"\n" +
+	"AreFriends\x12\x1c.social.v1.AreFriendsRequest\x1a\x1d.social.v1.AreFriendsResponseB.Z,taskmanager/common/gen/go/social/v1;socialv1b\x06proto3"
 
 var (
 	file_social_v1_friend_proto_rawDescOnce sync.Once
@@ -1031,7 +1136,7 @@ func file_social_v1_friend_proto_rawDescGZIP() []byte {
 	return file_social_v1_friend_proto_rawDescData
 }
 
-var file_social_v1_friend_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_social_v1_friend_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_social_v1_friend_proto_goTypes = []any{
 	(*FriendProfile)(nil),                // 0: social.v1.FriendProfile
 	(*Friend)(nil),                       // 1: social.v1.Friend
@@ -1052,13 +1157,15 @@ var file_social_v1_friend_proto_goTypes = []any{
 	(*DeclineFriendRequestResponse)(nil), // 16: social.v1.DeclineFriendRequestResponse
 	(*CancelFriendRequestRequest)(nil),   // 17: social.v1.CancelFriendRequestRequest
 	(*CancelFriendRequestResponse)(nil),  // 18: social.v1.CancelFriendRequestResponse
-	(*timestamppb.Timestamp)(nil),        // 19: google.protobuf.Timestamp
+	(*AreFriendsRequest)(nil),            // 19: social.v1.AreFriendsRequest
+	(*AreFriendsResponse)(nil),           // 20: social.v1.AreFriendsResponse
+	(*timestamppb.Timestamp)(nil),        // 21: google.protobuf.Timestamp
 }
 var file_social_v1_friend_proto_depIdxs = []int32{
 	0,  // 0: social.v1.Friend.profile:type_name -> social.v1.FriendProfile
-	19, // 1: social.v1.Friend.friends_since:type_name -> google.protobuf.Timestamp
+	21, // 1: social.v1.Friend.friends_since:type_name -> google.protobuf.Timestamp
 	0,  // 2: social.v1.FriendRequest.profile:type_name -> social.v1.FriendProfile
-	19, // 3: social.v1.FriendRequest.created_at:type_name -> google.protobuf.Timestamp
+	21, // 3: social.v1.FriendRequest.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 4: social.v1.SearchByEmailResponse.profile:type_name -> social.v1.FriendProfile
 	1,  // 5: social.v1.ListFriendsResponse.friends:type_name -> social.v1.Friend
 	2,  // 6: social.v1.ListFriendRequestsResponse.incoming:type_name -> social.v1.FriendRequest
@@ -1071,16 +1178,18 @@ var file_social_v1_friend_proto_depIdxs = []int32{
 	13, // 13: social.v1.FriendService.AcceptFriendRequest:input_type -> social.v1.AcceptFriendRequestRequest
 	15, // 14: social.v1.FriendService.DeclineFriendRequest:input_type -> social.v1.DeclineFriendRequestRequest
 	17, // 15: social.v1.FriendService.CancelFriendRequest:input_type -> social.v1.CancelFriendRequestRequest
-	4,  // 16: social.v1.FriendService.SearchByEmail:output_type -> social.v1.SearchByEmailResponse
-	6,  // 17: social.v1.FriendService.ListFriends:output_type -> social.v1.ListFriendsResponse
-	8,  // 18: social.v1.FriendService.RemoveFriend:output_type -> social.v1.RemoveFriendResponse
-	10, // 19: social.v1.FriendService.ListFriendRequests:output_type -> social.v1.ListFriendRequestsResponse
-	12, // 20: social.v1.FriendService.SendFriendRequest:output_type -> social.v1.SendFriendRequestResponse
-	14, // 21: social.v1.FriendService.AcceptFriendRequest:output_type -> social.v1.AcceptFriendRequestResponse
-	16, // 22: social.v1.FriendService.DeclineFriendRequest:output_type -> social.v1.DeclineFriendRequestResponse
-	18, // 23: social.v1.FriendService.CancelFriendRequest:output_type -> social.v1.CancelFriendRequestResponse
-	16, // [16:24] is the sub-list for method output_type
-	8,  // [8:16] is the sub-list for method input_type
+	19, // 16: social.v1.FriendService.AreFriends:input_type -> social.v1.AreFriendsRequest
+	4,  // 17: social.v1.FriendService.SearchByEmail:output_type -> social.v1.SearchByEmailResponse
+	6,  // 18: social.v1.FriendService.ListFriends:output_type -> social.v1.ListFriendsResponse
+	8,  // 19: social.v1.FriendService.RemoveFriend:output_type -> social.v1.RemoveFriendResponse
+	10, // 20: social.v1.FriendService.ListFriendRequests:output_type -> social.v1.ListFriendRequestsResponse
+	12, // 21: social.v1.FriendService.SendFriendRequest:output_type -> social.v1.SendFriendRequestResponse
+	14, // 22: social.v1.FriendService.AcceptFriendRequest:output_type -> social.v1.AcceptFriendRequestResponse
+	16, // 23: social.v1.FriendService.DeclineFriendRequest:output_type -> social.v1.DeclineFriendRequestResponse
+	18, // 24: social.v1.FriendService.CancelFriendRequest:output_type -> social.v1.CancelFriendRequestResponse
+	20, // 25: social.v1.FriendService.AreFriends:output_type -> social.v1.AreFriendsResponse
+	17, // [17:26] is the sub-list for method output_type
+	8,  // [8:17] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -1097,7 +1206,7 @@ func file_social_v1_friend_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_social_v1_friend_proto_rawDesc), len(file_social_v1_friend_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

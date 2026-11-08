@@ -23,6 +23,8 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 │   ├── calendar/               # lịch cá nhân (schedule)   (gRPC :9083 / HTTP :8083)
 │   ├── project/                # nhóm công việc theo dự án (gRPC :9090 / HTTP :8090)
 │   ├── social/                 # quan hệ bạn bè (gRPC :9091 / HTTP :8091)
+│   ├── message/                # nhắn tin: API + broadcast soketi + produce Kafka (gRPC :9092 / HTTP :8092)
+│   ├── worker/                 # Kafka consumer, scale ngang (chỉ /healthz :8094)
 │   ├── event/                  # sự kiện cá nhân (event)    (gRPC :9085 / HTTP :8085)
 │   ├── backlog/                # email không phân loại được (gRPC :9086 / HTTP :8086)
 │   ├── attachment/             # tệp đính kèm task/lịch/sự kiện/backlog (gRPC :9089 / HTTP :8089)
@@ -46,6 +48,8 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 | `taskmanager/service/calendar` | `service/calendar/` |
 | `taskmanager/service/project` | `service/project/` |
 | `taskmanager/service/social` | `service/social/` |
+| `taskmanager/service/message` | `service/message/` |
+| `taskmanager/service/worker` | `service/worker/` |
 | `taskmanager/service/event` | `service/event/` |
 | `taskmanager/service/backlog` | `service/backlog/` |
 | `taskmanager/service/attachment` | `service/attachment/` |
@@ -53,7 +57,7 @@ Hệ thống quản lý task cá nhân — monorepo: backend Go (gRPC + grpc-gat
 | `taskmanager/service/mail-provider` | `service/mail-provider/` |
 | `taskmanager/service/notification` | `service/notification/` |
 
-- Root `go.work` gom 11 module lại để phát triển local.
+- Root `go.work` gom các module lại để phát triển local.
 - Service dùng code chung qua module `common`:
   `require taskmanager/common v0.0.0-...` + `replace taskmanager/common => ../../common`.
   Nhờ `replace`, service build được **cả khi không có `go.work`** (đúng cách Dockerfile đang build).
@@ -88,6 +92,8 @@ make run-mail-provider  # terminal 8 -> :8084 / :9084 (cần MAIL_PUBSUB_TOPIC +
 make run-notification   # terminal 9 -> :8088 / :9088 (cần soketi + SESSION_SECRET)
 make run-project        # terminal 10 -> :8090 / :9090 (nhóm công việc theo dự án)
 make run-social         # terminal 11 -> :8091 / :9091 (quan hệ bạn bè)
+make run-message        # terminal 12 -> :8092 / :9092 (nhắn tin; cần soketi + kafka)
+make run-worker         # terminal 13 -> Kafka consumer, health :8094
 make web-install && make web-dev    # terminal 10 -> :5173
 make seed-demo      # (tuỳ chọn) seed dữ liệu demo: task/board + lịch + sự kiện + backlog
 ```
@@ -212,7 +218,7 @@ HTTP status / URL / text kỹ thuật lên notification.
 ## Quickstart (Docker)
 
 ```bash
-make up        # postgres + migrate + rustfs + soketi + identity + task + calendar + project + social + event + backlog + attachment + report + notification + mail-provider + frontend
+make up        # postgres + migrate + rustfs + soketi + kafka + identity + task + calendar + project + social + message + worker + event + backlog + attachment + report + notification + mail-provider + frontend
 make up-core   # như trên nhưng KHÔNG kèm cloudflared (tắt tunnel)
 make up-tunnel # kèm cloudflared (Cloudflare Tunnel; cần token trong .env)
 make ps
@@ -235,6 +241,9 @@ của Cloudflare.
 | calendar | nội bộ `calendar:8083` (`/healthz`) |
 | project | nội bộ `project:8090` (`/healthz`); API qua `/api/project` |
 | social | nội bộ `social:8091` (`/healthz`); API qua `/api/social` |
+| message | nội bộ `message:8092` (`/healthz`); API qua `/api/message` |
+| worker | không có port; `--scale worker=N` (mặc định `WORKER_REPLICAS=2`) |
+| kafka | nội bộ `kafka:9092`, host `127.0.0.1:29092` (cho `make run-*`) |
 | event | nội bộ `event:8085` (`/healthz`) |
 | backlog | nội bộ `backlog:8086` (`/healthz`) |
 | attachment | nội bộ `attachment:8089` (`/healthz`); API tệp qua `/api/attachment` |

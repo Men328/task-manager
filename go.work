@@ -8,10 +8,12 @@ use (
 	./service/event
 	./service/identity
 	./service/mail-provider
+	./service/message
 	./service/notification
 	./service/project
 	./service/report
 	./service/social
 	./service/task
+	./service/worker
 	./tools/quality
 )
