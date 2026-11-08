@@ -26,7 +26,8 @@
     "reports": "Báo cáo",
     "statusesLifecycle": "Trạng thái & vòng đời",
     "projects": "Project",
-    "friends": "Bạn bè"
+    "friends": "Bạn bè",
+    "messages": "Tin nhắn"
   },
   "sidebar": {
     "brand": "Quản lý công việc"
@@ -622,6 +623,31 @@
     "removeTitle": "Hủy kết bạn?",
     "removeMessage": "{{name}} sẽ bị xóa khỏi danh sách bạn bè của bạn. Bạn có thể gửi lại lời mời sau.",
     "removeCancel": "Giữ lại",
-    "actionFailed": "Không thực hiện được"
+    "actionFailed": "Không thực hiện được",
+    "messageAction": "Nhắn tin"
+  },
+  "chat": {
+    "pageTitle": "Tin nhắn",
+    "pageSubtitle": "Trò chuyện với bạn bè",
+    "you": "Bạn",
+    "noMessagesYet": "Chưa có tin nhắn",
+    "placeholder": "Nhập tin nhắn… (Enter để gửi, Shift+Enter xuống dòng)",
+    "send": "Gửi",
+    "sending": "Đang gửi…",
+    "sendFailed": "Gửi không được",
+    "retry": "Gửi lại",
+    "loadOlder": "Xem tin cũ hơn",
+    "back": "Quay lại",
+    "emptyThreadTitle": "Bắt đầu cuộc trò chuyện",
+    "emptyThread": "Gửi lời chào đầu tiên tới {{name}}.",
+    "noFriendsTitle": "Chưa có bạn bè",
+    "noFriends": "Kết bạn ở trang Bạn bè để bắt đầu nhắn tin.",
+    "pickTitle": "Chọn một cuộc trò chuyện",
+    "pick": "Chọn một người bạn ở danh sách bên trái để nhắn tin.",
+    "notFriendTitle": "Không thể nhắn tin",
+    "notFriend": "Người này không có trong danh sách bạn bè của bạn.",
+    "newMessageFrom": "Tin nhắn mới từ {{name}}",
+    "newMessage": "Tin nhắn mới",
+    "open": "Mở"
   }
 }

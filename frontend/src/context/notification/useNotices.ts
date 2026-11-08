@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-import { NOTICE_EVENT_NAME, createSoketiClient, noticeChannelName } from '../../lib/soketi';
+import {
+  NOTICE_EVENT_NAME,
+  acquireSoketiClient,
+  noticeChannelName,
+  releaseSoketiClient,
+} from '../../lib/soketi';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { useSession } from '../session/useSession';
 import {
@@ -42,7 +47,7 @@ export function useNotices(onIncoming?: (notice: Notice) => void) {
 
     void dispatch(fetchUnreadCount());
 
-    const client = createSoketiClient(token);
+    const client = acquireSoketiClient(token);
     const channelName = noticeChannelName(profileId);
     const channel = client.subscribe(channelName);
     const onNotice = (data: unknown) => {
@@ -58,7 +63,7 @@ export function useNotices(onIncoming?: (notice: Notice) => void) {
     return () => {
       channel.unbind(NOTICE_EVENT_NAME, onNotice);
       client.unsubscribe(channelName);
-      client.disconnect();
+      releaseSoketiClient(client);
     };
   }, [dispatch, token, profileId]);
 

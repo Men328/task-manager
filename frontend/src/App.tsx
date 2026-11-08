@@ -13,6 +13,7 @@ import { CalendarPage } from './pages/CalendarPage';
 import { EventPage } from './pages/EventPage';
 import { FriendsPage } from './pages/FriendsPage';
 import { LoginPage } from './pages/LoginPage';
+import { MessagesPage } from './pages/MessagesPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { ReportPage } from './pages/ReportPage';
 import { StatusesPage } from './pages/StatusesPage';
@@ -56,6 +57,8 @@ export default function App() {
           <Route path="/statuses" element={<StatusesPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/friends" element={<FriendsPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/messages/:peerId" element={<MessagesPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Route>

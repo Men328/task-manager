@@ -26,7 +26,8 @@
     "reports": "Reports",
     "statusesLifecycle": "Statuses & Lifecycle",
     "projects": "Projects",
-    "friends": "Friends"
+    "friends": "Friends",
+    "messages": "Messages"
   },
   "sidebar": {
     "brand": "Task Manager"
@@ -622,6 +623,31 @@
     "removeTitle": "Unfriend?",
     "removeMessage": "{{name}} will be removed from your friends list. You can send a new request later.",
     "removeCancel": "Keep",
-    "actionFailed": "Could not complete the action"
+    "actionFailed": "Could not complete the action",
+    "messageAction": "Message"
+  },
+  "chat": {
+    "pageTitle": "Messages",
+    "pageSubtitle": "Chat with your friends",
+    "you": "You",
+    "noMessagesYet": "No messages yet",
+    "placeholder": "Type a message… (Enter to send, Shift+Enter for a new line)",
+    "send": "Send",
+    "sending": "Sending…",
+    "sendFailed": "Not sent",
+    "retry": "Retry",
+    "loadOlder": "Load older messages",
+    "back": "Back",
+    "emptyThreadTitle": "Start the conversation",
+    "emptyThread": "Say hi to {{name}}.",
+    "noFriendsTitle": "No friends yet",
+    "noFriends": "Add friends on the Friends page to start chatting.",
+    "pickTitle": "Pick a conversation",
+    "pick": "Choose a friend from the list to start chatting.",
+    "notFriendTitle": "Can't message this person",
+    "notFriend": "This person is not in your friends list.",
+    "newMessageFrom": "New message from {{name}}",
+    "newMessage": "New message",
+    "open": "Open"
   }
 }

@@ -193,6 +193,27 @@ export interface FriendSearchResult {
   relation: FriendRelation;
 }
 
+/** message service: tin nhắn 1-1 (REST và sự kiện soketi `message.created` cùng dạng). */
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  recipientId: string;
+  body: string;
+  clientId: string;
+  createdAt: string;
+  /** Chỉ có ở client: tin đang gửi (lạc quan) hoặc gửi hỏng. */
+  pending?: boolean;
+  failed?: boolean;
+}
+
+/** Cuộc trò chuyện nhìn từ phía mình; `peerId` là người bên kia. */
+export interface Conversation {
+  id: string;
+  peerId: string;
+  lastMessage: ChatMessage | null;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Request payloads                                                           */
 /* -------------------------------------------------------------------------- */

@@ -3,6 +3,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { backlogReducer } from './backlog/backlogSlice';
 import { boardReducer } from './board/boardSlice';
 import { calendarReducer } from './calendar/calendarSlice';
+import { chatReducer } from './chat/chatSlice';
 import { eventReducer } from './event/eventSlice';
 import { friendsReducer } from './friends/friendsSlice';
 import { noticeReducer } from './notification/noticeSlice';
@@ -23,6 +24,7 @@ export const store = configureStore({
     statusesPage: statusesPageReducer,
     notices: noticeReducer,
     friends: friendsReducer,
+    chat: chatReducer,
   },
 });
 

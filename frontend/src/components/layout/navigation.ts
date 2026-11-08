@@ -6,6 +6,7 @@ import {
   IconChartHistogram,
   IconChecklist,
   IconFolders,
+  IconMessages,
   IconSunHigh,
   IconUsers,
 } from '@tabler/icons-react';
@@ -17,6 +18,8 @@ export interface NavItem {
   labelKey: string;
   icon: IconComponent;
   to: string;
+  /** Khớp thêm các route con, vd. /messages/:peerId. */
+  matchPrefix?: boolean;
 }
 
 export interface NavSection {
@@ -47,7 +50,10 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     key: 'social',
     labelKey: 'nav.groups.social',
-    items: [{ key: 'friends', labelKey: 'nav.friends', icon: IconUsers, to: '/friends' }],
+    items: [
+      { key: 'friends', labelKey: 'nav.friends', icon: IconUsers, to: '/friends' },
+      { key: 'messages', labelKey: 'nav.messages', icon: IconMessages, to: '/messages', matchPrefix: true },
+    ],
   },
   {
     key: 'config',

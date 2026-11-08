@@ -15,9 +15,16 @@ export const SOKETI_WS_PATH: string =
 
 export const NOTICE_EVENT_NAME = 'notice.created';
 
+export const MESSAGE_EVENT_NAME = 'message.created';
+
 /** Mỗi user 1 kênh private: private-<prefix><profile_id>. */
 export function noticeChannelName(profileId: string): string {
   return `private-noti-internal-${profileId}`;
+}
+
+/** Kênh private chat của mỗi user; identity chỉ ký cho chính chủ. */
+export function chatChannelName(profileId: string): string {
+  return `private-chat-${profileId}`;
 }
 
 export function createSoketiClient(token: string): Pusher {
@@ -39,4 +46,34 @@ export function createSoketiClient(token: string): Pusher {
       params: { token },
     },
   });
+}
+
+let shared: { token: string; client: Pusher; refs: number } | null = null;
+
+/**
+ * Dùng chung 1 kết nối WebSocket cho mọi kênh (thông báo, chat) của cùng phiên.
+ * Mỗi lần acquire phải đi kèm 1 lần release.
+ */
+export function acquireSoketiClient(token: string): Pusher {
+  if (shared && shared.token !== token) {
+    shared.client.disconnect();
+    shared = null;
+  }
+  if (!shared) {
+    shared = { token, client: createSoketiClient(token), refs: 0 };
+  }
+  shared.refs += 1;
+  return shared.client;
+}
+
+export function releaseSoketiClient(client: Pusher): void {
+  if (!shared || shared.client !== client) {
+    client.disconnect();
+    return;
+  }
+  shared.refs -= 1;
+  if (shared.refs <= 0) {
+    shared.client.disconnect();
+    shared = null;
+  }
 }

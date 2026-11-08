@@ -4,6 +4,8 @@ export { useAppDispatch, useAppSelector } from './hooks';
 export { useBacklog } from './backlog/useBacklog';
 export { useBoard } from './board/useBoard';
 export { useCalendar } from './calendar/useCalendar';
+export { useChat, useUnreadMessageCount } from './chat/useChat';
+export { useChatRealtime } from './chat/useChatRealtime';
 export { useEvent } from './event/useEvent';
 export { useFriends } from './friends/useFriends';
 export { useNotices } from './notification/useNotices';
