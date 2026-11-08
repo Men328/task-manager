@@ -218,6 +218,34 @@ func TaskToProto(t model.Task) *taskv1.Task {
 		RecurrenceRule:     t.RecurrenceRule,
 		RecurrenceTz:       t.RecurrenceTZ,
 		RecurrenceSeriesId: t.RecurrenceSeriesID,
+		RequestedBy:        t.RequestedBy,
+		SourceMessageId:    t.SourceMessageID,
+	}
+}
+
+func ValidateCreateTaskFromMessage(req *taskv1.CreateTaskFromMessageRequest) error {
+	if strings.TrimSpace(req.GetProfileId()) == "" {
+		return errorcode.Error(errorcode.TaskProfileIDRequired)
+	}
+	if strings.TrimSpace(req.GetTitle()) == "" {
+		return errorcode.Error(errorcode.TaskTitleRequired)
+	}
+	if strings.TrimSpace(req.GetRequestedBy()) == "" || strings.TrimSpace(req.GetSourceMessageId()) == "" {
+		return errorcode.Error(errorcode.CommonInvalidArgument)
+	}
+	return nil
+}
+
+func TaskFromMessageRequest(req *taskv1.CreateTaskFromMessageRequest) model.Task {
+	return model.Task{
+		ProfileID:       req.GetProfileId(),
+		ProjectID:       req.GetProjectId(),
+		Title:           strings.TrimSpace(req.GetTitle()),
+		Description:     req.GetDescription(),
+		Priority:        taskPriorityFromProto(req.GetPriority()),
+		DueAt:           timePtr(req.GetDueAt()),
+		RequestedBy:     req.GetRequestedBy(),
+		SourceMessageID: req.GetSourceMessageId(),
 	}
 }
 

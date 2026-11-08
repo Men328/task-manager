@@ -149,3 +149,14 @@ func startReminderWorker(lc fx.Lifecycle, worker *service.ReminderWorker) {
 		},
 	})
 }
+
+func newTaskEventPublisher(lc fx.Lifecycle, cfg config.Config) service.TaskEventPublisher {
+	writer := repository.NewKafkaTaskEventWriter(cfg.KafkaBrokers, cfg.KafkaTaskEventsTopic)
+	lc.Append(fx.Hook{
+		OnStop: func(context.Context) error {
+			return writer.Close()
+		},
+	})
+	slog.Info("task phát sự kiện đổi trạng thái vào kafka", "brokers", cfg.KafkaBrokers, "topic", cfg.KafkaTaskEventsTopic)
+	return repository.NewKafkaTaskEvents(writer)
+}

@@ -26,6 +26,11 @@ type TaskRepository interface {
 // ProjectChecker xác minh project tồn tại, thuộc profile và chưa archive.
 type ProjectChecker interface {
 	CheckAssignable(ctx context.Context, profileID, projectID string) error
+	DefaultProjectID(ctx context.Context, profileID string) (string, error)
+}
+
+type TaskEventPublisher interface {
+	PublishStatusChanged(ctx context.Context, event model.StatusChangedEvent) error
 }
 
 type StatusRepository interface {
@@ -57,6 +62,7 @@ type NoticeSender interface {
 
 type TaskService interface {
 	Create(ctx context.Context, t model.Task) (model.Task, error)
+	CreateFromMessage(ctx context.Context, t model.Task) (model.Task, model.Status, error)
 	Get(ctx context.Context, id string) (model.Task, error)
 	List(ctx context.Context, f model.TaskFilter) (model.TaskPage, error)
 	ListChildren(ctx context.Context, parentTaskID string) ([]model.Task, error)

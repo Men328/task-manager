@@ -29,6 +29,21 @@ func (h *TaskHandler) CreateTask(ctx context.Context, req *taskv1.CreateTaskRequ
 	return &taskv1.CreateTaskResponse{Task: dependency.TaskToProto(created)}, nil
 }
 
+func (h *TaskHandler) CreateTaskFromMessage(ctx context.Context, req *taskv1.CreateTaskFromMessageRequest) (*taskv1.CreateTaskFromMessageResponse, error) {
+	if err := dependency.ValidateCreateTaskFromMessage(req); err != nil {
+		return nil, err
+	}
+
+	created, status, err := h.tasks.CreateFromMessage(ctx, dependency.TaskFromMessageRequest(req))
+	if err != nil {
+		return nil, dependency.ToGRPCError(err)
+	}
+	return &taskv1.CreateTaskFromMessageResponse{
+		Task:   dependency.TaskToProto(created),
+		Status: dependency.StatusToProto(status),
+	}, nil
+}
+
 func (h *TaskHandler) GetTask(ctx context.Context, req *taskv1.GetTaskRequest) (*taskv1.GetTaskResponse, error) {
 	if err := dependency.ValidateTaskID(req.GetId()); err != nil {
 		return nil, err

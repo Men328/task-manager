@@ -46,3 +46,24 @@ func (c *projectChecker) CheckAssignable(ctx context.Context, profileID, project
 	}
 	return nil
 }
+
+func (c *projectChecker) DefaultProjectID(ctx context.Context, profileID string) (string, error) {
+	callCtx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	resp, err := c.client.ListProjects(callCtx, &projectv1.ListProjectsRequest{ProfileId: profileID})
+	if err != nil {
+		return "", fmt.Errorf("liệt kê project của %s: %w", profileID, err)
+	}
+	for _, p := range resp.GetProjects() {
+		if p.GetIsDefault() && !p.GetIsArchived() {
+			return p.GetId(), nil
+		}
+	}
+
+	seeded, err := c.client.SeedDefaultProject(callCtx, &projectv1.SeedDefaultProjectRequest{ProfileId: profileID})
+	if err != nil {
+		return "", fmt.Errorf("tạo project mặc định cho %s: %w", profileID, err)
+	}
+	return seeded.GetProject().GetId(), nil
+}
