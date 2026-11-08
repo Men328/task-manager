@@ -6,6 +6,7 @@
 #       backlog gRPC :9086 / HTTP :8086, mail-provider gRPC :9084 / HTTP :8084,
 #       notification gRPC :9088 / HTTP :8088,
 #       social gRPC :9091 / HTTP :8091,
+#       message gRPC :9092 / HTTP :8092, worker (Kafka consumer, health :8094),
 #       report gRPC :9087 / HTTP :8087
 set -euo pipefail
 
@@ -45,6 +46,13 @@ pids+=("$!")
 go run ./service/social/cmd/http &
 pids+=("$!")
 
+go run ./service/message/cmd/grpc &
+pids+=("$!")
+go run ./service/message/cmd/http &
+pids+=("$!")
+go run ./service/worker/cmd/worker &
+pids+=("$!")
+
 go run ./service/event/cmd/grpc &
 pids+=("$!")
 go run ./service/event/cmd/http &
@@ -75,6 +83,8 @@ echo "==> task:      http://localhost:8082  (gRPC :9082)"
 echo "==> calendar:  http://localhost:8083  (gRPC :9083)"
 echo "==> project:   http://localhost:8090  (gRPC :9090)"
 echo "==> social:    http://localhost:8091  (gRPC :9091)"
+echo "==> message:   http://localhost:8092  (gRPC :9092)"
+echo "==> worker:    health http://localhost:8094 (Kafka consumer)"
 echo "==> event:     http://localhost:8085  (gRPC :9085)"
 echo "==> backlog:   http://localhost:8086  (gRPC :9086)"
 echo "==> mail:      http://localhost:8084  (gRPC :9084)"

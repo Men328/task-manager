@@ -111,6 +111,62 @@ services:
       retries: 12
     restart: unless-stopped
 
+  # ------------------------------------------------------------------ kafka
+  # Message broker cho luồng nhắn tin: message-service produce vào topic
+  # `chat.messages` (key = conversation_id -> giữ thứ tự trong 1 cuộc trò chuyện),
+  # worker-service consume theo group `message-worker` rồi ghi Postgres.
+  # Chạy KRaft 1 node (không cần ZooKeeper). Listener:
+  #   PLAINTEXT kafka:9092        -> container trong network nội bộ
+  #   EXTERNAL  127.0.0.1:29092   -> chạy service bằng `make run-*` trên host
+  kafka:
+    image: ${KAFKA_IMAGE:-apache/kafka:3.9.1}
+    container_name: tm-kafka
+    environment:
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-tm-kafka-cluster-0001}
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:${KAFKA_EXTERNAL_PORT:-29092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_LOG_RETENTION_HOURS: ${KAFKA_LOG_RETENTION_HOURS:-168}
+    ports:
+      - "127.0.0.1:${KAFKA_EXTERNAL_PORT:-29092}:29092"
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 15s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  # One-shot: tạo topic (idempotent). Số partition = số worker tối đa xử lý
+  # song song trong cùng group; muốn scale worker vượt con số này phải tăng partition.
+  kafka-init:
+    image: ${KAFKA_IMAGE:-apache/kafka:3.9.1}
+    container_name: tm-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists
+        --topic ${KAFKA_MESSAGE_TOPIC:-chat.messages}
+        --partitions ${KAFKA_MESSAGE_PARTITIONS:-6}
+        --replication-factor 1
+    restart: "no"
+
   # --------------------------------------------------------------- identity
   identity-grpc:
     build:
@@ -170,6 +226,8 @@ services:
       SOKETI_APP_KEY: ${SOKETI_APP_KEY:-task-manager}
       SOKETI_APP_SECRET: ${SOKETI_APP_SECRET:-task-manager-secret}
       SOKETI_CHANNEL_PREFIX: ${SOKETI_CHANNEL_PREFIX:-noti-internal-}
+      # Kênh private chat: private-<prefix><profile_id> (message-service broadcast vào đây).
+      SOKETI_CHAT_CHANNEL_PREFIX: ${SOKETI_CHAT_CHANNEL_PREFIX:-chat-}
     depends_on:
       identity-grpc:
         condition: service_started
@@ -374,6 +432,100 @@ services:
     healthcheck:
       # /healthz chỉ 200 khi gateway gọi được gRPC health service.
       test: ["CMD", "wget", "-qO-", "http://localhost:8091/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------- message
+  # Nhắn tin 1-1 giữa bạn bè. Gửi tin: gateway -> message-grpc kiểm tra bạn bè
+  # (social), broadcast qua soketi vào `private-chat-<profile_id>` của cả 2 phía,
+  # rồi đẩy ASYNC vào Kafka. message-service chỉ đọc DB; worker là nơi ghi.
+  message-grpc:
+    build:
+      context: ../..
+      dockerfile: service/message/Dockerfile
+    image: task-manager/message:latest
+    container_name: tm-message-grpc
+    entrypoint: ["/usr/local/bin/grpc"]
+    environment:
+      SERVICE_NAME: message
+      GRPC_ADDR: ":9092"
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+      SOCIAL_GRPC_DIAL_ADDR: "social-grpc:9091"
+      SOKETI_BASE_URL: ${SOKETI_BASE_URL:-http://soketi:6001}
+      SOKETI_APP_ID: ${SOKETI_APP_ID:-task-manager}
+      SOKETI_APP_KEY: ${SOKETI_APP_KEY:-task-manager}
+      SOKETI_APP_SECRET: ${SOKETI_APP_SECRET:-task-manager-secret}
+      SOKETI_CHAT_CHANNEL_PREFIX: ${SOKETI_CHAT_CHANNEL_PREFIX:-chat-}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_MESSAGE_TOPIC: ${KAFKA_MESSAGE_TOPIC:-chat.messages}
+    depends_on:
+      social-grpc:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      soketi:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  message:
+    build:
+      context: ../..
+      dockerfile: service/message/Dockerfile
+    image: task-manager/message:latest
+    container_name: tm-message
+    entrypoint: ["/usr/local/bin/http"]
+    environment:
+      SERVICE_NAME: message
+      HTTP_ADDR: ":8092"
+      GRPC_DIAL_ADDR: "message-grpc:9092"
+      LOG_LEVEL: info
+      SESSION_SECRET: ${SESSION_SECRET:-}
+    depends_on:
+      message-grpc:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8092/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ worker
+  # Kafka consumer (group `message-worker`) ghi tin nhắn vào Postgres. Không có
+  # container_name/port host nên scale ngang được:
+  #   docker compose -f deployments/docker/docker-compose.yml up -d --scale worker=4
+  # Số worker xử lý song song tối đa = số partition của topic (KAFKA_MESSAGE_PARTITIONS).
+  worker:
+    build:
+      context: ../..
+      dockerfile: service/worker/Dockerfile
+    image: task-manager/worker:latest
+    environment:
+      SERVICE_NAME: worker
+      HEALTH_ADDR: ":8094"
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_MESSAGE_TOPIC: ${KAFKA_MESSAGE_TOPIC:-chat.messages}
+      KAFKA_MESSAGE_GROUP_ID: ${KAFKA_MESSAGE_GROUP_ID:-message-worker}
+    deploy:
+      replicas: ${WORKER_REPLICAS:-2}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8094/healthz"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -782,6 +934,8 @@ services:
         condition: service_healthy
       social:
         condition: service_healthy
+      message:
+        condition: service_healthy
       event:
         condition: service_healthy
       backlog:
@@ -828,3 +982,4 @@ services:
 volumes:
   pgdata:
   rustfsdata:
+  kafkadata:

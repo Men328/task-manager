@@ -36,9 +36,10 @@ type Config struct {
 	SessionTTL    time.Duration
 	CookieSecure  bool
 
-	SoketiAppKey        string
-	SoketiAppSecret     string
-	SoketiChannelPrefix string
+	SoketiAppKey            string
+	SoketiAppSecret         string
+	SoketiChannelPrefix     string
+	SoketiChatChannelPrefix string
 }
 
 func Load() Config {
@@ -68,9 +69,10 @@ func Load() Config {
 		SessionTTL:    getduration("SESSION_TTL", 720*time.Hour),
 		CookieSecure:  getbool("COOKIE_SECURE", false),
 
-		SoketiAppKey:        os.Getenv("SOKETI_APP_KEY"),
-		SoketiAppSecret:     os.Getenv("SOKETI_APP_SECRET"),
-		SoketiChannelPrefix: getenv("SOKETI_CHANNEL_PREFIX", "noti-internal-"),
+		SoketiAppKey:            os.Getenv("SOKETI_APP_KEY"),
+		SoketiAppSecret:         os.Getenv("SOKETI_APP_SECRET"),
+		SoketiChannelPrefix:     getenv("SOKETI_CHANNEL_PREFIX", "noti-internal-"),
+		SoketiChatChannelPrefix: getenv("SOKETI_CHAT_CHANNEL_PREFIX", "chat-"),
 	}
 }
 
