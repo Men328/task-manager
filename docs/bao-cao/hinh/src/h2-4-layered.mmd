@@ -1,0 +1,19 @@
+flowchart TB
+    REQ(["Yêu cầu HTTP / gRPC"])
+    subgraph SVC["Một dịch vụ"]
+        direction TB
+        H["Handler<br/>tầng giao tiếp"]
+        DEP["Dependency<br/>kiểm tra dữ liệu, chuyển đổi"]
+        S["Service<br/>nghiệp vụ + interface (port)"]
+        M["Model<br/>đối tượng miền, không phụ thuộc gì"]
+        R["Repository<br/>adapter: PostgreSQL, gRPC client, S3, HTTP"]
+        H --> DEP
+        H --> S
+        S --> M
+        DEP --> M
+        R -. "cài đặt interface" .-> S
+        R --> M
+    end
+    EXT[("PostgreSQL / dịch vụ khác / S3")]
+    REQ --> H
+    R --> EXT

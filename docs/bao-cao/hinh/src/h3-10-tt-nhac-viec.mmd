@@ -1,0 +1,20 @@
+sequenceDiagram
+    autonumber
+    participant RW as Task: bộ nhắc việc
+    participant DB as PostgreSQL
+    participant NO as Notification
+    participant SK as Soketi
+    actor U as Người dùng
+    loop Mỗi chu kỳ
+        RW->>DB: Nhận các công việc đến giờ nhắc
+        loop Mỗi công việc
+            RW->>NO: CreateNotice (TASK_REMINDER)
+            alt Gửi thành công
+                NO->>DB: Lưu thông báo
+                NO->>SK: Đẩy notice.created
+                SK-->>U: Chuông thông báo cập nhật
+            else Gửi lỗi
+                RW->>DB: Trả lại để nhắc ở chu kỳ sau
+            end
+        end
+    end

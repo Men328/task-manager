@@ -1,0 +1,20 @@
+flowchart LR
+    PROTO["Tệp .proto<br/>(định nghĩa service, message)"]
+    GEN["Trình sinh mã<br/>(protoc / buf)"]
+    PROTO --> GEN
+    GEN --> CSTUB
+    GEN --> SSTUB
+    subgraph CLIENT["Dịch vụ gọi (client)"]
+        direction TB
+        CAPP["Mã nghiệp vụ"]
+        CSTUB["Client stub<br/>(mã sinh tự động)"]
+        CAPP --> CSTUB
+    end
+    subgraph SERVER["Dịch vụ được gọi (server)"]
+        direction TB
+        SSTUB["Server stub<br/>(mã sinh tự động)"]
+        SIMPL["Cài đặt phương thức"]
+        SSTUB --> SIMPL
+    end
+    CSTUB -- "Yêu cầu: Protobuf nhị phân qua HTTP/2" --> SSTUB
+    SSTUB -- "Phản hồi: Protobuf nhị phân" --> CSTUB

@@ -1,0 +1,38 @@
+flowchart LR
+    U(("Người dùng"))
+    subgraph SYS["Hệ thống Task Manager"]
+        direction LR
+        subgraph COL1[" "]
+            direction TB
+            UC1(["Đăng nhập Google"])
+            UC2(["Quản lý dự án"])
+            UC3(["Quản lý công việc"])
+            UC4(["Đổi trạng thái công việc"])
+            UC5(["Quản lý trạng thái, luật chuyển"])
+        end
+        subgraph COL2[" "]
+            direction TB
+            UC6(["Quản lý lịch"])
+            UC7(["Quản lý sự kiện"])
+            UC8(["Xử lý backlog"])
+            UC9(["Quản lý tệp đính kèm"])
+            UC10(["Xem báo cáo"])
+        end
+        subgraph COL3[" "]
+            direction TB
+            UC11(["Xem thông báo"])
+            UC12(["Kết bạn"])
+            UC13(["Nhắn tin, giao task"])
+            UC14(["Phân loại email tự động"])
+            UC15(["Nhắc việc"])
+        end
+    end
+    AUTO(("Tác nhân<br/>tự động"))
+    EXT(("Google,<br/>DeepSeek"))
+    U --- COL1
+    U --- COL2
+    U --- COL3
+    AUTO --- UC14
+    AUTO --- UC15
+    UC1 -.- EXT
+    UC14 -.- EXT

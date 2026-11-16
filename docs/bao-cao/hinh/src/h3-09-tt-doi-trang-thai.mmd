@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    actor U as Người dùng
+    participant FE as Giao diện
+    participant TK as Task
+    participant DB as PostgreSQL
+    participant KF as Kafka task.events
+    U->>FE: Kéo thẻ sang cột khác
+    FE->>TK: POST /v1/tasks/{id}/status (status_id)
+    TK->>DB: Kiểm tra luật chuyển trạng thái (từ -> đến)
+    alt Không có luật
+        TK-->>FE: Lỗi TASK_TRANSITION_NOT_ALLOWED
+        FE-->>U: Thông báo đỏ, thẻ trở về cột cũ
+    else Được phép
+        TK->>DB: Cập nhật trạng thái (sang DONE thì ghi thời điểm hoàn thành)
+        TK->>DB: Ghi lịch sử chuyển trạng thái
+        opt Công việc lặp lại vừa hoàn thành
+            TK->>DB: Sinh lần lặp tiếp theo với hạn mới
+        end
+        opt Công việc được giao qua chat
+            TK-)KF: Phát sự kiện đổi trạng thái
+        end
+        TK-->>FE: Công việc + lần lặp tiếp theo (nếu có)
+        FE-->>U: Thẻ ở cột mới
+    end

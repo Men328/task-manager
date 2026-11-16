@@ -1,0 +1,23 @@
+sequenceDiagram
+    autonumber
+    participant GM as Gmail / Pub/Sub
+    participant MP as Mail-provider
+    participant DB as PostgreSQL
+    participant S3 as RustFS (S3)
+    participant DS as DeepSeek
+    participant SV as Task / Calendar / Event / Backlog
+    participant NO as Notification
+    actor U as Người dùng
+    GM->>MP: Thông báo hộp thư thay đổi
+    MP-->>GM: Xác nhận ngay, đưa vào hàng đợi
+    MP->>DB: Đọc mốc historyId, token
+    MP->>GM: history.list, messages.get
+    MP->>S3: Lưu email gốc + tệp đính kèm
+    MP->>DS: Phân loại email
+    alt DeepSeek lỗi hoặc không cấu hình
+        MP->>MP: Phân loại bằng luật từ khoá
+    end
+    MP->>SV: CreateTask / CreateSchedule / CreateEvent / CreateBacklog
+    MP->>NO: CreateNotice (TASK_CREATED, ...)
+    NO-->>U: Thông báo thời gian thực qua Soketi
+    MP->>DB: Tiến mốc historyId

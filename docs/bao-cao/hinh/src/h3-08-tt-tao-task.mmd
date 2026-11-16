@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    actor U as Người dùng
+    participant FE as Giao diện
+    participant TK as Task
+    participant PR as Project
+    participant DB as PostgreSQL
+    U->>FE: Nhập tiêu đề, mô tả, ưu tiên, hạn, dự án
+    FE->>TK: POST /api/task/v1/tasks
+    TK->>TK: Kiểm tra dữ liệu (tiêu đề bắt buộc)
+    TK->>PR: GetProject (tồn tại, đúng chủ, chưa lưu trữ)
+    PR-->>TK: Thông tin dự án
+    alt Dự án không hợp lệ
+        TK-->>FE: Lỗi PROJECT_ARCHIVED / PROJECT_NOT_FOUND
+        FE-->>U: Thông báo lỗi
+    else Hợp lệ
+        TK->>DB: Lấy trạng thái mặc định
+        TK->>DB: INSERT công việc + ghi lịch sử trạng thái
+        TK-->>FE: Công việc vừa tạo
+        FE-->>U: Thẻ mới xuất hiện ở cột đầu
+    end

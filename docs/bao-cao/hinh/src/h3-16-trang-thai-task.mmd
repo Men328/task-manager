@@ -1,0 +1,12 @@
+stateDiagram-v2
+    [*] --> ToDo: Tạo công việc
+    ToDo: To Do
+    OnProgress: On Progress
+    InReview: In Review
+    Completed: Completed (DONE)
+    ToDo --> OnProgress: Bắt đầu làm
+    OnProgress --> InReview: Gửi kiểm tra
+    InReview --> Completed: Đạt yêu cầu
+    InReview --> OnProgress: Cần sửa
+    Completed --> OnProgress: Mở lại
+    Completed --> [*]

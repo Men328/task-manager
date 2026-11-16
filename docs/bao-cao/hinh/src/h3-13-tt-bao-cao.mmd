@@ -1,0 +1,23 @@
+sequenceDiagram
+    autonumber
+    actor U as Người dùng
+    participant FE as Giao diện
+    participant RP as Report
+    participant TK as Task
+    participant EV as Event
+    participant CA as Calendar
+    participant BL as Backlog
+    U->>FE: Mở trang Báo cáo, chọn khoảng thời gian
+    par Tổng quan công việc
+        FE->>RP: GET /v1/reports/overview, status-breakdown, timeseries
+        RP->>TK: ListTasks, ListTaskStatuses
+        TK-->>RP: Công việc, trạng thái
+    and Hoạt động
+        FE->>RP: GET /v1/reports/activity
+        RP->>EV: ListEvents
+        RP->>CA: ListSchedules
+        RP->>BL: ListBacklogs
+    end
+    RP->>RP: Tổng hợp, tính tỉ lệ, chia mốc thời gian
+    RP-->>FE: Số liệu báo cáo
+    FE-->>U: Thẻ số liệu, biểu đồ tròn, biểu đồ đường

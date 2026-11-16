@@ -1,0 +1,22 @@
+flowchart LR
+    P1["Producer 1"]
+    P2["Producer 2"]
+    subgraph BROKER["Kafka broker"]
+        direction TB
+        subgraph TOPIC["Topic chat.messages"]
+            direction TB
+            PA0["Partition 0: m1 m4 m7 ..."]
+            PA1["Partition 1: m2 m5 m8 ..."]
+            PA2["Partition 2: m3 m6 m9 ..."]
+        end
+    end
+    subgraph GROUP["Consumer group message-worker"]
+        direction TB
+        C1["Consumer 1"]
+        C2["Consumer 2"]
+    end
+    P1 -- "key = conversation_id" --> TOPIC
+    P2 -- "key = conversation_id" --> TOPIC
+    PA0 --> C1
+    PA1 --> C1
+    PA2 --> C2

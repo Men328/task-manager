@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    actor A as Người gửi
+    participant FE as Giao diện
+    participant MS as Message
+    participant SO as Social
+    participant SK as Soketi
+    participant KF as Kafka chat.messages
+    participant WK as Worker
+    participant DB as PostgreSQL
+    actor B as Người nhận
+    A->>FE: Gõ và gửi tin nhắn
+    FE-->>A: Hiện tin ngay (gửi lạc quan)
+    FE->>MS: POST /v1/conversations/{peer}/messages
+    MS->>SO: AreFriends
+    alt Không phải bạn bè
+        MS-->>FE: Lỗi MESSAGE_NOT_FRIENDS
+    else Là bạn bè
+        MS->>SK: message.created vào kênh của 2 người
+        SK-->>B: Tin nhắn mới hiện tức thì
+        MS-)KF: Ghi tin nhắn (key = mã cuộc trò chuyện)
+        MS-->>FE: Tin nhắn đã gửi
+        KF->>WK: Tiêu thụ tin nhắn
+        WK->>DB: Lưu tin nhắn (không trùng), cập nhật cuộc trò chuyện
+    end

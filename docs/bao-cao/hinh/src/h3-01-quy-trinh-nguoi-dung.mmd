@@ -1,0 +1,19 @@
+flowchart TB
+    A([Bắt đầu]) --> B[Mở ứng dụng]
+    B --> C{Đã đăng nhập?}
+    C -- Chưa --> D["Đăng nhập Google<br/>(tuỳ chọn cho phép đọc Gmail)"]
+    D --> E{Người dùng mới?}
+    E -- Có --> F["Hệ thống tạo sẵn 4 trạng thái,<br/>5 luật chuyển, dự án 'Chung'"]
+    E -- Không --> G
+    F --> G[Vào trang chính]
+    C -- Rồi --> G
+    G --> H{Chọn chức năng}
+    H --> I["Bảng công việc:<br/>tạo, kéo thả đổi trạng thái,<br/>đính kèm tệp"]
+    H --> J["Lịch, sự kiện, dự án:<br/>thêm, sửa, xoá"]
+    H --> K["Backlog:<br/>xử lý email chưa phân loại"]
+    H --> L["Báo cáo:<br/>chọn khoảng thời gian, xem biểu đồ"]
+    H --> M["Bạn bè, tin nhắn:<br/>kết bạn, chat, giao task"]
+    N["Nhận thông báo thời gian thực<br/>(task mới từ email, nhắc việc, lời mời)"] --> O[Bấm thông báo mở đúng đối tượng]
+    I & J & K & L & M & O --> P{Tiếp tục?}
+    P -- Có --> H
+    P -- Không --> Q[Đăng xuất] --> R([Kết thúc])

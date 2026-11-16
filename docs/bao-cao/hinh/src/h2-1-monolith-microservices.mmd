@@ -1,0 +1,24 @@
+flowchart TB
+    subgraph MONO["(a) Kiến trúc nguyên khối (Monolith)"]
+        direction LR
+        UI1["Giao diện"]
+        subgraph APP["Một ứng dụng duy nhất"]
+            direction TB
+            M1["Công việc"]
+            M2["Lịch"]
+            M3["Thông báo"]
+            M4["Nhắn tin"]
+        end
+        DB1[("Một CSDL chung")]
+        UI1 --> APP --> DB1
+    end
+    subgraph MS["(b) Kiến trúc vi dịch vụ (Microservices)"]
+        direction LR
+        UI2["Giao diện"] --> GW["Cổng API"]
+        GW --> S1["Dịch vụ công việc"] --> D1[("CSDL công việc")]
+        GW --> S2["Dịch vụ lịch"] --> D2[("CSDL lịch")]
+        GW --> S3["Dịch vụ thông báo"] --> D3[("CSDL thông báo")]
+        GW --> S4["Dịch vụ nhắn tin"] --> D4[("CSDL nhắn tin")]
+        S1 -. "gọi API" .-> S3
+    end
+    MONO ~~~ MS

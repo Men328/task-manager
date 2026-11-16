@@ -1,0 +1,23 @@
+sequenceDiagram
+    autonumber
+    actor U as Người dùng
+    participant FE as Giao diện
+    participant AT as Attachment
+    participant S3 as RustFS (S3)
+    participant DB as PostgreSQL
+    U->>FE: Chọn tệp trong chi tiết công việc
+    FE->>AT: POST /v1/attachments/upload (multipart)
+    AT->>AT: Kiểm tra kích thước, loại đối tượng sở hữu
+    alt Vượt giới hạn
+        AT-->>FE: Lỗi tệp quá lớn
+    else Hợp lệ
+        AT->>S3: Lưu nội dung tệp
+        AT->>DB: Lưu thông tin tệp (tên, kích thước, khoá)
+        AT-->>FE: Thông tin tệp
+        FE-->>U: Tệp hiện trong danh sách
+    end
+    U->>FE: Bấm tải xuống
+    FE->>AT: GET /v1/attachments/{id}/download
+    AT->>DB: Đọc thông tin tệp
+    AT->>S3: Đọc nội dung
+    AT-->>U: Tệp tải về

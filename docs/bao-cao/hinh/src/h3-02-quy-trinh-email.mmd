@@ -1,0 +1,11 @@
+%%{init: {"flowchart": {"rankSpacing": 28, "nodeSpacing": 40}}}%%
+flowchart TB
+    A(["Gmail nhận thư mới, Pub/Sub báo thay đổi"]) --> C["Lấy thư mới từ mốc historyId đã lưu,<br/>lưu email gốc + tệp đính kèm lên S3"]
+    C --> E{DeepSeek khả dụng?}
+    E -- Có --> F[Phân loại bằng DeepSeek]
+    E -- Không --> G[Phân loại bằng luật từ khoá]
+    F & G --> H{"task / schedule / event và đủ dữ kiện?"}
+    H -- Có --> T["Tạo công việc, lịch hoặc sự kiện"]
+    H -- "Không / other" --> BL["Tạo mục backlog kèm lý do"]
+    T & BL --> N["Tạo thông báo, đẩy thời gian thực,<br/>tiến mốc historyId"]
+    N --> Z([Kết thúc])

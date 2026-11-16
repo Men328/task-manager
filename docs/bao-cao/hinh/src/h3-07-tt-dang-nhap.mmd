@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    actor U as Người dùng
+    participant FE as Giao diện
+    participant ID as Identity
+    participant GG as Google OAuth
+    participant TK as Task
+    participant PR as Project
+    participant MP as Mail-provider
+    U->>FE: Bấm "Đăng nhập Google" (tích "Cho phép đọc Gmail")
+    FE->>ID: GET /v1/auth/google/login?gmail=1
+    ID-->>U: Chuyển hướng sang Google (state, PKCE)
+    U->>GG: Đăng nhập, đồng ý cấp quyền
+    GG-->>ID: GET /v1/auth/google/callback (code, state)
+    ID->>GG: Đổi code lấy token, lấy thông tin người dùng
+    ID->>ID: LoginWithProvider: tìm hoặc tạo hồ sơ
+    alt Người dùng mới
+        ID->>TK: SeedDefaultStatuses
+        ID->>PR: SeedDefaultProject
+    end
+    opt Cho phép đọc Gmail
+        ID->>MP: Subscribe (access token, refresh token)
+        MP->>GG: Gmail users.watch
+    end
+    ID-->>FE: Chuyển hướng /auth/callback kèm session JWT
+    FE->>ID: GET /v1/auth/me
+    ID-->>FE: Hồ sơ người dùng
+    FE-->>U: Vào trang chính

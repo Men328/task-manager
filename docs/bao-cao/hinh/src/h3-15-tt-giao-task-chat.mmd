@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    actor A as Người giao
+    participant MS as Message
+    participant TK as Task
+    participant SK as Soketi
+    participant KF as Kafka
+    participant WK as Worker
+    participant NO as Notification
+    actor B as Người nhận
+    A->>MS: Gõ "/task ..." : POST /v1/conversations/{peer}/tasks
+    MS->>MS: Kiểm tra dữ liệu, kiểm tra bạn bè
+    MS->>TK: CreateTaskFromMessage
+    TK->>TK: Tạo task cho người nhận (dự án mặc định, ghi người giao)
+    TK-->>MS: Thông tin task
+    MS->>SK: Tin nhắn kèm thẻ task tới 2 người
+    SK-->>B: Thẻ task hiện trong khung chat
+    MS-)KF: chat.messages (lưu tin nhắn)
+    B->>TK: Đổi trạng thái task
+    TK-)KF: task.events
+    KF->>WK: Tiêu thụ sự kiện
+    WK->>WK: Cập nhật thẻ task trong tin nhắn
+    WK->>SK: message.updated tới 2 người
+    WK->>NO: CreateNotice (TASK_STATUS_CHANGED) cho người giao
+    NO-->>A: Thông báo trạng thái task đã đổi

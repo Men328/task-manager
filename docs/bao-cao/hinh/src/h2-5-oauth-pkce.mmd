@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    actor U as Người dùng
+    participant C as Ứng dụng (client)
+    participant A as Máy chủ cấp quyền (Google)
+    participant R as Máy chủ tài nguyên (Gmail, UserInfo)
+    U->>C: Bấm "Đăng nhập với Google"
+    C->>C: Sinh code_verifier, code_challenge = SHA256(code_verifier), state
+    C->>A: Chuyển hướng /authorize (client_id, scope, state, code_challenge)
+    A->>U: Hiển thị màn hình đăng nhập và xin quyền
+    U->>A: Đồng ý cấp quyền
+    A->>C: Chuyển hướng về redirect_uri kèm code, state
+    C->>C: Kiểm tra state
+    C->>A: POST /token (code, code_verifier)
+    A->>A: Kiểm tra SHA256(code_verifier) = code_challenge
+    A-->>C: access_token, refresh_token, id_token
+    C->>R: Gọi API kèm access_token
+    R-->>C: Dữ liệu người dùng
