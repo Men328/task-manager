@@ -61,6 +61,8 @@ func codeForKind(kind model.ErrorKind) string {
 		return errorcode.TaskSubtaskProjectLocked
 	case model.ErrorKindRecurrenceInvalid:
 		return errorcode.TaskRecurrenceInvalid
+	case model.ErrorKindInvalidArgument:
+		return errorcode.CommonInvalidArgument
 	default:
 		return errorcode.CommonInternal
 	}

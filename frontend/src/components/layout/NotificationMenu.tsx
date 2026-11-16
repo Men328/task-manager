@@ -27,6 +27,8 @@ import classes from './NotificationMenu.module.css';
 
 const TASK_REMINDER = 'TASK_REMINDER';
 const FRIEND_NOTICES = ['FRIEND_REQUEST', 'FRIEND_ACCEPTED'];
+/** Task giao qua chat đổi trạng thái: toast để người giao biết ngay. */
+const TASK_STATUS_CHANGED = 'TASK_STATUS_CHANGED';
 /** Toast nhắc việc ở lâu hơn toast thường để người dùng kịp thấy. */
 const REMINDER_TOAST_MS = 20000;
 
@@ -40,20 +42,21 @@ export function NotificationMenu() {
     if (FRIEND_NOTICES.includes(notice.type)) {
       void dispatch(fetchFriends());
     }
-    if (notice.type !== TASK_REMINDER) {
+    if (notice.type !== TASK_REMINDER && notice.type !== TASK_STATUS_CHANGED) {
       return;
     }
+    const isReminder = notice.type === TASK_REMINDER;
     const toastId = `notice-${notice.id}`;
     notifications.show({
       id: toastId,
       title: notice.title,
       color: 'brand',
       icon: <IconBellRinging size={16} />,
-      autoClose: REMINDER_TOAST_MS,
+      autoClose: isReminder ? REMINDER_TOAST_MS : undefined,
       message: (
         <Group justify="space-between" wrap="nowrap" gap="sm">
           <Text fz={12.5} c={tokens.textMuted}>
-            {notice.body || t('notice.reminderNoDue')}
+            {notice.body || (isReminder ? t('notice.reminderNoDue') : '')}
           </Text>
           <Button
             size="compact-xs"
@@ -63,7 +66,7 @@ export function NotificationMenu() {
               openNotice(notice);
             }}
           >
-            {t('notice.openTask')}
+            {isReminder ? t('notice.openTask') : t('notice.openMessage')}
           </Button>
         </Group>
       ),

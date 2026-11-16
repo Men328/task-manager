@@ -3588,6 +3588,14 @@
         "recurrenceSeriesId": {
           "type": "string",
           "description": "Id task đầu chuỗi lặp; mọi lần lặp cùng chuỗi có cùng giá trị."
+        },
+        "requestedBy": {
+          "type": "string",
+          "description": "Người đã giao task này qua tin nhắn chat; rỗng = tự tạo."
+        },
+        "sourceMessageId": {
+          "type": "string",
+          "description": "Tin nhắn chat chứa task (message.messages.id); rỗng = không tạo từ chat."
         }
       },
       "title": "Task cá nhân, hỗ trợ task cha - con qua parent_task_id.\nMapping DB: task.TASKS"

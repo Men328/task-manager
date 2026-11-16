@@ -1,10 +1,10 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 import { getErrorMessage } from '../../api/client';
-import { listConversations, listMessages, sendMessage } from '../../api/message';
-import { compareMessages, mergeMessages, peerOf } from '../../lib/chatMessages';
+import { listConversations, listMessages, sendMessage, sendTaskMessage } from '../../api/message';
+import { compareMessages, isNewerTaskState, mergeMessages, peerOf } from '../../lib/chatMessages';
 import { signOut } from '../session/sessionSlice';
-import type { ChatMessage, Conversation } from '../../types';
+import type { ChatMessage, ChatTaskDraft, Conversation } from '../../types';
 
 interface ChatRootState {
   session: { token: string | null; profileId: string | null };
@@ -94,6 +94,18 @@ export const sendChatMessage = createAsyncThunk<
   }
 });
 
+export const sendChatTask = createAsyncThunk<
+  ChatMessage,
+  { peerId: string; draft: ChatTaskDraft; clientId: string },
+  { state: ChatRootState; rejectValue: string }
+>('chat/sendTask', async ({ peerId, draft, clientId }, { getState, rejectWithValue }) => {
+  try {
+    return await sendTaskMessage(requireToken(getState()), peerId, draft, clientId);
+  } catch (cause) {
+    return rejectWithValue(getErrorMessage(cause));
+  }
+});
+
 const chatSlice = createSlice({
   name: 'chat',
   initialState,
@@ -108,6 +120,20 @@ const chatSlice = createSlice({
       rememberLast(state, peerId, message);
       if (!known && message.senderId !== selfId && state.activePeerId !== peerId) {
         state.unreadByPeer[peerId] = (state.unreadByPeer[peerId] ?? 0) + 1;
+      }
+    },
+    messageUpdated(state, action: PayloadAction<{ message: ChatMessage; selfId: string }>) {
+      const { message, selfId } = action.payload;
+      const peerId = peerOf(message, selfId);
+      const thread = state.threads[peerId];
+      if (thread) {
+        thread.messages = thread.messages.map((item) =>
+          item.id === message.id && isNewerTaskState(item, message) ? { ...item, task: message.task } : item,
+        );
+      }
+      const last = state.lastByPeer[peerId];
+      if (last && last.id === message.id && isNewerTaskState(last, message)) {
+        state.lastByPeer[peerId] = { ...last, task: message.task };
       }
     },
     setActivePeer(state, action: PayloadAction<string | null>) {
@@ -181,6 +207,12 @@ const chatSlice = createSlice({
         thread.messages = mergeMessages(thread.messages, [action.payload]);
         rememberLast(state, peerId, action.payload);
       })
+      .addCase(sendChatTask.fulfilled, (state, action) => {
+        const peerId = action.meta.arg.peerId;
+        const thread = threadOf(state, peerId);
+        thread.messages = mergeMessages(thread.messages, [action.payload]);
+        rememberLast(state, peerId, action.payload);
+      })
       .addCase(sendChatMessage.rejected, (state, action) => {
         const { peerId, clientId } = action.meta.arg;
         const thread = threadOf(state, peerId);
@@ -191,5 +223,5 @@ const chatSlice = createSlice({
   },
 });
 
-export const { messageReceived, setActivePeer } = chatSlice.actions;
+export const { messageReceived, messageUpdated, setActivePeer } = chatSlice.actions;
 export const chatReducer = chatSlice.reducer;

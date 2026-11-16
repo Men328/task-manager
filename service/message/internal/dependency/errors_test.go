@@ -29,6 +29,8 @@ func TestToGRPCErrorCoversEveryKind(t *testing.T) {
 		model.ErrorKindBodyTooLong:       errorcode.MessageBodyTooLong,
 		model.ErrorKindCannotMessageSelf: errorcode.MessageCannotMessageSelf,
 		model.ErrorKindNotFriends:        errorcode.MessageNotFriends,
+		model.ErrorKindTaskTitleRequired: errorcode.TaskTitleRequired,
+		model.ErrorKindMessageNotFound:   errorcode.CommonNotFound,
 	}
 	for kind, want := range cases {
 		if got := reason(t, ToGRPCError(model.NewError(kind, "x"))); got != want {

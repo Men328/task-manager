@@ -42,6 +42,19 @@ export function mergeMessages(existing: ChatMessage[], incoming: ChatMessage[]):
   return merged.sort(compareMessages);
 }
 
+/** Bản cập nhật thẻ task chỉ thay khi mới hơn (sự kiện có thể đến trễ hoặc lặp). */
+export function isNewerTaskState(current: ChatMessage, incoming: ChatMessage): boolean {
+  if (!incoming.task) {
+    return false;
+  }
+  const before = Date.parse(current.task?.statusChangedAt ?? '');
+  const after = Date.parse(incoming.task.statusChangedAt ?? '');
+  if (Number.isNaN(after)) {
+    return !current.task;
+  }
+  return Number.isNaN(before) || after >= before;
+}
+
 /** Người bên kia của tin nhắn, nhìn từ phía `selfId`. */
 export function peerOf(message: ChatMessage, selfId: string): string {
   return message.senderId === selfId ? message.recipientId : message.senderId;

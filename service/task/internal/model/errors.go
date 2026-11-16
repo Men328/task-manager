@@ -32,6 +32,7 @@ const (
 	ErrorKindProjectArchived         ErrorKind = "project_archived"
 	ErrorKindSubtaskProjectLocked    ErrorKind = "subtask_project_locked"
 	ErrorKindRecurrenceInvalid       ErrorKind = "recurrence_invalid"
+	ErrorKindInvalidArgument         ErrorKind = "invalid_argument"
 )
 
 type Error struct {

@@ -55,7 +55,8 @@
     "empty": "Chưa có thông báo",
     "loadError": "Không tải được thông báo",
     "reminderNoDue": "Đến giờ làm việc này.",
-    "openTask": "Mở"
+    "openTask": "Mở",
+    "openMessage": "Xem tin nhắn"
   },
   "taskDetail": {
     "title": "Chi tiết công việc",
@@ -649,5 +650,32 @@
     "newMessageFrom": "Tin nhắn mới từ {{name}}",
     "newMessage": "Tin nhắn mới",
     "open": "Mở"
+  },
+  "chatTask": {
+    "title": "Giao task cho {{name}}",
+    "hint": "Task sẽ vào dự án mặc định của {{name}}. Bạn sẽ nhận thông báo khi {{name}} đổi trạng thái.",
+    "fieldTitle": "Tiêu đề",
+    "fieldDescription": "Mô tả",
+    "fieldPriority": "Độ ưu tiên",
+    "fieldDue": "Hạn",
+    "priority": {
+      "low": "Thấp",
+      "medium": "Trung bình",
+      "high": "Cao",
+      "urgent": "Khẩn"
+    },
+    "cancel": "Huỷ",
+    "submit": "Giao task",
+    "failed": "Không giao được task",
+    "command": "Tạo task cho {{name}}",
+    "commandHint": "Nhấn Enter để mở form tạo task",
+    "commandWithTitle": "Tiêu đề: {{title}}",
+    "menuLabel": "Lệnh",
+    "assignedTo": "Đã giao cho {{name}}",
+    "assignedBy": "{{name}} giao cho bạn",
+    "unknownStatus": "Không rõ trạng thái",
+    "open": "Mở task",
+    "previewPrefix": "[Task]",
+    "openFailed": "Không mở được tin nhắn"
   }
 }

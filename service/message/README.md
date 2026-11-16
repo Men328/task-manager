@@ -33,6 +33,23 @@ POST /v1/conversations/{peer_id}/messages
 | GET | `/v1/conversations` | 100 cuộc trò chuyện gần nhất + tin cuối |
 | GET | `/v1/conversations/{peer_id}/messages?before=<RFC3339>&limit=50` | trả cũ -> mới, `hasMore` để phân trang |
 | POST | `/v1/conversations/{peer_id}/messages` | body `{"body": "...", "client_id": "..."}` |
+| POST | `/v1/conversations/{peer_id}/tasks` | giao task (lệnh `/task`): `{"title", "description", "priority": "low\|medium\|high\|urgent", "due_at": RFC3339, "client_id"}` |
+| GET | `/v1/messages/{message_id}` | đọc 1 tin (chỉ người gửi/nhận) — FE dùng khi mở notice trỏ về tin nhắn |
+
+## Giao task qua chat (`/task`)
+
+```
+POST /v1/conversations/{peer}/tasks
+  -> message-grpc: validate + kiểm tra bạn bè, sinh message id
+  -> task-grpc CreateTaskFromMessage (RPC nội bộ, không qua gateway):
+       task thuộc người nhận, vào project MẶC ĐỊNH của họ (chưa có thì seed),
+       status mặc định, nhớ requested_by + source_message_id
+  -> gửi tin nhắn kèm `task` (TaskRef: id, tiêu đề, tên/nhóm/màu trạng thái) như tin thường
+Người nhận đổi trạng thái task:
+  task-grpc -> Kafka `task.events` (key = task_id)
+  -> worker: cập nhật thẻ trong message.messages, broadcast `message.updated`
+     vào 2 kênh chat, tạo notice TASK_STATUS_CHANGED (target `message`) cho người giao
+```
 
 Kênh `private-chat-<profile_id>` được identity ký uỷ quyền (`POST /v1/auth/soketi`) chỉ cho chính chủ.
 
@@ -48,6 +65,7 @@ make run-message   # cần social-grpc, soketi, kafka (docker compose up -d kafk
 | `DATABASE_URL` | rỗng = API đọc trả danh sách rỗng |
 | `SESSION_SECRET` | phải khớp identity |
 | `SOCIAL_GRPC_DIAL_ADDR` | `localhost:9091` |
+| `TASK_GRPC_DIAL_ADDR` | `localhost:9082` |
 | `UPSTREAM_TIMEOUT` | `5s` |
 | `SOKETI_BASE_URL` / `SOKETI_APP_ID` / `SOKETI_APP_KEY` / `SOKETI_APP_SECRET` | thiếu = không broadcast |
 | `SOKETI_CHAT_CHANNEL_PREFIX` | `chat-` (phải khớp identity) |

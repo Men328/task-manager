@@ -87,3 +87,12 @@ curl -s "localhost:8082/v1/tasks?profile_id=$P&root_only=true"
 curl -s -X POST localhost:8082/v1/tasks/<task_id>/status -H 'Content-Type: application/json' \
   -d '{"status_id":"<doing_id>","note":"bắt đầu làm"}'
 ```
+
+## Task giao qua chat
+
+- RPC nội bộ `CreateTaskFromMessage` (không có `google.api.http`, chỉ message-service gọi): tạo task
+  cho người nhận, `project_id` rỗng thì dùng project mặc định (gọi project-grpc `ListProjects`, chưa có
+  thì `SeedDefaultProject`), lưu `requested_by` + `source_message_id`.
+- `ChangeTaskStatus` trên task có `requested_by` phát `TaskStatusChangedEvent` (protojson, key = task id)
+  vào Kafka topic `task.events` (writer async). Kafka lỗi chỉ ghi log, không làm hỏng việc đổi trạng thái.
+- Biến môi trường: `KAFKA_BROKERS` (mặc định `localhost:29092`), `KAFKA_TASK_EVENTS_TOPIC` (`task.events`).

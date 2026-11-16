@@ -17,6 +17,9 @@ export const NOTICE_EVENT_NAME = 'notice.created';
 
 export const MESSAGE_EVENT_NAME = 'message.created';
 
+/** Worker gửi khi thẻ task trong tin nhắn đổi trạng thái. */
+export const MESSAGE_UPDATED_EVENT_NAME = 'message.updated';
+
 /** Mỗi user 1 kênh private: private-<prefix><profile_id>. */
 export function noticeChannelName(profileId: string): string {
   return `private-noti-internal-${profileId}`;

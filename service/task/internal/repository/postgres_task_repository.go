@@ -14,7 +14,7 @@ import (
 	"taskmanager/service/task/internal/model"
 )
 
-const taskColumns = `id::text, profile_id::text, project_id::text, COALESCE(parent_task_id::text, ''), status_id::text, title, COALESCE(description, ''), priority::text, position, start_at, due_at, completed_at, is_archived, created_at, updated_at, remind_at, reminded_at, COALESCE(recurrence_rule, ''), COALESCE(recurrence_tz, ''), COALESCE(recurrence_series_id::text, ''), COALESCE(recurrence_next_id::text, '')`
+const taskColumns = `id::text, profile_id::text, project_id::text, COALESCE(parent_task_id::text, ''), status_id::text, title, COALESCE(description, ''), priority::text, position, start_at, due_at, completed_at, is_archived, created_at, updated_at, remind_at, reminded_at, COALESCE(recurrence_rule, ''), COALESCE(recurrence_tz, ''), COALESCE(recurrence_series_id::text, ''), COALESCE(recurrence_next_id::text, ''), COALESCE(requested_by::text, ''), COALESCE(source_message_id::text, '')`
 
 const statusLogColumns = `id, task_id::text, profile_id::text, COALESCE(from_status_id::text, ''), to_status_id::text, COALESCE(note, ''), changed_at`
 
@@ -72,6 +72,8 @@ func scanTask(row pgx.Row) (model.Task, error) {
 		&t.RecurrenceTZ,
 		&t.RecurrenceSeriesID,
 		&t.RecurrenceNextID,
+		&t.RequestedBy,
+		&t.SourceMessageID,
 	); err != nil {
 		return model.Task{}, mapTaskError(err)
 	}
@@ -108,19 +110,22 @@ func createTask(ctx context.Context, db queryRower, t model.Task) (model.Task, e
 		INSERT INTO task.tasks
 			(id, profile_id, parent_task_id, status_id, title, description,
 			 priority, position, start_at, due_at, completed_at, is_archived, project_id,
-			 remind_at, reminded_at, recurrence_rule, recurrence_tz, recurrence_series_id)
+			 remind_at, reminded_at, recurrence_rule, recurrence_tz, recurrence_series_id,
+			 requested_by, source_message_id)
 		VALUES
 			(COALESCE(NULLIF($1, '')::uuid, gen_random_uuid()), $2::uuid,
 			 NULLIF($3, '')::uuid, $4::uuid, $5, NULLIF($6, ''), $7::task.task_priority,
 			 $8, $9, $10, $11, $12, $13::uuid, $14, $15,
-			 NULLIF($16, ''), NULLIF($17, ''), NULLIF($18, '')::uuid)
+			 NULLIF($16, ''), NULLIF($17, ''), NULLIF($18, '')::uuid,
+			 NULLIF($19, '')::uuid, NULLIF($20, '')::uuid)
 		RETURNING ` + taskColumns
 
 	return scanTask(db.QueryRow(ctx, query,
 		t.ID, t.ProfileID, t.ParentTaskID, t.StatusID, t.Title, t.Description,
 		priorityToDB(t.Priority), t.Position, t.StartAt, t.DueAt, t.CompletedAt, t.IsArchived, t.ProjectID,
 		t.RemindAt, t.RemindedAt,
-		t.RecurrenceRule, t.RecurrenceTZ, t.RecurrenceSeriesID))
+		t.RecurrenceRule, t.RecurrenceTZ, t.RecurrenceSeriesID,
+		t.RequestedBy, t.SourceMessageID))
 }
 
 func (r *PostgresTaskRepository) Get(ctx context.Context, id string) (model.Task, error) {

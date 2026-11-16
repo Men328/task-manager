@@ -22,6 +22,18 @@ message ChatMessage {
   // client_id do client tự sinh để khớp tin nhắn gửi lạc quan với bản server.
   string client_id = 6;
   google.protobuf.Timestamp created_at = 7;
+  // Có khi tin nhắn giao task (lệnh /task); trạng thái được worker cập nhật theo task.events.
+  TaskRef task = 8;
+}
+
+message TaskRef {
+  string task_id = 1;
+  string title = 2;
+  string status_name = 3;
+  // todo | in_progress | done | cancelled
+  string status_category = 4;
+  string status_color = 5;
+  google.protobuf.Timestamp status_changed_at = 6;
 }
 
 // Conversation là cuộc trò chuyện 1-1 nhìn từ phía người gọi; peer_id là phía bên kia.
@@ -39,6 +51,32 @@ message SendMessageRequest {
 }
 
 message SendMessageResponse {
+  ChatMessage message = 1;
+}
+
+// Giao task cho peer: tạo task trong dự án mặc định của peer rồi gửi tin nhắn kèm TaskRef.
+message SendTaskMessageRequest {
+  string profile_id = 1;
+  string peer_id = 2;
+  string title = 3;
+  string description = 4;
+  // low | medium | high | urgent; rỗng = medium.
+  string priority = 5;
+  google.protobuf.Timestamp due_at = 6;
+  string client_id = 7;
+}
+
+message SendTaskMessageResponse {
+  ChatMessage message = 1;
+}
+
+// Chỉ trả về khi profile_id là người gửi hoặc người nhận.
+message GetMessageRequest {
+  string profile_id = 1;
+  string message_id = 2;
+}
+
+message GetMessageResponse {
   ChatMessage message = 1;
 }
 
@@ -65,6 +103,8 @@ message ListConversationsResponse {
 
 service MessageService {
   rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc SendTaskMessage(SendTaskMessageRequest) returns (SendTaskMessageResponse);
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
   rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
   rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
 }

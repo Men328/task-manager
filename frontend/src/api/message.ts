@@ -1,5 +1,5 @@
 import { asList, buildQuery, messageApi, request } from './client';
-import type { ChatMessage, Conversation } from '../types';
+import type { ChatMessage, ChatTaskDraft, Conversation } from '../types';
 
 const CONVERSATIONS_PATH = '/v1/conversations';
 
@@ -44,6 +44,39 @@ export async function sendMessage(
     method: 'POST',
     headers: authHeader(token),
     body: JSON.stringify({ body, client_id: clientId }),
+  });
+  return payload.message;
+}
+
+/** Giao task cho bạn: task vào project mặc định của người nhận, tin nhắn kèm thẻ task. */
+export async function sendTaskMessage(
+  token: string,
+  peerId: string,
+  draft: ChatTaskDraft,
+  clientId: string,
+): Promise<ChatMessage> {
+  const payload = await request<{ message: ChatMessage }>(
+    messageApi,
+    `${CONVERSATIONS_PATH}/${encodeURIComponent(peerId)}/tasks`,
+    {
+      method: 'POST',
+      headers: authHeader(token),
+      body: JSON.stringify({
+        title: draft.title,
+        description: draft.description,
+        priority: draft.priority,
+        due_at: draft.dueAt || undefined,
+        client_id: clientId,
+      }),
+    },
+  );
+  return payload.message;
+}
+
+export async function getMessage(token: string, messageId: string): Promise<ChatMessage> {
+  const payload = await request<{ message: ChatMessage }>(messageApi, `/v1/messages/${encodeURIComponent(messageId)}`, {
+    method: 'GET',
+    headers: authHeader(token),
   });
   return payload.message;
 }

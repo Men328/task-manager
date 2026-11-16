@@ -8,9 +8,7 @@ import (
 
 	"github.com/segmentio/kafka-go"
 
-	"taskmanager/service/worker/internal/dependency"
 	"taskmanager/service/worker/internal/model"
-	"taskmanager/service/worker/internal/service"
 )
 
 type KafkaReader interface {
@@ -24,25 +22,32 @@ type RetryPolicy struct {
 	PersistTimeout time.Duration
 }
 
-type MessageConsumer struct {
+type Processor interface {
+	Process(ctx context.Context, value []byte) error
+}
+
+type Consumer struct {
+	name      string
 	reader    KafkaReader
-	persister service.MessagePersister
+	processor Processor
 	retry     RetryPolicy
 	sleep     func(ctx context.Context, d time.Duration) error
 }
 
-func NewMessageConsumer(reader KafkaReader, persister service.MessagePersister, retry RetryPolicy) *MessageConsumer {
-	return &MessageConsumer{reader: reader, persister: persister, retry: retry, sleep: sleepContext}
+func NewConsumer(name string, reader KafkaReader, processor Processor, retry RetryPolicy) *Consumer {
+	return &Consumer{name: name, reader: reader, processor: processor, retry: retry, sleep: sleepContext}
 }
 
-func (c *MessageConsumer) Run(ctx context.Context) error {
+func (c *Consumer) Name() string { return c.name }
+
+func (c *Consumer) Run(ctx context.Context) error {
 	for {
 		record, err := c.reader.FetchMessage(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil
 			}
-			slog.Error("đọc kafka thất bại", "error", err)
+			slog.Error("đọc kafka thất bại", "consumer", c.name, "error", err)
 			if err := c.sleep(ctx, c.retry.Initial); err != nil {
 				return nil
 			}
@@ -58,27 +63,22 @@ func (c *MessageConsumer) Run(ctx context.Context) error {
 	}
 }
 
-func (c *MessageConsumer) handle(ctx context.Context, record kafka.Message) error {
-	message, err := dependency.DecodeMessageEvent(record.Value)
-	if err != nil {
-		logSkipped(record, err)
-		return nil
-	}
-
+func (c *Consumer) handle(ctx context.Context, record kafka.Message) error {
 	backoff := c.retry.Initial
 	for attempt := 1; ; attempt++ {
-		err := c.persist(ctx, message)
+		err := c.process(ctx, record)
 		if err == nil {
-			slog.Debug("đã lưu tin nhắn", "message_id", message.ID, "partition", record.Partition, "offset", record.Offset)
+			slog.Debug("đã xử lý sự kiện", "consumer", c.name, "partition", record.Partition, "offset", record.Offset)
 			return nil
 		}
 		if errors.Is(err, model.ErrPermanent) {
-			logSkipped(record, err)
+			logSkipped(c.name, record, err)
 			return nil
 		}
 
-		slog.Warn("lưu tin nhắn thất bại, thử lại",
-			"message_id", message.ID, "attempt", attempt, "backoff", backoff.String(), "error", err)
+		slog.Warn("xử lý sự kiện thất bại, thử lại",
+			"consumer", c.name, "partition", record.Partition, "offset", record.Offset,
+			"attempt", attempt, "backoff", backoff.String(), "error", err)
 		if err := c.sleep(ctx, backoff); err != nil {
 			return err
 		}
@@ -86,20 +86,20 @@ func (c *MessageConsumer) handle(ctx context.Context, record kafka.Message) erro
 	}
 }
 
-func (c *MessageConsumer) persist(ctx context.Context, message model.Message) error {
+func (c *Consumer) process(ctx context.Context, record kafka.Message) error {
 	callCtx, cancel := context.WithTimeout(ctx, c.retry.PersistTimeout)
 	defer cancel()
-	return c.persister.Persist(callCtx, message)
+	return c.processor.Process(callCtx, record.Value)
 }
 
-func (c *MessageConsumer) commit(ctx context.Context, record kafka.Message) error {
+func (c *Consumer) commit(ctx context.Context, record kafka.Message) error {
 	backoff := c.retry.Initial
 	for {
 		err := c.reader.CommitMessages(ctx, record)
 		if err == nil {
 			return nil
 		}
-		slog.Warn("commit offset thất bại, thử lại", "partition", record.Partition, "offset", record.Offset, "error", err)
+		slog.Warn("commit offset thất bại, thử lại", "consumer", c.name, "partition", record.Partition, "offset", record.Offset, "error", err)
 		if err := c.sleep(ctx, backoff); err != nil {
 			return err
 		}
@@ -107,8 +107,9 @@ func (c *MessageConsumer) commit(ctx context.Context, record kafka.Message) erro
 	}
 }
 
-func logSkipped(record kafka.Message, err error) {
+func logSkipped(name string, record kafka.Message, err error) {
 	slog.Error("bỏ qua sự kiện không xử lý được",
+		"consumer", name,
 		"topic", record.Topic,
 		"partition", record.Partition,
 		"offset", record.Offset,

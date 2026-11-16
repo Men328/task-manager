@@ -19,7 +19,7 @@ func ValidateProfileID(profileID string) error {
 }
 
 func MessageToProto(m model.Message) *messagev1.ChatMessage {
-	return &messagev1.ChatMessage{
+	out := &messagev1.ChatMessage{
 		Id:             m.ID,
 		ConversationId: m.ConversationID,
 		SenderId:       m.SenderID,
@@ -28,6 +28,37 @@ func MessageToProto(m model.Message) *messagev1.ChatMessage {
 		ClientId:       m.ClientID,
 		CreatedAt:      timestamppb.New(m.CreatedAt),
 	}
+	if m.Task != nil {
+		out.Task = TaskRefToProto(*m.Task)
+	}
+	return out
+}
+
+func TaskRefToProto(ref model.TaskRef) *messagev1.TaskRef {
+	out := &messagev1.TaskRef{
+		TaskId:         ref.TaskID,
+		Title:          ref.Title,
+		StatusName:     ref.StatusName,
+		StatusCategory: ref.StatusCategory,
+		StatusColor:    ref.StatusColor,
+	}
+	if !ref.StatusChangedAt.IsZero() {
+		out.StatusChangedAt = timestamppb.New(ref.StatusChangedAt)
+	}
+	return out
+}
+
+func DraftFromProto(req *messagev1.SendTaskMessageRequest) model.TaskDraft {
+	draft := model.TaskDraft{
+		Title:       req.GetTitle(),
+		Description: req.GetDescription(),
+		Priority:    req.GetPriority(),
+	}
+	if req.GetDueAt() != nil {
+		due := req.GetDueAt().AsTime().UTC()
+		draft.DueAt = &due
+	}
+	return draft
 }
 
 func MessagesToProto(messages []model.Message) []*messagev1.ChatMessage {

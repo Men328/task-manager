@@ -2,13 +2,14 @@ import { useEffect, useRef } from 'react';
 
 import {
   MESSAGE_EVENT_NAME,
+  MESSAGE_UPDATED_EVENT_NAME,
   acquireSoketiClient,
   chatChannelName,
   releaseSoketiClient,
 } from '../../lib/soketi';
 import { parseChatMessage } from '../../lib/chatMessages';
 import { useAppDispatch, useAppSelector } from '../hooks';
-import { fetchConversations, messageReceived } from './chatSlice';
+import { fetchConversations, messageReceived, messageUpdated } from './chatSlice';
 import type { ChatMessage } from '../../types';
 
 /**
@@ -42,10 +43,18 @@ export function useChatRealtime(onIncoming?: (message: ChatMessage) => void) {
         incomingRef.current?.(message);
       }
     };
+    const onUpdated = (data: unknown) => {
+      const message = parseChatMessage(data);
+      if (message) {
+        dispatch(messageUpdated({ message, selfId: profileId }));
+      }
+    };
     channel.bind(MESSAGE_EVENT_NAME, onMessage);
+    channel.bind(MESSAGE_UPDATED_EVENT_NAME, onUpdated);
 
     return () => {
       channel.unbind(MESSAGE_EVENT_NAME, onMessage);
+      channel.unbind(MESSAGE_UPDATED_EVENT_NAME, onUpdated);
       client.unsubscribe(channelName);
       releaseSoketiClient(client);
     };

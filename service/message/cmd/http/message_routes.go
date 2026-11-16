@@ -36,6 +36,14 @@ type sendMessageBody struct {
 	ClientID string `json:"client_id"`
 }
 
+type sendTaskBody struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Priority    string `json:"priority"`
+	DueAt       string `json:"due_at"`
+	ClientID    string `json:"client_id"`
+}
+
 func newMessageRoutes(messages messagev1.MessageServiceClient, signer *sessionSigner) *messageRoutes {
 	return &messageRoutes{messages: messages, signer: signer}
 }
@@ -49,6 +57,8 @@ func (a *messageRoutes) register(mux *runtime.ServeMux) error {
 		{http.MethodGet, "/v1/conversations", a.handleListConversations},
 		{http.MethodGet, "/v1/conversations/{peer_id}/messages", a.handleListMessages},
 		{http.MethodPost, "/v1/conversations/{peer_id}/messages", a.handleSend},
+		{http.MethodPost, "/v1/conversations/{peer_id}/tasks", a.handleSendTask},
+		{http.MethodGet, "/v1/messages/{message_id}", a.handleGetMessage},
 	}
 
 	for _, route := range routes {
@@ -106,13 +116,9 @@ func (a *messageRoutes) handleListMessages(ctx context.Context, r *http.Request,
 }
 
 func (a *messageRoutes) handleSend(ctx context.Context, r *http.Request, profileID string, params map[string]string) (proto.Message, error) {
-	raw, err := io.ReadAll(io.LimitReader(r.Body, maxBodyBytes))
-	if err != nil {
-		return nil, errorcode.Error(errorcode.CommonInvalidArgument)
-	}
 	var body sendMessageBody
-	if err := json.Unmarshal(raw, &body); err != nil {
-		return nil, errorcode.Error(errorcode.CommonInvalidArgument)
+	if err := readJSON(r, &body); err != nil {
+		return nil, err
 	}
 	return a.messages.SendMessage(ctx, &messagev1.SendMessageRequest{
 		ProfileId: profileID,
@@ -120,6 +126,44 @@ func (a *messageRoutes) handleSend(ctx context.Context, r *http.Request, profile
 		Body:      body.Body,
 		ClientId:  body.ClientID,
 	})
+}
+
+func (a *messageRoutes) handleSendTask(ctx context.Context, r *http.Request, profileID string, params map[string]string) (proto.Message, error) {
+	var body sendTaskBody
+	if err := readJSON(r, &body); err != nil {
+		return nil, err
+	}
+	request := &messagev1.SendTaskMessageRequest{
+		ProfileId:   profileID,
+		PeerId:      params["peer_id"],
+		Title:       body.Title,
+		Description: body.Description,
+		Priority:    body.Priority,
+		ClientId:    body.ClientID,
+	}
+	if raw := strings.TrimSpace(body.DueAt); raw != "" {
+		due, err := time.Parse(time.RFC3339Nano, raw)
+		if err != nil {
+			return nil, errorcode.Error(errorcode.CommonInvalidArgument)
+		}
+		request.DueAt = timestamppb.New(due)
+	}
+	return a.messages.SendTaskMessage(ctx, request)
+}
+
+func (a *messageRoutes) handleGetMessage(ctx context.Context, _ *http.Request, profileID string, params map[string]string) (proto.Message, error) {
+	return a.messages.GetMessage(ctx, &messagev1.GetMessageRequest{ProfileId: profileID, MessageId: params["message_id"]})
+}
+
+func readJSON(r *http.Request, target any) error {
+	raw, err := io.ReadAll(io.LimitReader(r.Body, maxBodyBytes))
+	if err != nil {
+		return errorcode.Error(errorcode.CommonInvalidArgument)
+	}
+	if err := json.Unmarshal(raw, target); err != nil {
+		return errorcode.Error(errorcode.CommonInvalidArgument)
+	}
+	return nil
 }
 
 func (a *messageRoutes) authenticate(w http.ResponseWriter, r *http.Request) (string, bool) {
@@ -171,6 +215,8 @@ func grpcErrorCode(err error) string {
 		return errorcode.IdentityAuthTokenInvalid
 	case codes.InvalidArgument:
 		return errorcode.CommonInvalidArgument
+	case codes.NotFound:
+		return errorcode.CommonNotFound
 	case codes.PermissionDenied:
 		return errorcode.MessageNotFriends
 	case codes.Unavailable, codes.DeadlineExceeded:

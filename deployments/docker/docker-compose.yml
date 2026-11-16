@@ -152,6 +152,8 @@ services:
 
   # One-shot: tạo topic (idempotent). Số partition = số worker tối đa xử lý
   # song song trong cùng group; muốn scale worker vượt con số này phải tăng partition.
+  #   chat.messages  tin nhắn (key = conversation_id)
+  #   task.events    đổi trạng thái task giao qua chat (key = task_id)
   kafka-init:
     image: ${KAFKA_IMAGE:-apache/kafka:3.9.1}
     container_name: tm-kafka-init
@@ -164,6 +166,10 @@ services:
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists
         --topic ${KAFKA_MESSAGE_TOPIC:-chat.messages}
         --partitions ${KAFKA_MESSAGE_PARTITIONS:-6}
+        --replication-factor 1 &&
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists
+        --topic ${KAFKA_TASK_EVENTS_TOPIC:-task.events}
+        --partitions ${KAFKA_TASK_EVENTS_PARTITIONS:-6}
         --replication-factor 1
     restart: "no"
 
@@ -262,11 +268,16 @@ services:
       REMINDER_ENABLED: ${REMINDER_ENABLED:-true}
       REMINDER_INTERVAL: ${REMINDER_INTERVAL:-30s}
       REMINDER_TIMEZONE: ${REMINDER_TIMEZONE:-Asia/Ho_Chi_Minh}
+      # Task giao qua chat: đổi trạng thái -> sự kiện task.events cho worker báo người giao.
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TASK_EVENTS_TOPIC: ${KAFKA_TASK_EVENTS_TOPIC:-task.events}
     depends_on:
       project-grpc:
         condition: service_started
       notification-grpc:
         condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       migrate:
@@ -454,6 +465,8 @@ services:
       LOG_LEVEL: info
       DATABASE_URL: postgres://task_manager:task_manager@postgres:5432/task_manager?sslmode=disable
       SOCIAL_GRPC_DIAL_ADDR: "social-grpc:9091"
+      # Lệnh /task: tạo task trong project mặc định của người nhận.
+      TASK_GRPC_DIAL_ADDR: "task-grpc:9082"
       SOKETI_BASE_URL: ${SOKETI_BASE_URL:-http://soketi:6001}
       SOKETI_APP_ID: ${SOKETI_APP_ID:-task-manager}
       SOKETI_APP_KEY: ${SOKETI_APP_KEY:-task-manager}
@@ -463,6 +476,8 @@ services:
       KAFKA_MESSAGE_TOPIC: ${KAFKA_MESSAGE_TOPIC:-chat.messages}
     depends_on:
       social-grpc:
+        condition: service_started
+      task-grpc:
         condition: service_started
       postgres:
         condition: service_healthy
@@ -515,6 +530,16 @@ services:
       KAFKA_BROKERS: kafka:9092
       KAFKA_MESSAGE_TOPIC: ${KAFKA_MESSAGE_TOPIC:-chat.messages}
       KAFKA_MESSAGE_GROUP_ID: ${KAFKA_MESSAGE_GROUP_ID:-message-worker}
+      # Consumer task.events: cập nhật thẻ task trong tin nhắn, broadcast
+      # `message.updated` qua soketi và tạo notice cho người giao.
+      KAFKA_TASK_EVENTS_TOPIC: ${KAFKA_TASK_EVENTS_TOPIC:-task.events}
+      KAFKA_TASK_EVENTS_GROUP_ID: ${KAFKA_TASK_EVENTS_GROUP_ID:-task-event-worker}
+      NOTIFICATION_GRPC_DIAL_ADDR: "notification-grpc:9088"
+      SOKETI_BASE_URL: ${SOKETI_BASE_URL:-http://soketi:6001}
+      SOKETI_APP_ID: ${SOKETI_APP_ID:-task-manager}
+      SOKETI_APP_KEY: ${SOKETI_APP_KEY:-task-manager}
+      SOKETI_APP_SECRET: ${SOKETI_APP_SECRET:-task-manager-secret}
+      SOKETI_CHAT_CHANNEL_PREFIX: ${SOKETI_CHAT_CHANNEL_PREFIX:-chat-}
     deploy:
       replicas: ${WORKER_REPLICAS:-2}
     depends_on:
@@ -524,6 +549,10 @@ services:
         condition: service_completed_successfully
       kafka-init:
         condition: service_completed_successfully
+      notification-grpc:
+        condition: service_started
+      soketi:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8094/healthz"]
       interval: 10s

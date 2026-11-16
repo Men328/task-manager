@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	socialv1 "taskmanager/common/gen/go/social/v1"
+	taskv1 "taskmanager/common/gen/go/task/v1"
 	"taskmanager/service/message/internal/config"
 	"taskmanager/service/message/internal/repository"
 	"taskmanager/service/message/internal/service"
@@ -51,10 +52,10 @@ func newMessageReader(pool *pgxpool.Pool) service.MessageReader {
 	return repository.NewPostgresMessageReader(pool)
 }
 
-func newSocialConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
-	conn, err := grpc.NewClient(cfg.SocialGRPCDialAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+func dial(lc fx.Lifecycle, name, target string) (*grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, fmt.Errorf("dial gRPC social (%s): %w", cfg.SocialGRPCDialAddr, err)
+		return nil, fmt.Errorf("dial gRPC %s (%s): %w", name, target, err)
 	}
 	lc.Append(fx.Hook{
 		OnStop: func(context.Context) error {
@@ -62,6 +63,22 @@ func newSocialConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error)
 		},
 	})
 	return conn, nil
+}
+
+func newSocialConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
+	return dial(lc, "social", cfg.SocialGRPCDialAddr)
+}
+
+func newTaskConn(lc fx.Lifecycle, cfg config.Config) (*grpc.ClientConn, error) {
+	return dial(lc, "task", cfg.TaskGRPCDialAddr)
+}
+
+func newTaskServiceClient(conn *grpc.ClientConn) taskv1.TaskServiceClient {
+	return taskv1.NewTaskServiceClient(conn)
+}
+
+func newTaskCreator(client taskv1.TaskServiceClient, cfg config.Config) service.TaskCreator {
+	return repository.NewTaskClient(client, cfg.UpstreamTimeout)
 }
 
 func newFriendServiceClient(conn *grpc.ClientConn) socialv1.FriendServiceClient {

@@ -141,3 +141,59 @@
     display: inline-flex;
   }
 }
+
+.taskCard {
+  width: min(360px, 80vw);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-border);
+  border-left: 4px solid var(--mantine-color-gray-5);
+}
+
+.taskCard[data-category='in_progress'] {
+  border-left-color: var(--mantine-color-blue-6);
+}
+
+.taskCard[data-category='done'] {
+  border-left-color: var(--mantine-color-green-6);
+}
+
+.taskCard[data-category='cancelled'] {
+  border-left-color: var(--mantine-color-red-6);
+}
+
+.bubbleRow[data-focused='true'] .bubble,
+.bubbleRow[data-focused='true'] .taskCard {
+  box-shadow: 0 0 0 3px var(--mantine-color-yellow-4);
+  transition: box-shadow 200ms ease;
+}
+
+.composerWrap {
+  position: relative;
+}
+
+.slashMenu {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(100% - 4px);
+  z-index: 5;
+  padding: 6px;
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-border-strong);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+
+.slashItem {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.slashItem[data-active='true'],
+.slashItem:hover {
+  background: var(--tm-nav-active-bg);
+}

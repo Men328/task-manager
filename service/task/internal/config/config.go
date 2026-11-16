@@ -30,6 +30,9 @@ type Config struct {
 	ReminderBatch    int
 	ReminderMaxLate  time.Duration
 	ReminderTimezone string
+
+	KafkaBrokers         []string
+	KafkaTaskEventsTopic string
 }
 
 func Load() Config {
@@ -52,7 +55,20 @@ func Load() Config {
 		ReminderBatch:    getint("REMINDER_BATCH", 100),
 		ReminderMaxLate:  getduration("REMINDER_MAX_LATE", 6*time.Hour),
 		ReminderTimezone: getenv("REMINDER_TIMEZONE", "Asia/Ho_Chi_Minh"),
+
+		KafkaBrokers:         splitList(getenv("KAFKA_BROKERS", "localhost:29092")),
+		KafkaTaskEventsTopic: getenv("KAFKA_TASK_EVENTS_TOPIC", "task.events"),
 	}
+}
+
+func splitList(raw string) []string {
+	var out []string
+	for _, part := range strings.Split(raw, ",") {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }
 
 func (c Config) NotificationDialTarget() string {

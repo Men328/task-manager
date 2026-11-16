@@ -30,6 +30,10 @@ func codeForKind(kind model.ErrorKind) string {
 		return errorcode.MessageCannotMessageSelf
 	case model.ErrorKindNotFriends:
 		return errorcode.MessageNotFriends
+	case model.ErrorKindTaskTitleRequired:
+		return errorcode.TaskTitleRequired
+	case model.ErrorKindMessageNotFound:
+		return errorcode.CommonNotFound
 	default:
 		return errorcode.CommonInternal
 	}

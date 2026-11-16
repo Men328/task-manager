@@ -14,7 +14,8 @@ deployments/migrations/
 ├── 000010_init_attachment.up.sql / .down.sql # schema attachment: ATTACHMENTS
 ├── 000011_init_project.up.sql    / .down.sql   # schema project: PROJECTS + project_id trên TASKS/schedules/events
 ├── ...
-└── 000017_init_message.up.sql    / .down.sql   # schema message: CONVERSATIONS, MESSAGES (worker ghi, message đọc)
+├── 000017_init_message.up.sql    / .down.sql   # schema message: CONVERSATIONS, MESSAGES (worker ghi, message đọc)
+└── 000018_chat_task.up.sql       / .down.sql   # giao task qua chat: TASKS.requested_by/source_message_id, thẻ task trên MESSAGES, notice target `message`
 ```
 
 > Migration `000003`/`000004` (workspace) đã bị xoá cùng tính năng workspace. Repo không còn

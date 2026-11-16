@@ -16,12 +16,20 @@ func main() {
 			config.Load,
 			newPostgresPool,
 			newMessageStore,
+			newNotificationConn,
+			newTaskNotifier,
+			newBroadcaster,
 			service.NewMessagePersister,
-			newMessageReader,
-			newMessageConsumer,
+			service.NewTaskEventHandler,
+			fx.Annotate(newChatConsumer, fx.ResultTags(`group:"consumers"`)),
+			fx.Annotate(newTaskEventConsumer, fx.ResultTags(`group:"consumers"`)),
 			newHealthServer,
 		),
-		fx.Invoke(setupLogger, runMessageConsumer, serveHealth),
+		fx.Invoke(
+			setupLogger,
+			fx.Annotate(runConsumers, fx.ParamTags(``, `group:"consumers"`)),
+			serveHealth,
+		),
 	)
 	if err := app.Err(); err != nil {
 		slog.Error("worker init failed", "error", err)
