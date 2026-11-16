@@ -600,21 +600,14 @@ def intro_title(text):
 
 
 intro_title("LỜI CẢM ƠN")
-box(
-    can=["Cảm ơn GVHD, khoa CNTT, gia đình, bạn bè (½ trang)."],
-    luu_y=["Báo cáo mẫu không có mục này — tuỳ chọn, có thể bỏ."],
-)
+render_chapter("loi-cam-on.md")
+for text, bold in [(f"Hà Nội, ngày … tháng … năm {NAM}", False), ("Sinh viên", True), ("", False), ("", False),
+                   (SV_HO_TEN, True)]:
+    sp = para(text, align=WD_ALIGN_PARAGRAPH.CENTER, bold=bold, italic=(not bold and bool(text)), space_after=0)
+    sp.paragraph_format.left_indent = Cm(8)
 
 intro_title("LỜI MỞ ĐẦU")
-box(
-    can=[
-        "Bối cảnh: công việc cá nhân phân tán ở email, lịch, ghi chú — khó theo dõi.",
-        "Lý do chọn đề tài và hướng tiếp cận: một nơi quản lý task/lịch/sự kiện + tự biến email thành việc bằng AI.",
-        "Tóm tắt công nghệ (Go microservices, gRPC, React, PostgreSQL, Kafka, Soketi, DeepSeek).",
-        "Điều đạt được khi làm đồ án; lời xin góp ý.",
-    ],
-    nguon=[f"{D03} §1 Mục tiêu sản phẩm", f"{XLSX} sheet '1. Tổng quan'", README],
-)
+render_chapter("loi-mo-dau.md")
 
 intro_title("MỤC LỤC")
 p = para()
