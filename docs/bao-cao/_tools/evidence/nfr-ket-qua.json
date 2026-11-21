@@ -1,0 +1,37 @@
+{
+ "Danh sách task (list)": {
+  "p50_ms": 2.7,
+  "p95_ms": 4.3,
+  "n": 30
+ },
+ "Tìm kiếm task": {
+  "p50_ms": 2.9,
+  "p95_ms": 3.3,
+  "n": 30
+ },
+ "Báo cáo tổng quan": {
+  "p50_ms": 3.6,
+  "p95_ms": 4.4,
+  "n": 30
+ },
+ "Đếm thông báo chưa đọc": {
+  "p50_ms": 2.3,
+  "p95_ms": 2.6,
+  "n": 30
+ },
+ "Lịch sử tin nhắn": {
+  "p50_ms": 2.3,
+  "p95_ms": 2.7,
+  "n": 30
+ },
+ "Gửi tin nhắn (API trả về)": {
+  "p50_ms": 4.7,
+  "max_ms": 89.1,
+  "n": 10
+ },
+ "Gửi tin -> đã lưu vào CSDL (qua Kafka, worker)": {
+  "p50_ms": 61.4,
+  "max_ms": 146.4,
+  "n": 10
+ }
+}

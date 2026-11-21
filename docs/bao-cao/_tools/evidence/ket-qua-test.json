@@ -1,0 +1,394 @@
+[
+ {
+  "nhom": "Xác thực",
+  "chuc_nang": "Lấy hồ sơ bằng session token hợp lệ",
+  "dau_vao": "Token của menc1lhp@gmail.com",
+  "mong_doi": "Trả hồ sơ đúng email",
+  "thuc_te": "HTTP 200, email menc1lhp@gmail.com",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Xác thực",
+  "chuc_nang": "Gọi API khi chưa đăng nhập",
+  "dau_vao": "Không gửi token",
+  "mong_doi": "Từ chối, mã lỗi IDENTITY_AUTH_TOKEN_MISSING",
+  "thuc_te": "HTTP 401, mã lỗi IDENTITY_AUTH_TOKEN_MISSING",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Xác thực",
+  "chuc_nang": "Token bị sửa chữ ký",
+  "dau_vao": "Token sai chữ ký",
+  "mong_doi": "Từ chối, mã lỗi IDENTITY_AUTH_TOKEN_INVALID",
+  "thuc_te": "HTTP 401, mã lỗi IDENTITY_AUTH_TOKEN_INVALID",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Xác thực",
+  "chuc_nang": "Xin quyền nghe kênh thông báo của mình",
+  "dau_vao": "private-noti-internal-<id của mình>",
+  "mong_doi": "Trả chữ ký auth",
+  "thuc_te": "HTTP 200, có auth: True",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Xác thực",
+  "chuc_nang": "Xin quyền nghe kênh của người khác",
+  "dau_vao": "private-noti-internal-<id người khác>",
+  "mong_doi": "Từ chối, mã lỗi IDENTITY_AUTH_SOKETI_CHANNEL_FORBIDDEN",
+  "thuc_te": "HTTP 403, mã lỗi IDENTITY_AUTH_SOKETI_CHANNEL_FORBIDDEN",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Dự án",
+  "chuc_nang": "Tạo dự án mới",
+  "dau_vao": "name = \"Đồ án tốt nghiệp\"",
+  "mong_doi": "Tạo thành công",
+  "thuc_te": "HTTP 200, id facb0b56…",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Dự án",
+  "chuc_nang": "Tạo dự án trùng tên (khác hoa thường)",
+  "dau_vao": "name = \"ĐỒ ÁN TỐT NGHIỆP\"",
+  "mong_doi": "Từ chối, mã lỗi PROJECT_NAME_DUPLICATE",
+  "thuc_te": "HTTP 409, mã lỗi PROJECT_NAME_DUPLICATE",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Dự án",
+  "chuc_nang": "Lưu trữ dự án mặc định",
+  "dau_vao": "Dự án \"Chung\"",
+  "mong_doi": "Từ chối, mã lỗi PROJECT_DEFAULT_NOT_ARCHIVABLE",
+  "thuc_te": "HTTP 400, mã lỗi PROJECT_DEFAULT_NOT_ARCHIVABLE",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Dự án",
+  "chuc_nang": "Tạo task trong dự án đã lưu trữ",
+  "dau_vao": "project_id = dự án đã archive",
+  "mong_doi": "Từ chối, mã lỗi PROJECT_ARCHIVED",
+  "thuc_te": "HTTP 400, mã lỗi PROJECT_ARCHIVED",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Công việc",
+  "chuc_nang": "Tạo task thiếu tiêu đề",
+  "dau_vao": "title rỗng",
+  "mong_doi": "Từ chối, mã lỗi TASK_TITLE_REQUIRED",
+  "thuc_te": "HTTP 400, mã lỗi TASK_TITLE_REQUIRED",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Công việc",
+  "chuc_nang": "Tạo task hợp lệ",
+  "dau_vao": "Tiêu đề, mô tả, ưu tiên cao, hạn +3 ngày",
+  "mong_doi": "Tạo thành công, trạng thái mặc định To Do",
+  "thuc_te": "HTTP 200, trạng thái To Do",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Công việc",
+  "chuc_nang": "Tạo task con",
+  "dau_vao": "3 task con của task \"Viết Chương 4\"",
+  "mong_doi": "Tạo thành công, cùng dự án với cha",
+  "thuc_te": "3/3 task con, cùng dự án: True",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Công việc",
+  "chuc_nang": "Kéo task To Do sang Completed (không có luật)",
+  "dau_vao": "To Do -> Completed",
+  "mong_doi": "Từ chối, mã lỗi TASK_TRANSITION_NOT_ALLOWED",
+  "thuc_te": "HTTP 400, mã lỗi TASK_TRANSITION_NOT_ALLOWED",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Công việc",
+  "chuc_nang": "Kéo task To Do sang On Progress (có luật)",
+  "dau_vao": "To Do -> On Progress",
+  "mong_doi": "Đổi trạng thái thành công",
+  "thuc_te": "HTTP 200",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Công việc",
+  "chuc_nang": "Hoàn thành task",
+  "dau_vao": "On Progress -> In Review -> Completed",
+  "mong_doi": "Ghi thời điểm hoàn thành (completedAt)",
+  "thuc_te": "HTTP 200, completedAt có",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Công việc",
+  "chuc_nang": "Xoá task còn task con",
+  "dau_vao": "Xoá task \"Viết Chương 4\"",
+  "mong_doi": "Từ chối, mã lỗi TASK_HAS_SUBTASKS",
+  "thuc_te": "HTTP 400, mã lỗi TASK_HAS_SUBTASKS",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Công việc",
+  "chuc_nang": "Hoàn thành task lặp lại hằng ngày",
+  "dau_vao": "recurrence_rule = FREQ=DAILY, chuyển tới Completed",
+  "mong_doi": "Tự sinh lần kế tiếp, hạn +1 ngày",
+  "thuc_te": "HTTP 200, lần kế tiếp: có, hạn 2026-11-19",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Công việc",
+  "chuc_nang": "Tìm kiếm task theo từ khoá",
+  "dau_vao": "query = \"kafka\"",
+  "mong_doi": "Trả các task có chữ Kafka",
+  "thuc_te": "HTTP 200, 2 kết quả",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Công việc",
+  "chuc_nang": "Nhắc việc đúng giờ",
+  "dau_vao": "remind_at = hiện tại + 5 giây",
+  "mong_doi": "Nhận thông báo TASK_REMINDER",
+  "thuc_te": "Thông báo: Nhắc việc: Nộp bản nháp báo cáo cho giảng viên",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Lịch và sự kiện",
+  "chuc_nang": "Tạo lịch có giờ kết thúc trước giờ bắt đầu",
+  "dau_vao": "end_at < start_at",
+  "mong_doi": "Từ chối, mã lỗi CALENDAR_TIME_RANGE_INVALID",
+  "thuc_te": "HTTP 400, mã lỗi CALENDAR_TIME_RANGE_INVALID",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Lịch và sự kiện",
+  "chuc_nang": "Tạo lịch hợp lệ và xem theo khoảng thời gian",
+  "dau_vao": "Họp nhóm 9:00–10:30, lọc ±1 ngày",
+  "mong_doi": "Lịch xuất hiện trong khoảng lọc",
+  "thuc_te": "HTTP 200, có trong danh sách: True",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Lịch và sự kiện",
+  "chuc_nang": "Tạo sự kiện và xác nhận",
+  "dau_vao": "Hội thảo, PLANNED -> CONFIRMED",
+  "mong_doi": "Sự kiện chuyển sang đã xác nhận",
+  "thuc_te": "HTTP 200/200, trạng thái EVENT_STATUS_CONFIRMED",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Lịch và sự kiện",
+  "chuc_nang": "Tạo sự kiện có khoảng thời gian sai",
+  "dau_vao": "end_at < start_at",
+  "mong_doi": "Từ chối, mã lỗi EVENT_TIME_RANGE_INVALID",
+  "thuc_te": "HTTP 400, mã lỗi EVENT_TIME_RANGE_INVALID",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Email và backlog",
+  "chuc_nang": "Email Gmail thật được phân loại tự động",
+  "dau_vao": "Thư gửi tới menc1lhp@gmail.com (newsletter, yêu cầu công việc, lịch báo cáo)",
+  "mong_doi": "Email được lưu thành bản ghi kèm người gửi, lý do",
+  "thuc_te": "4 email trong backlog, ví dụ: \"TED newsletter: How to calm your anxiety…\" (Newsletter quảng cáo nội dung, không cần)",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Email và backlog",
+  "chuc_nang": "Newsletter được phân loại là other",
+  "dau_vao": "Email TED, Lumosity",
+  "mong_doi": "category = other, vào backlog",
+  "thuc_te": "2 newsletter, category other",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Email và backlog",
+  "chuc_nang": "Email công việc không khớp dự án nào",
+  "dau_vao": "Email yêu cầu xem tài liệu / lịch báo cáo, không nhắc tên dự án",
+  "mong_doi": "Vào backlog với lý do no_project_matched",
+  "thuc_te": "2 email, category schedule, task",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Email và backlog",
+  "chuc_nang": "Đánh dấu backlog đã xử lý",
+  "dau_vao": "status = TRIAGED",
+  "mong_doi": "Cập nhật thành công",
+  "thuc_te": "HTTP 200, BACKLOG_STATUS_TRIAGED",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Email và backlog",
+  "chuc_nang": "Thông báo khi email được xử lý",
+  "dau_vao": "Các email ở trên",
+  "mong_doi": "Có thông báo *_CREATED",
+  "thuc_te": "6 thông báo",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Tệp đính kèm",
+  "chuc_nang": "Tải tệp lên task",
+  "dau_vao": "de-cuong-do-an.txt, 2400 byte",
+  "mong_doi": "Tải lên thành công",
+  "thuc_te": "HTTP 200, kích thước 2400 byte",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Tệp đính kèm",
+  "chuc_nang": "Tải tệp xuống",
+  "dau_vao": "Tệp vừa tải lên",
+  "mong_doi": "Nội dung giống hệt bản gốc",
+  "thuc_te": "HTTP 200, giống bản gốc: True",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Tệp đính kèm",
+  "chuc_nang": "Tải tệp vượt giới hạn",
+  "dau_vao": "Tệp 11 MiB (giới hạn 10 MiB)",
+  "mong_doi": "Từ chối, mã lỗi ATTACHMENT_FILE_TOO_LARGE",
+  "thuc_te": "HTTP 429, mã lỗi ATTACHMENT_FILE_TOO_LARGE",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Tệp đính kèm",
+  "chuc_nang": "Loại đối tượng sở hữu không hợp lệ",
+  "dau_vao": "owner_type = abc",
+  "mong_doi": "Từ chối, mã lỗi ATTACHMENT_OWNER_TYPE_INVALID",
+  "thuc_te": "HTTP 400, mã lỗi ATTACHMENT_OWNER_TYPE_INVALID",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Báo cáo",
+  "chuc_nang": "Báo cáo tổng quan",
+  "dau_vao": "30 ngày gần nhất",
+  "mong_doi": "Trả tổng số task, tỉ lệ hoàn thành, quá hạn",
+  "thuc_te": "HTTP 200, tổng 13, hoàn thành 15.38%",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Báo cáo",
+  "chuc_nang": "Tỉ lệ task theo trạng thái",
+  "dau_vao": "Không lọc",
+  "mong_doi": "Tổng tỉ lệ các trạng thái = 100%",
+  "thuc_te": "HTTP 200, 4 trạng thái, tổng 100.0%",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Báo cáo",
+  "chuc_nang": "Biểu đồ tạo mới / hoàn thành theo tuần",
+  "dau_vao": "interval = WEEK",
+  "mong_doi": "Đủ các mốc tuần, có số tạo mới và hoàn thành",
+  "thuc_te": "HTTP 200, 5 mốc",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Báo cáo",
+  "chuc_nang": "Thống kê lịch, sự kiện, backlog",
+  "dau_vao": "30 ngày tới",
+  "mong_doi": "Trả số liệu lịch, sự kiện, backlog",
+  "thuc_te": "HTTP 200, khoá: profileId, from, to",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Bạn bè và nhắn tin",
+  "chuc_nang": "Tìm người dùng theo email",
+  "dau_vao": "22010328@st.phenikaa-uni.edu.vn",
+  "mong_doi": "Tìm thấy hồ sơ",
+  "thuc_te": "HTTP 200, tìm thấy: True",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Bạn bè và nhắn tin",
+  "chuc_nang": "Tự kết bạn với chính mình",
+  "dau_vao": "profile_id = chính mình",
+  "mong_doi": "Từ chối, mã lỗi SOCIAL_CANNOT_FRIEND_SELF",
+  "thuc_te": "HTTP 400, mã lỗi SOCIAL_CANNOT_FRIEND_SELF",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Bạn bè và nhắn tin",
+  "chuc_nang": "Huỷ kết bạn",
+  "dau_vao": "Huỷ kết bạn với 22010328@st.phenikaa-uni.edu.vn",
+  "mong_doi": "Hai người không còn là bạn bè",
+  "thuc_te": "HTTP 200, còn là bạn: False",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Bạn bè và nhắn tin",
+  "chuc_nang": "Gửi lời mời kết bạn",
+  "dau_vao": "Tới 22010328@st.phenikaa-uni.edu.vn",
+  "mong_doi": "Tạo lời mời đang chờ",
+  "thuc_te": "HTTP 200",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Bạn bè và nhắn tin",
+  "chuc_nang": "Chấp nhận lời mời kết bạn",
+  "dau_vao": "Tài khoản 22010328 chấp nhận",
+  "mong_doi": "Hai người trở thành bạn bè",
+  "thuc_te": "HTTP 200, đã là bạn: True",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Bạn bè và nhắn tin",
+  "chuc_nang": "Gửi tin nhắn rỗng",
+  "dau_vao": "body rỗng",
+  "mong_doi": "Từ chối, mã lỗi MESSAGE_BODY_REQUIRED",
+  "thuc_te": "HTTP 400, mã lỗi MESSAGE_BODY_REQUIRED",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Bạn bè và nhắn tin",
+  "chuc_nang": "Nhắn tin cho người chưa kết bạn",
+  "dau_vao": "Người nhận không phải bạn bè",
+  "mong_doi": "Từ chối, mã lỗi MESSAGE_NOT_FRIENDS",
+  "thuc_te": "HTTP 403, mã lỗi MESSAGE_NOT_FRIENDS",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Bạn bè và nhắn tin",
+  "chuc_nang": "Gửi tin nhắn cho bạn bè và lưu lịch sử",
+  "dau_vao": "Tin nhắn văn bản tới 22010328",
+  "mong_doi": "Người nhận xem được tin trong lịch sử (qua Kafka → worker)",
+  "thuc_te": "HTTP 200, có trong lịch sử người nhận: True",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Bạn bè và nhắn tin",
+  "chuc_nang": "Giao task qua chat bằng lệnh /task",
+  "dau_vao": "/task Chuẩn bị tài liệu họp nhóm, ưu tiên cao, hạn +1 ngày",
+  "mong_doi": "Task được tạo trong danh sách của người nhận, tin nhắn có thẻ task",
+  "thuc_te": "HTTP 200, thẻ task: True, task thuộc người nhận: True",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Bạn bè và nhắn tin",
+  "chuc_nang": "Người giao được báo khi task đổi trạng thái",
+  "dau_vao": "Người nhận chuyển task sang On Progress",
+  "mong_doi": "Người giao nhận thông báo TASK_STATUS_CHANGED",
+  "thuc_te": "Thông báo: Task “Chuẩn bị tài liệu họp nhóm” chuyển sang On Progress",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Thông báo",
+  "chuc_nang": "Đếm thông báo chưa đọc",
+  "dau_vao": "Tài khoản chính",
+  "mong_doi": "Trả số lượng chưa đọc",
+  "thuc_te": "HTTP 200, 7 chưa đọc",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Thông báo",
+  "chuc_nang": "Chỉ xem được thông báo của mình",
+  "dau_vao": "Token tài khoản 22010328",
+  "mong_doi": "Không thấy thông báo của tài khoản khác",
+  "thuc_te": "HTTP 200, chỉ của mình: True",
+  "trang_thai": "Pass"
+ },
+ {
+  "nhom": "Thông báo",
+  "chuc_nang": "Xem thông báo khi chưa đăng nhập",
+  "dau_vao": "Không gửi token",
+  "mong_doi": "Bị từ chối (401)",
+  "thuc_te": "HTTP 401",
+  "trang_thai": "Pass"
+ }
+]

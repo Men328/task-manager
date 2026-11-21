@@ -51,7 +51,15 @@ def set_font(run_or_style, size=None, bold=None, italic=None, color=None):
         font.italic = italic
     if color:
         font.color.rgb = RGBColor.from_string(color)
-    rfonts = run_or_style.element.get_or_add_rPr().get_or_add_rFonts()
+    rpr = run_or_style.element.get_or_add_rPr()
+    rfonts = rpr.get_or_add_rFonts()
+    # Font/màu theo theme của file mẫu được Word ưu tiên hơn font chỉ định -> xoá đi.
+    for attr in ("w:asciiTheme", "w:hAnsiTheme", "w:eastAsiaTheme", "w:cstheme"):
+        rfonts.attrib.pop(qn(attr), None)
+    col = rpr.find(qn("w:color"))
+    if color and col is not None:
+        for attr in ("w:themeColor", "w:themeShade", "w:themeTint"):
+            col.attrib.pop(qn(attr), None)
     for attr in ("w:ascii", "w:hAnsi", "w:eastAsia", "w:cs"):
         rfonts.set(qn(attr), FONT)
 
@@ -154,7 +162,7 @@ def add_field(paragraph, instr, placeholder=""):
     run._r.append(end)
 
 
-def page_number_footer(section, fmt):
+def page_number_footer(section, fmt, restart=True):
     section.footer.is_linked_to_previous = False
     footer = section.footer
     p = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
@@ -176,7 +184,10 @@ def page_number_footer(section, fmt):
         else:
             sect_pr.append(pg)
     pg.set(qn("w:fmt"), fmt)
-    pg.set(qn("w:start"), "1")
+    if restart:
+        pg.set(qn("w:start"), "1")
+    else:
+        pg.attrib.pop(qn("w:start"), None)
 
 
 def enable_update_fields_on_open():
@@ -308,9 +319,103 @@ def table(caption, headers, rows=1):
             c.text = ""
             r = c.paragraphs[0].add_run("…")
             set_font(r, 12)
+    fit_table(t, [headers] + [["…"] * len(headers)] * rows)
     doc.add_paragraph().paragraph_format.space_after = Pt(0)
     return t
 
+
+
+TABLE_FONT = 11          # cỡ chữ trong bảng
+TEXT_WIDTH_CM = 16.0     # A4 21 cm - lề trái 3 cm - lề phải 2 cm
+CHAR_CM = 0.2            # bề rộng trung bình 1 ký tự Times New Roman 11pt
+NARROW_HEADERS = {"STT", "Mã", "#"}
+
+
+def _plain(text):
+    return str(text).replace("**", "").replace("*", "").replace("`", "")
+
+
+KEEP_WHOLE_MAX_ROWS = 10  # bảng ngắn hơn thì giữ trọn trên 1 trang
+
+
+def keep_table_together(t):
+    """Chú thích + tiêu đề cột không bị bỏ lại cuối trang; ưu tiên đẩy cả bảng xuống trang mới."""
+    rows = t.rows
+    whole = len(rows) <= KEEP_WHOLE_MAX_ROWS
+    for ri, row in enumerate(rows):
+        tr_pr = row._tr.get_or_add_trPr()
+        if tr_pr.find(qn("w:cantSplit")) is None:
+            tr_pr.append(OxmlElement("w:cantSplit"))      # không cắt đôi 1 dòng
+        if ri == 0 and tr_pr.find(qn("w:tblHeader")) is None:
+            tr_pr.append(OxmlElement("w:tblHeader"))      # lặp tiêu đề cột ở đầu mỗi trang
+        last = ri == len(rows) - 1
+        keep = (ri == 0) or (whole and not last)
+        for cell in row.cells:
+            for p in cell.paragraphs:
+                p.paragraph_format.keep_with_next = keep
+    prev = t._tbl.getprevious()
+    if prev is not None and prev.tag == qn("w:p"):
+        from docx.text.paragraph import Paragraph as _Pp
+        _Pp(prev, doc).paragraph_format.keep_with_next = True   # chú thích dính với bảng
+
+
+def fit_table(t, rows):
+    """Chia bề rộng cột theo nội dung, cố định bố cục để chữ không bị vỡ từng âm tiết."""
+    ncols = len(rows[0])
+    mins, weights = [], []
+    for ci in range(ncols):
+        col = [_plain(r[ci]) if ci < len(r) else "" for r in rows]
+        header, body = col[0], col[1:] or [""]
+        longest_word = max((len(w) for v in col for w in v.split()), default=3)
+        avg = sum(len(v) for v in body) / len(body)
+        # từ dài nhất phải vừa 1 dòng (mã lỗi rất dài thì cho ngắt), và ô trung bình không quá ~3 dòng
+        min_cm = max(min(longest_word * CHAR_CM + 0.35, 3.0), min(avg * CHAR_CM / 3 + 0.35, 3.2))
+        if header in NARROW_HEADERS:
+            min_cm = max(len(header), max(len(v) for v in body)) * CHAR_CM + 0.4
+        mins.append(min_cm)
+        weights.append(0 if header in NARROW_HEADERS else max(avg, 4) ** 0.9)
+    spare = TEXT_WIDTH_CM - sum(mins)
+    if spare < 0:
+        mins = [m * TEXT_WIDTH_CM / sum(mins) for m in mins]
+        spare = 0
+    total_w = sum(weights) or 1
+    widths = [m + spare * w / total_w for m, w in zip(mins, weights)]
+
+    t.autofit = False
+    tbl_pr = t._tbl.tblPr
+    tbl_w = tbl_pr.find(qn("w:tblW"))
+    if tbl_w is None:
+        tbl_w = OxmlElement("w:tblW")
+        tbl_pr.append(tbl_w)
+    tbl_w.set(qn("w:w"), str(int(TEXT_WIDTH_CM * 567)))
+    tbl_w.set(qn("w:type"), "dxa")
+    if tbl_pr.find(qn("w:tblCellMar")) is None:
+        mar = OxmlElement("w:tblCellMar")
+        for side, val in (("top", 30), ("left", 85), ("bottom", 30), ("right", 85)):
+            e = OxmlElement(f"w:{side}")
+            e.set(qn("w:w"), str(val))
+            e.set(qn("w:type"), "dxa")
+            mar.append(e)
+        look = tbl_pr.find(qn("w:tblLook"))
+        if look is not None:
+            look.addprevious(mar)
+        else:
+            tbl_pr.append(mar)
+    for ci, w in enumerate(widths):
+        t.columns[ci].width = Cm(w)
+        for cell in t.columns[ci].cells:
+            cell.width = Cm(w)
+    for row in t.rows:
+        for cell in row.cells:
+            for p in cell.paragraphs:
+                pf = p.paragraph_format
+                pf.space_before = Pt(0)
+                pf.space_after = Pt(0)
+                pf.line_spacing = 1.15
+                pf.first_line_indent = Cm(0)
+                for r in p.runs:
+                    r.font.size = Pt(TABLE_FONT)
+    keep_table_together(t)
 
 
 # ---------------------------------------------------------------- nội dung chương từ file .md
@@ -321,12 +426,20 @@ HINH_DIR = Path(__file__).resolve().parent.parent / "hinh"
 def add_rich_text(p, text, size=None):
     """Hỗ trợ **đậm** và *nghiêng* đơn giản trong một đoạn."""
     import re as _re
-    for part in _re.split(r"(\*\*[^*]+\*\*|\*[^*]+\*)", text):
+    for part in _re.split(r"(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)", text):
         if not part:
             continue
-        if part.startswith("**"):
+        if part.startswith("`"):
+            # Tên kỹ thuật: giữ Times New Roman; chèn khoảng trắng độ rộng 0 sau / _ . để
+            # đường dẫn dài ngắt dòng được, tránh dãn chữ khi căn đều hai bên.
+            code = _re.sub(r"([/_.])", "\\1\u200b", part[1:-1])
+            r = p.add_run(code)
+            set_font(r, size)
+        elif part.startswith("**"):
+            # Chỉ in đậm nhãn ở đầu đoạn / đầu gạch đầu dòng; giữa câu thì để chữ thường.
+            lead = not "".join(x.text for x in p.runs).strip(" •–\t")
             r = p.add_run(part[2:-2])
-            set_font(r, size, bold=True)
+            set_font(r, size, bold=lead)
         elif part.startswith("*"):
             r = p.add_run(part[1:-1])
             set_font(r, size, italic=True)
@@ -336,7 +449,8 @@ def add_rich_text(p, text, size=None):
 
 
 def content_table(caption, rows):
-    doc.add_paragraph(caption, style="Chu thich bang")
+    if caption:
+        doc.add_paragraph(caption, style="Chu thich bang")
     header, body_rows = rows[0], rows[1:]
     t = doc.add_table(rows=len(rows), cols=len(header))
     t.style = "Table Grid"
@@ -354,6 +468,7 @@ def content_table(caption, rows):
             c.text = ""
             add_rich_text(c.paragraphs[0], val, size=12)
             c.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
+    fit_table(t, rows)
     doc.add_paragraph().paragraph_format.space_after = Pt(0)
 
 
@@ -441,6 +556,7 @@ SV_NGANH = "Công nghệ thông tin"
 SV_HE = "Chính quy"
 GVHD = "ThS. Vũ Thị Ngọc Anh"
 NAM = "2026"
+DE_TAI = "Hệ thống quản lí công việc, lịch cá nhân"
 
 # ---------------------------------------------------------------- Bìa (từ file mẫu)
 # Chỉ điền giá trị đã chắc chắn; trường cá nhân giữ nguyên chỗ trống "(Ghi ...)" của mẫu.
@@ -459,6 +575,7 @@ COVER_FILL = {
     "Hệ: (Ghi hệ nhập học)": f"Hệ: {SV_HE}",
     "Giảng viên hướng dẫn: (Ghi học hàm học vị. Họ và tên GVHD)": f"Giảng viên hướng dẫn: {GVHD}",
     "Hà Nội -  Năm": f"Hà Nội - {NAM}",
+    "TÊN ĐỀ TÀI": DE_TAI.upper(),
     "TRANG BÌA PHỤ": "",  # nhãn hướng dẫn giữa bìa chính và bìa phụ, không in
 }
 
@@ -539,6 +656,157 @@ for el in list(body)[list(body).index(cover_tables[1]) + 1:]:
     if el.tag == qn("w:p"):
         body.remove(el)
 
+for tbl in cover_tables:
+    for tr in tbl.findall(qn("w:tr")):
+        tcs = tr.findall(qn("w:tc"))
+        for k, tc in enumerate(tcs[:-1]):
+            if "".join(t.text or "" for t in tc.iter(qn("w:t"))).startswith("Ngành:"):
+                nxt = tcs[k + 1]
+                if "".join(t.text or "" for t in nxt.iter(qn("w:t"))).strip():
+                    break
+                pr, npr = tc.get_or_add_tcPr(), nxt.get_or_add_tcPr()
+                span = pr.find(qn("w:gridSpan"))
+                span.set(qn("w:val"), str(int(span.get(qn("w:val"))) + 1))
+                w, nw = pr.find(qn("w:tcW")), npr.find(qn("w:tcW"))
+                w.set(qn("w:w"), str(int(w.get(qn("w:w"))) + int(nw.get(qn("w:w")))))
+                tr.remove(nxt)
+                break
+
+# Tên đề tài 1 dòng: giữ cỡ 16pt của mẫu, thu khoảng cách ký tự 0,6pt
+# (16pt cần 13,5 cm, ô chỉ có 12,8 cm; sau khi thu còn ~12,6 cm).
+TITLE_SPACING = -12  # đơn vị 1/20 pt
+for p_el in body.iter(qn("w:p")):
+    if "".join(t.text or "" for t in p_el.iter(qn("w:t"))) == DE_TAI.upper():
+        for r in p_el.findall(qn("w:r")):
+            rpr = r.get_or_add_rPr()
+            sp = rpr.find(qn("w:spacing"))
+            if sp is None:
+                sp = OxmlElement("w:spacing")
+                anchor = None
+                for tag in ("w:w", "w:kern", "w:position", "w:sz", "w:szCs", "w:highlight", "w:u",
+                            "w:effect", "w:bdr", "w:shd", "w:fitText", "w:vertAlign", "w:lang"):
+                    anchor = rpr.find(qn(tag))
+                    if anchor is not None:
+                        break
+                if anchor is not None:
+                    anchor.addprevious(sp)
+                else:
+                    rpr.append(sp)
+            sp.set(qn("w:val"), str(TITLE_SPACING))
+
+# Logo: mẫu kéo giãn ảnh 271x186 px (tỉ lệ 1,46) thành 5,58 x 2,70 cm (tỉ lệ 2,07).
+# Giữ chiều cao 2,70 cm, đặt chiều rộng theo đúng tỉ lệ ảnh gốc, căn lại tâm như cũ.
+WP = "{http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing}"
+A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+import struct as _struct  # noqa: E402
+for anchor_el in body.iter(WP + "anchor"):
+    blip = next(anchor_el.iter(A + "blip"), None)
+    if blip is None:
+        continue
+    rid = blip.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed")
+    png = doc.part.related_parts[rid].blob
+    px_w, px_h = _struct.unpack(">II", png[16:24])
+    ext = anchor_el.find(WP + "extent")
+    cx_old, cy = int(ext.get("cx")), int(ext.get("cy"))
+    cx_new = int(cy * px_w / px_h)
+    ext.set("cx", str(cx_new))
+    for a_ext in anchor_el.iter(A + "ext"):
+        if a_ext.get("cx"):
+            a_ext.set("cx", str(cx_new))
+    off = anchor_el.find(WP + "positionH").find(WP + "posOffset")
+    off.text = str(int(off.text) + (cx_old - cx_new) // 2)
+
+
+# ---- Căn giữa nội dung bìa theo khung (phần bên phải gáy)
+# Mẫu đặt nội dung trong ô bắt đầu sau 2 cột trống cạnh gáy nên chữ lệch phải ~1 cm so với khung.
+# Gộp ô trống đó vào ô nội dung, căn logo về tâm khung, thụt lề khối thông tin cho cân giữa.
+def _tc_text(tc):
+    return "".join(t.text or "" for t in tc.iter(qn("w:t")))
+
+
+def _span(tc):
+    g = tc.get_or_add_tcPr().find(qn("w:gridSpan"))
+    return int(g.get(qn("w:val"))) if g is not None else 1
+
+
+def _set_span(tc, n):
+    pr = tc.get_or_add_tcPr()
+    g = pr.find(qn("w:gridSpan"))
+    if g is None:
+        g = OxmlElement("w:gridSpan")
+        pr.find(qn("w:tcW")).addnext(g)
+    g.set(qn("w:val"), str(n))
+
+
+def _width(tc):
+    return int(tc.get_or_add_tcPr().find(qn("w:tcW")).get(qn("w:w")))
+
+
+def _text_width_twips(text, pt, bold):
+    try:
+        import unicodedata
+        from fontTools.ttLib import TTFont
+        name = "LiberationSerif-Bold.ttf" if bold else "LiberationSerif-Regular.ttf"
+        font = TTFont("/usr/share/fonts/truetype/liberation/" + name)
+        cmap, hmtx, upm = font.getBestCmap(), font["hmtx"], font["head"].unitsPerEm
+        units = 0
+        for ch in unicodedata.normalize("NFC", text):
+            gl = cmap.get(ord(ch)) or cmap.get(ord(unicodedata.normalize("NFD", ch)[0]))
+            units += hmtx[gl][0]
+        return units / upm * pt * 20
+    except Exception:  # không có fontTools/font: ước lượng
+        return len(text) * pt * 20 * (0.55 if bold else 0.5)
+
+
+CELL_PAD = 108  # lề trái/phải mặc định của ô (twip)
+INFO_KEYS = ("Sinh viên:", "Mã số sinh viên:", "Ngành:", "Giảng viên hướng dẫn:")
+for tbl in cover_tables:
+    grid = [int(g.get(qn("w:w"))) for g in tbl.find(qn("w:tblGrid")).findall(qn("w:gridCol"))]
+    spine = grid[0]
+    frame_center = (spine + sum(grid)) / 2
+    info_paras, second_col_texts, first_col_limits = [], [], []
+    for tr in tbl.findall(qn("w:tr")):
+        tcs = tr.findall(qn("w:tc"))
+        if len(tcs) < 3 or _tc_text(tcs[1]).strip() or next(tcs[1].iter(qn("w:drawing")), None) is not None:
+            continue
+        if _span(tcs[1]) != 2:
+            continue
+        gap, content = tcs[1], tcs[2]
+        _set_span(content, _span(content) + _span(gap))
+        content.get_or_add_tcPr().find(qn("w:tcW")).set(qn("w:w"), str(_width(content) + _width(gap)))
+        tr.remove(gap)
+        text = _tc_text(content)
+        if text.startswith(INFO_KEYS):
+            info_paras.append(content.find(qn("w:p")))
+            col2 = tr.findall(qn("w:tc"))[2:3]
+            if col2 and _tc_text(col2[0]).strip():
+                second_col_texts.append((spine + _width(content), _tc_text(col2[0])))
+                first_col_limits.append((_width(content) - 2 * CELL_PAD, text))
+    # khối thông tin: thụt lề để khối (từ mép trái chữ tới mép phải dài nhất) nằm giữa khung
+    if info_paras:
+        bold = True
+        widths = [_text_width_twips("".join(t.text or "" for t in p.iter(qn("w:t"))), 13, bold) for p in info_paras]
+        right_col = [x + CELL_PAD + _text_width_twips(t, 13, bold) for x, t in second_col_texts]
+        left = frame_center - max(widths) / 2
+        block_right = max([left + w for w in widths] + right_col)
+        left = frame_center - (block_right - left) / 2
+        indent = max(0, int(left - spine - CELL_PAD))
+        # không để dòng ở cột trái (cạnh Khóa/Hệ) tràn sang cột phải
+        for avail, txt in first_col_limits:
+            indent = min(indent, int(avail - _text_width_twips(txt, 13, bold) - 85))  # chừa ~0,15 cm
+        for p_el in info_paras:
+            _CoverP(p_el, doc).paragraph_format.left_indent = Cm(indent / 567)
+    # logo: đặt tâm logo vào tâm khung (vị trí tính theo ô chứa logo)
+    for tr in tbl.findall(qn("w:tr")):
+        x = 0
+        for tc in tr.findall(qn("w:tc")):
+            anchor_el = next(tc.iter(WP + "anchor"), None)
+            if anchor_el is not None and next(anchor_el.iter(A + "blip"), None) is not None:
+                cx_twip = int(anchor_el.find(WP + "extent").get("cx")) / 635
+                off_twip = frame_center - x - cx_twip / 2
+                anchor_el.find(WP + "positionH").find(WP + "posOffset").text = str(int(off_twip * 635))
+            x += _width(tc)
+
 # Bỏ header/footer của mẫu (footer chứa mã biểu mẫu "BM.ĐT.19.06 ...") khỏi trang bìa.
 body_sect = doc.element.body.find(qn("w:sectPr"))
 for tag in ("w:headerReference", "w:footerReference"):
@@ -548,7 +816,8 @@ for tag in ("w:headerReference", "w:footerReference"):
 # ---------------------------------------------------------------- Phần đầu (đánh số La Mã)
 front = doc.add_section(WD_SECTION.NEW_PAGE)
 setup_page(front)
-page_number_footer(front, "lowerRoman")
+# Phần mở đầu không đánh số trang (như báo cáo mẫu): độ dài mục lục/danh mục không làm lệch số trang các chương.
+front.footer.is_linked_to_previous = False
 # Đoạn mang ngắt section ngay sau bìa phụ: thu nhỏ để không đẩy sang trang trắng.
 for p_el in body.findall(qn("w:p")):
     if p_el.find(qn("w:pPr") + "/" + qn("w:sectPr")) is not None:
@@ -560,6 +829,8 @@ CAM_DOAN_FILL = {
     "Họ và tên:": (f"Họ và tên: {SV_HO_TEN}", False),
     "Mã sinh viên:\tLớp:\t..": (f"Mã sinh viên: {SV_MSSV}", True),  # giữ phần "Lớp:" để điền
     "Ngành:": (f"Ngành: {SV_NGANH}", False),
+    "Tôi đã thực hiện đồ án/khóa luận tốt nghiệp với đề tài:":
+        (f"Tôi đã thực hiện đồ án tốt nghiệp với đề tài: {DE_TAI}.", False),
     "Tôi xin cam đoan đây là đề tài nghiên cứu của riêng tôi và được sự hướng dẫn của:":
         (f"Tôi xin cam đoan đây là đề tài nghiên cứu của riêng tôi và được sự hướng dẫn của: {GVHD}.", False),
 }
@@ -625,21 +896,12 @@ add_field(p, 'TOC \\h \\z \\t "Chu thich bang,1"',
           "Danh mục bảng tự động — chuột phải → Update Field.")
 
 intro_title("DANH MỤC TỪ VIẾT TẮT")
-box(
-    can=["Bảng từ viết tắt sắp xếp A→Z; điền đầy đủ tên tiếng Anh + nghĩa tiếng Việt."],
-    nguon=[f"{XLSX} sheet '4. Thuật ngữ'", f"{D03} §2 Thuật ngữ"],
-)
-abbr = ["API", "CRUD", "CSDL", "DI", "ERD", "gRPC", "HTTP", "JSON", "JWT", "LLM", "OAuth",
-        "OIDC", "PKCE", "REST", "RRULE", "S3", "SPA", "SQL", "UC", "UI", "UUID", "WS"]
-t = table("", ["Từ viết tắt", "Tiếng Anh", "Nghĩa tiếng Việt"], rows=len(abbr))
-for i, a in enumerate(abbr, start=1):
-    t.rows[i].cells[0].text = a
-    set_font(t.rows[i].cells[0].paragraphs[0].runs[0], 12)
+content_table("", [['Từ viết tắt', 'Tiếng Anh', 'Nghĩa tiếng Việt'], ['AI', 'Artificial Intelligence', 'Trí tuệ nhân tạo'], ['API', 'Application Programming Interface', 'Giao diện lập trình ứng dụng'], ['CRUD', 'Create, Read, Update, Delete', 'Tạo, đọc, cập nhật, xoá'], ['CSDL', 'Database', 'Cơ sở dữ liệu'], ['DI', 'Dependency Injection', 'Tiêm phụ thuộc'], ['ERD', 'Entity Relationship Diagram', 'Sơ đồ thực thể liên kết'], ['gRPC', 'gRPC Remote Procedure Call', 'Khung gọi thủ tục từ xa'], ['HTTP', 'Hypertext Transfer Protocol', 'Giao thức truyền siêu văn bản'], ['JSON', 'JavaScript Object Notation', 'Định dạng dữ liệu JSON'], ['JWT', 'JSON Web Token', 'Mã thông báo web dạng JSON'], ['LLM', 'Large Language Model', 'Mô hình ngôn ngữ lớn'], ['OAuth', 'Open Authorization', 'Giao thức uỷ quyền mở'], ['OIDC', 'OpenID Connect', 'Lớp định danh trên OAuth 2.0'], ['PKCE', 'Proof Key for Code Exchange', 'Khoá chứng minh khi đổi mã uỷ quyền'], ['REST', 'Representational State Transfer', 'Phong cách kiến trúc REST'], ['RPC', 'Remote Procedure Call', 'Gọi thủ tục từ xa'], ['RRULE', 'Recurrence Rule', 'Quy tắc lặp lại (chuẩn iCalendar)'], ['S3', 'Simple Storage Service', 'Chuẩn API lưu trữ đối tượng'], ['SPA', 'Single Page Application', 'Ứng dụng web một trang'], ['SQL', 'Structured Query Language', 'Ngôn ngữ truy vấn có cấu trúc'], ['UI', 'User Interface', 'Giao diện người dùng'], ['UUID', 'Universally Unique Identifier', 'Mã định danh duy nhất toàn cục'], ['WS', 'WebSocket', 'Giao thức WebSocket']])
 
 # ---------------------------------------------------------------- Phần chính (số Ả Rập)
 main = doc.add_section(WD_SECTION.NEW_PAGE)
 setup_page(main)
-page_number_footer(main, "decimal")
+page_number_footer(main, "decimal")  # Chương 1 bắt đầu từ trang 1
 
 # ================= CHƯƠNG 1, 2 (đã viết nội dung: docs/bao-cao/noi-dung/)
 render_chapter("chuong-1.md", first=True)
@@ -648,188 +910,16 @@ render_chapter("chuong-2.md")
 # ================= CHƯƠNG 3 (đã viết nội dung)
 render_chapter("chuong-3.md")
 
-# ================= CHƯƠNG 4
-h1("CHƯƠNG 4: THIẾT KẾ HỆ THỐNG")
-
-h2("4.1. Thiết kế kiến trúc tổng thể")
-h3("4.1.1. Kiến trúc triển khai")
-box(can=["Sơ đồ container: nginx là cổng vào duy nhất, mỗi service 2 container (HTTP gateway + gRPC), hạ tầng."],
-    nguon=[f"{D02} §1", "deployments/docker/docker-compose.yml"])
-figure("Hình 4.1: Sơ đồ kiến trúc triển khai hệ thống")
-h3("4.1.2. Kiến trúc phân lớp logic")
-box(can=["Client – Edge – Gateway – Domain – Async – Data."], nguon=[f"{D02} §2"])
-figure("Hình 4.2: Sơ đồ kiến trúc phân lớp logic")
-h3("4.1.3. Danh sách dịch vụ và trách nhiệm")
-box(can=["Bảng 13 service: port gRPC/HTTP, chức năng, kho dữ liệu."], nguon=[f"{D01} §4.2"])
-table("Bảng 4.1: Danh sách các dịch vụ trong hệ thống", ["STT", "Dịch vụ", "Cổng gRPC / HTTP", "Chức năng", "Lưu trữ"], rows=3)
-h3("4.1.4. Cấu trúc bên trong một dịch vụ")
-box(can=["cmd/grpc, cmd/http, internal/{handler, service, model, repository, dependency, config}; quy tắc quality.json."],
-    nguon=[f"{D01} §6", "quality.json"])
-h3("4.1.5. Các quyết định kiến trúc")
-box(can=["Bảng quyết định – lý do – hệ quả."], nguon=[f"{D02} §5"])
-table("Bảng 4.2: Các quyết định kiến trúc chính", ["STT", "Quyết định", "Lý do / hệ quả"], rows=3)
-
-h2("4.2. Thiết kế giao tiếp giữa các dịch vụ")
-h3("4.2.1. Ma trận gọi dịch vụ đồng bộ (gRPC)")
-box(can=["Bảng caller – callee – RPC – thời điểm – xử lý lỗi; sơ đồ gọi gRPC."],
-    nguon=[f"{D05} §1, §1.1, §1.2"])
-table("Bảng 4.3: Ma trận gọi gRPC giữa các dịch vụ", ["STT", "Bên gọi", "Bên được gọi", "RPC", "Khi nào", "Xử lý lỗi"], rows=3)
-figure("Hình 4.3: Sơ đồ phụ thuộc gRPC giữa các dịch vụ")
-h3("4.2.2. Giao tiếp bất đồng bộ và thời gian thực")
-box(can=["Kafka topic chat.messages (key, partition, consumer group); kênh Soketi và event."],
-    nguon=[f"{D05} §4.5, §4.6"])
-h3("4.2.3. Tích hợp hệ thống bên ngoài")
-box(can=["Bảng gọi Google OAuth, Gmail, Pub/Sub, DeepSeek, Soketi (method + URL + mục đích)."],
-    nguon=[f"{D05} §2"])
-table("Bảng 4.4: Danh sách tích hợp hệ thống bên ngoài", ["STT", "Bên gọi", "Đích", "API", "Mục đích"], rows=3)
-
-h2("4.3. Thiết kế API")
-h3("4.3.1. Quy ước thiết kế API")
-box(can=["Prefix nginx /api/<svc>, path /v1/<resource>, JSON lowerCamelCase, query theo tên field proto."],
-    nguon=[f"{D05} §3", README + " mục Quy ước"])
-h3("4.3.2. Danh sách API theo dịch vụ")
-box(can=["Mỗi dịch vụ 1 bảng: Method – Path – RPC – Xác thực. (Có thể đưa bảng đầy đủ vào Phụ lục.)"],
-    nguon=[f"{D05} §3.1 → §3.13"])
-table("Bảng 4.5: Danh sách API của hệ thống", ["Dịch vụ", "Method", "Path", "RPC", "Xác thực"], rows=3)
-h3("4.3.3. Bộ mã lỗi chuẩn")
-box(can=["error_codes.json, ErrorInfo.reason, FE dịch vi/en; ví dụ response lỗi."],
-    nguon=[README + " mục Bộ mã lỗi chuẩn", "common/errorcode/error_codes.json"])
-h3("4.3.4. Thiết kế xác thực và phân quyền")
-box(can=["Session JWT, gateway verify (identity/notification/social/message), uỷ quyền kênh Soketi; "
-         "nêu thẳng giới hạn hiện tại (một số gateway nhận profile_id từ client)."],
-    nguon=[f"{D02} §3"])
-
-h2("4.4. Thiết kế cơ sở dữ liệu")
-h3("4.4.1. Sơ đồ thực thể liên kết")
-box(can=["ERD toàn hệ thống; giải thích FK chéo schema (profile CASCADE, project RESTRICT), liên kết đa hình."],
-    nguon=[f"{D01} §5", "design/db_schema.dbml", "deployments/migrations/"])
-figure("Hình 4.4: Sơ đồ thực thể liên kết (ERD)")
-h3("4.4.2. Danh sách schema và bảng")
-box(can=["Bảng: schema – bảng – service sở hữu – mô tả."], nguon=[f"{D05} §4.1, §4.3"])
-table("Bảng 4.6: Danh sách các bảng trong hệ thống", ["STT", "Schema", "Bảng", "Service sở hữu", "Mô tả"], rows=3)
-
-tables_db = [
-    ("identity.profiles", "000001_init_identity"),
-    ("identity.auth_providers", "000001_init_identity"),
-    ("project.projects", "000011_init_project"),
-    ("task.task_statuses", "000002_init_task"),
-    ("task.status_transitions", "000002_init_task"),
-    ("task.tasks", "000002, 000011–000014"),
-    ("task.task_status_logs", "000002_init_task"),
-    ("calendar.schedules", "000006_init_calendar"),
-    ("event.events", "000007_init_event"),
-    ("backlog.backlogs", "000008_init_backlog"),
-    ("attachment.attachments", "000010_init_attachment"),
-    ("notification.notices", "000009, 000016"),
-    ("mail_provider.sessions", "000005_init_mail_provider"),
-    ("mail_provider.noti_indexes", "000005_init_mail_provider"),
-    ("social.friendships", "000015_init_social"),
-    ("message.conversations", "000017_init_message"),
-    ("message.messages", "000017_init_message"),
-]
-for i, (name, mig) in enumerate(tables_db, start=3):
-    h3(f"4.4.{i}. Bảng {name}")
-    box(can=["Mục đích bảng; bảng cấu trúc cột; index & ràng buộc quan trọng."],
-        nguon=[f"deployments/migrations/{mig}.up.sql", f"{D05} §4.3"])
-    table(f"Bảng 4.{4 + i}: Cấu trúc bảng {name}", TABLE_COLS, rows=2)
-
-h3(f"4.4.{3 + len(tables_db)}. Thiết kế lưu trữ đối tượng và hàng đợi")
-box(can=["Quy ước object key S3 (email gốc, attachment); cấu trúc message Kafka (ChatMessage)."],
-    nguon=[f"{D05} §4.4, §4.5", "common/proto/message/v1/message.proto"])
-
-h2("4.5. Thiết kế xử lý nghiệp vụ trọng tâm")
-for code, name, src in [
-    ("4.5.1", "Vòng đời task theo luật chuyển trạng thái (lifecycle allowlist)", f"{D03} §3.3"),
-    ("4.5.2", "Phân loại email và điều phối (dispatch)", f"{D03} §3.5; service/mail-provider/README.md"),
-    ("4.5.3", "Nhắc việc và sinh task lặp lại", f"{D03} §3.3"),
-    ("4.5.4", "Nhắn tin: realtime trước, lưu bất đồng bộ, idempotent", f"{D03} §3.10; {D05} §4.5"),
-]:
-    h3(f"{code}. {name}")
-    box(can=["Thuật toán/luật, sơ đồ hoạt động (activity) hoặc bảng quyết định, các trường hợp biên."], nguon=[src])
-table("Bảng 4.24: Bảng quyết định điều phối email sau phân loại", ["Category", "Điều kiện", "Đích", "Lý do khi vào backlog"], rows=4)
-
-h2("4.6. Thiết kế giao diện ứng dụng")
-box(can=["Mỗi trang: ảnh chụp màn hình + mô tả thành phần + thao tác chính + service được gọi."],
-    nguon=[f"{D01} §4.1 (bảng trang – chức năng – service)", "frontend/src/pages/", "design/ui.png"],
-    luu_y=["Chụp ảnh với dữ liệu demo (make seed-demo); thống nhất ngôn ngữ giao diện (tiếng Việt)."])
-pages = [
-    "Trang đăng nhập", "Trang bảng công việc (Kanban)", "Các chế độ xem Bảng / Danh sách / Dòng thời gian",
-    "Cửa sổ chi tiết task", "Trang việc hôm nay", "Trang quản lý dự án", "Trang lịch",
-    "Trang sự kiện", "Trang backlog", "Trang báo cáo", "Thông báo (chuông)", "Trang bạn bè", "Trang tin nhắn",
-]
-for i, name in enumerate(pages, start=1):
-    h3(f"4.6.{i}. {name}")
-    figure(f"Hình 4.{4 + i}: {name}")
-
-# ================= CHƯƠNG 5
-h1("CHƯƠNG 5: TRIỂN KHAI VÀ KIỂM THỬ HỆ THỐNG")
-box(luu_y=["Báo cáo mẫu chỉ có 'Kiểm thử'; đồ án này bổ sung phần Triển khai vì hệ thống nhiều thành phần."])
-
-h2("5.1. Triển khai hệ thống")
-h3("5.1.1. Môi trường phát triển")
-box(can=["Bảng: hệ điều hành, Go, Node, Docker, IDE, buf, công cụ kiểm thử."],
-    nguon=[README + " mục Yêu cầu", "docs/getting-started.md"])
-table("Bảng 5.1: Môi trường phát triển", ["STT", "Thành phần", "Phiên bản", "Ghi chú"], rows=3)
-h3("5.1.2. Tổ chức mã nguồn")
-box(can=["Monorepo: common/, service/, frontend/, deployments/, scripts/, tools/; go.work."],
-    nguon=[README + " mục Cấu trúc"])
-h3("5.1.3. Triển khai bằng Docker Compose")
-box(can=["Các lệnh make up/up-core, migrate, scale worker; danh sách container."],
-    nguon=["deployments/docker/README.md", "Makefile", f"{D05} §6"])
-h3("5.1.4. Đưa hệ thống ra Internet")
-box(can=["Cloudflare Tunnel, webhook Pub/Sub cần HTTPS công khai."],
-    nguon=["deployments/docker/README.md"])
-h3("5.1.5. Kiểm soát chất lượng mã nguồn")
-box(can=["make quality-all: gofmt, go vet, luật kiến trúc (quality.json), kiểm tra mã lỗi; unit test Go & Vitest."],
-    nguon=[README + " mục Kiểm tra chất lượng", "quality.json"])
-
-h2("5.2. Kiểm thử chức năng")
-box(can=["Mỗi nhóm 1 bảng test case theo đúng mẫu: Chức năng – Dữ liệu đầu vào – Kết quả mong đợi – "
-         "Kết quả thực tế – Trạng thái. Lấy test case từ tiêu chí chấp nhận (AC) và mã lỗi."],
-    nguon=[f"{D04} (AC của từng US)", "common/errorcode/error_codes.json", "các file *_test.go"])
-groups = [
-    ("Kiểm thử chức năng xác thực người dùng", "US-01..04"),
-    ("Kiểm thử chức năng quản lý task và vòng đời trạng thái", "US-07..17"),
-    ("Kiểm thử chức năng quản lý dự án", "US-05..06"),
-    ("Kiểm thử chức năng lịch và sự kiện", "US-18..19"),
-    ("Kiểm thử chức năng tự động xử lý email và backlog", "US-20..21"),
-    ("Kiểm thử chức năng tệp đính kèm", "US-22"),
-    ("Kiểm thử chức năng báo cáo", "US-23..24"),
-    ("Kiểm thử chức năng thông báo realtime", "US-25"),
-    ("Kiểm thử chức năng bạn bè và nhắn tin", "US-26..27"),
-]
-for i, (name, us) in enumerate(groups, start=1):
-    h3(f"5.2.{i}. {name}")
-    box(nguon=[f"{D04} {us}"])
-    table(f"Bảng 5.{i + 1}: Kết quả {name[0].lower() + name[1:]}", TEST_COLS, rows=3)
-
-h2("5.3. Kiểm thử phi chức năng")
-box(can=["Độ tin cậy: tắt Soketi / notification vẫn tạo được task; tắt DeepSeek → luật dự phòng; "
-         "worker chết rồi chạy lại không mất/trùng tin; scale worker theo partition.",
-         "Bảo mật: xin kênh Soketi người khác bị từ chối; token sai bị 401."],
-    nguon=[f"{D03} §4", f"{D02} §5"])
-table("Bảng 5.11: Kết quả kiểm thử phi chức năng", ["STT", "Kịch bản", "Cách thực hiện", "Kết quả mong đợi", "Kết quả thực tế", "Trạng thái"], rows=3)
-
-h2("5.4. Đánh giá kết quả")
-box(can=["Tổng hợp số test case pass/fail, mức độ hoàn thành yêu cầu ở Bảng 3.1 / 3.2."])
+# ================= CHƯƠNG 4, 5 (đã viết nội dung)
+render_chapter("chuong-4.md")
+render_chapter("chuong-5.md")
 
 # ================= KẾT LUẬN
 front_title("KẾT LUẬN")
-para("1. Kết quả đạt được", bold=True)
-box(can=["Đối chiếu từng mục tiêu ở 1.2 → kết quả; kiến thức/kỹ năng thu được."],
-    nguon=[f"{D04} epic E1–E9"])
-para("2. Hạn chế của đồ án", bold=True)
-box(can=["Một số gateway chưa verify JWT; chưa dedupe email theo messageId; chỉ Gmail; "
-         "chưa có app di động; chưa có giám sát/log tập trung; lịch/sự kiện chưa lặp, chưa đồng bộ Google Calendar."],
-    nguon=[f"{D02} §3", "service/mail-provider/README.md §Giới hạn đã biết", f"{XLSX} sheet '5. Hỏi đáp'"])
-para("3. Hướng phát triển", bold=True)
-box(can=["Xác thực tập trung ở gateway; observability (metrics, tracing); hỗ trợ Outlook; mobile app; "
-         "triển khai Kubernetes/cloud; cộng tác nhóm; đồng bộ Google Calendar."])
+render_chapter("ket-luan.md")
 
 # ================= TÀI LIỆU THAM KHẢO
 front_title("DANH MỤC TÀI LIỆU THAM KHẢO")
-box(can=["Trình bày theo chuẩn IEEE như mẫu: [n] Tác giả, “Tên tài liệu”, nguồn/URL, năm."],
-    luu_y=["Số thứ tự [n] khớp trích dẫn trong Chương 2; chương sau trích dẫn thêm thì bổ sung vào cuối danh sách. Kiểm tra lại URL trước khi nộp."])
 refs = [
     "S. Newman, Building Microservices: Designing Fine-Grained Systems, 2nd ed., O’Reilly Media, 2021.",
     "J. Lewis & M. Fowler, “Microservices – a definition of this new architectural term”, https://martinfowler.com/articles/microservices.html, 2014.",
@@ -869,15 +959,7 @@ for i, r in enumerate(refs, start=1):
 
 # ================= PHỤ LỤC
 front_title("PHỤ LỤC")
-para("Phụ lục A. Hướng dẫn cài đặt và chạy hệ thống", bold=True)
-box(nguon=["docs/getting-started.md", README + " mục Quickstart"])
-para("Phụ lục B. Danh sách đầy đủ API", bold=True)
-box(nguon=[f"{D05} §3"])
-para("Phụ lục C. Danh sách biến môi trường", bold=True)
-box(nguon=["README.md của từng service", f"{D05} §6"])
-para("Phụ lục D. Bộ mã lỗi chuẩn", bold=True)
-box(nguon=["common/errorcode/error_codes.json"])
-box(luu_y=["Phụ lục là tuỳ chọn (báo cáo mẫu không có); giúp chương 4 gọn hơn."])
+render_chapter("phu-luc.md")
 
 out = sys.argv[1] if len(sys.argv) > 1 else "khung-bao-cao-DATN.docx"
 doc.save(out)

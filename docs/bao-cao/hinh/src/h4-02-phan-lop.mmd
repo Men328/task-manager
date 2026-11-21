@@ -1,0 +1,32 @@
+flowchart LR
+    subgraph L1["Giao diện"]
+        SPA["React SPA<br/>Redux, i18n,<br/>FullCalendar"]
+    end
+    subgraph L2["Cổng vào"]
+        NG["nginx<br/>/api/*"]
+    end
+    subgraph L3["Gateway (cmd/http)"]
+        G1["grpc-gateway<br/>REST ↔ gRPC"]
+        G2["Route viết tay:<br/>OAuth, JWT, upload,<br/>webhook Pub/Sub"]
+    end
+    subgraph L4["Nghiệp vụ (cmd/grpc)"]
+        D1["Lõi: identity, project,<br/>task, calendar, event, backlog"]
+        D2["Hỗ trợ: attachment,<br/>notification, social, message"]
+        D3["Tổng hợp: report"]
+        D4["Tích hợp: mail-provider"]
+    end
+    subgraph L5["Bất đồng bộ"]
+        K["Kafka + worker"]
+        R["Bộ nhắc việc,<br/>bộ xử lý email"]
+    end
+    subgraph L6["Dữ liệu"]
+        PG[("PostgreSQL")]
+        S3[("RustFS S3")]
+        SK{{"Soketi"}}
+    end
+    SPA --> NG --> G1 & G2 --> D1 & D2 & D3 & D4
+    D2 & D1 --> K
+    D1 & D2 & D4 & K --> PG
+    D2 & D4 --> S3
+    D2 & K --> SK
+    SK -. WebSocket .-> SPA

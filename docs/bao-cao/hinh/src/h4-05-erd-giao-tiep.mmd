@@ -1,0 +1,9 @@
+erDiagram
+    PROFILES ||--o{ AUTH_PROVIDERS : "liên kết Google"
+    PROFILES ||--o{ MAIL_SESSIONS : "token Gmail"
+    MAIL_SESSIONS ||--|| NOTI_INDEXES : "mốc historyId"
+    PROFILES ||--o{ NOTICES : "nhận"
+    PROFILES ||--o{ FRIENDSHIPS : "gửi / nhận lời mời"
+    PROFILES ||--o{ CONVERSATIONS : "thành viên"
+    CONVERSATIONS ||--o{ MESSAGES : "gồm"
+    MESSAGES |o--o| TASKS : "thẻ task giao qua chat"

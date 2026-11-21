@@ -38,7 +38,7 @@ Quy trình xử lý email (Hình 3.2) chạy hoàn toàn tự động, không c�
 
 [HINH: h3-02-quy-trinh-email.png | Hình 3.2: Sơ đồ quy trình tự động xử lý email]
 
-Khi hộp thư có thay đổi, Google Pub/Sub báo cho dịch vụ xử lý thư. Dịch vụ không dùng mốc lịch sử trong thông báo mà đọc **mốc đã xử lý lưu trong cơ sở dữ liệu**, lấy toàn bộ thư mới kể từ mốc đó, lưu bản gốc lên kho S3, rồi phân loại bằng DeepSeek (hoặc luật từ khoá khi DeepSeek không khả dụng). Email thuộc nhóm công việc, lịch, sự kiện và đủ thông tin được tạo thành bản ghi tương ứng; trường hợp còn lại vào backlog kèm lý do. Sau khi xử lý xong, hệ thống tạo thông báo và mới tiến mốc lịch sử, nhờ đó thông báo trùng lặp hoặc đến sai thứ tự không làm mất email.
+Khi hộp thư có thay đổi, Google Pub/Sub báo cho dịch vụ xử lý thư. Dịch vụ không dùng mốc lịch sử trong thông báo mà đọc **mốc đã xử lý lưu trong cơ sở dữ liệu**, lấy toàn bộ thư mới kể từ mốc đó, lưu bản gốc lên kho S3, rồi phân loại bằng DeepSeek (hoặc luật từ khoá khi DeepSeek không khả dụng). Email thuộc nhóm công việc, lịch, sự kiện, đủ thông tin và **khớp được một dự án** của người dùng được tạo thành bản ghi tương ứng trong dự án đó; trường hợp còn lại vào backlog kèm lý do (ví dụ `no_project_matched` khi không khớp dự án nào). Sau khi xử lý xong, hệ thống tạo thông báo và mới tiến mốc lịch sử, nhờ đó thông báo trùng lặp hoặc đến sai thứ tự không làm mất email.
 
 ### 3.1.4. Yêu cầu chức năng
 
@@ -170,7 +170,7 @@ Hình 3.6 thể hiện các use case của hệ thống và tác nhân tương �
 | Mô tả | Mỗi email mới được phân loại và tạo thành bản ghi tương ứng |
 | Tiền điều kiện | Người dùng đã cho phép đọc Gmail; đăng ký theo dõi còn hiệu lực |
 | Luồng chính | 1. Pub/Sub báo hộp thư thay đổi. 2. Hệ thống lấy thư mới từ mốc đã lưu. 3. Lưu email gốc lên S3. 4. Phân loại bằng DeepSeek. 5. Tạo công việc, lịch hoặc sự kiện. 6. Gửi thông báo. 7. Tiến mốc lịch sử |
-| Luồng thay thế | 4a. DeepSeek lỗi hoặc không cấu hình: phân loại bằng luật từ khoá. 5a. Nhóm khác hoặc thiếu thông tin: tạo mục backlog kèm lý do |
+| Luồng thay thế | 4a. DeepSeek lỗi hoặc không cấu hình: phân loại bằng luật từ khoá. 5a. Nhóm khác hoặc thiếu thông tin: tạo mục backlog kèm lý do. 5b. Không khớp dự án nào (độ tin cậy dưới ngưỡng): tạo mục backlog với lý do no_project_matched |
 | Ngoại lệ | Mốc lịch sử quá cũ: đặt lại mốc theo hồ sơ Gmail hiện tại và ghi cảnh báo |
 | Hậu điều kiện | Email được lưu thành một bản ghi, người dùng nhận thông báo |
 

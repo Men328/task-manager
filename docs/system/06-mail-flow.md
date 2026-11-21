@@ -18,7 +18,7 @@ flowchart TD
     H -- task --> T["Tạo công việc<br/>(task service)"]
     H -- schedule --> S["Tạo lịch<br/>(calendar service)"]
     H -- event --> V["Tạo sự kiện<br/>(event service)"]
-    H -- "other / thiếu thông tin" --> BL["Đưa vào backlog<br/>(backlog service)"]
+    H -- "other / thiếu thông tin /<br/>không khớp dự án" --> BL["Đưa vào backlog<br/>(backlog service)"]
     T --> N["Tạo thông báo + đẩy realtime<br/>(notification → Soketi)"]
     S --> N
     V --> N
@@ -30,4 +30,5 @@ flowchart TD
 
 - Không email nào bị mất: phân loại không chắc hoặc thiếu dữ kiện (ví dụ lịch không có giờ) đều vào **backlog** kèm lý do.
 - AI lỗi hoặc không có `DEEPSEEK_API_KEY` thì tự chuyển sang **luật từ khoá**.
+- task / lịch / sự kiện chỉ được tạo khi email **khớp một dự án** (không tính dự án mặc định, độ tin cậy ≥ `PROJECT_MATCH_THRESHOLD`, mặc định 0,6); không khớp thì vào backlog với lý do `no_project_matched`.
 - Chỉ lưu mốc `historyId` mới **sau khi xử lý xong**, nên thông báo trùng hoặc đến sai thứ tự vẫn không làm mất thư.

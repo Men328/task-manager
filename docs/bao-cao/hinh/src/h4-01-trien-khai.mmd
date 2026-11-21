@@ -1,0 +1,16 @@
+flowchart TB
+    U["Trình duyệt"] -->|HTTPS| CF["Cloudflare Tunnel"]
+    U -->|"localhost:3000"| NG
+    CF --> NG["nginx (container frontend)<br/>giao diện React + cổng vào /api/*"]
+    NG -->|"REST /api/&lt;dịch vụ&gt;/"| GW["13 gateway HTTP<br/>(grpc-gateway, :8081 – :8092)"]
+    NG -->|"WebSocket /api/soketi/"| SK{{"Soketi :6001"}}
+    GW -->|gRPC| GR["Các gRPC server nghiệp vụ<br/>identity, project, task, calendar, event,<br/>backlog, attachment, report, notification,<br/>mail-provider, social, message (:9081 – :9092)"]
+    GR <-->|"gRPC nội bộ"| GR
+    GR --> PG[("PostgreSQL 17<br/>mỗi dịch vụ 1 schema")]
+    GR --> S3[("RustFS (S3)<br/>tệp, email gốc")]
+    GR -->|"chat.messages, task.events"| KF[["Kafka 3.9"]]
+    KF --> WK["worker × N<br/>(consumer group)"]
+    WK --> PG
+    GR & WK -->|"publish sự kiện"| SK
+    GR -->|"OAuth, Gmail API,<br/>Pub/Sub, DeepSeek"| EXT["Dịch vụ bên ngoài"]
+    MIG["migrate (chạy 1 lần)"] --> PG

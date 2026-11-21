@@ -1,0 +1,30 @@
+%%{init: {"flowchart": {"rankSpacing": 55, "nodeSpacing": 25}}}%%
+flowchart TB
+    MS["message"]
+    MP["mail-provider"]
+    RP["report"]
+    SO["social"]
+    ID["identity"]
+    WK["worker"]
+    TK["task"]
+    CA["calendar"]
+    EV["event"]
+    BL["backlog"]
+    PR["project"]
+    NO["notification"]
+    MS --> SO
+    MS --> TK
+    MS -. Kafka .-> WK
+    MP --> TK & CA & EV & BL & PR & NO
+    RP --> TK & CA & EV & BL
+    SO --> ID
+    SO --> NO
+    ID --> TK
+    ID --> PR
+    ID --> MP
+    WK --> NO
+    TK -. Kafka .-> WK
+    TK --> PR
+    TK --> NO
+    CA --> PR
+    EV --> PR
