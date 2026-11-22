@@ -41,29 +41,36 @@
       <!-- Trang mô phỏng -->
       <section id="sim" class="hidden">
         <div id="panel"></div>
+        <!-- Sân khấu: sơ đồ + điều khiển + giải thích bước hiện tại, nằm cạnh nhau để không phải cuộn -->
+        <div class="card stage" id="stage">
+          <div class="stage-map">
+            <h3>🗺️ Sơ đồ <span class="sub">chấm sáng = đang gửi · nét đứt chạy = đang đợi trả lời · ô mờ = không tham gia</span></h3>
+            <div class="map-wrap" id="map"></div>
+            <div class="legend" id="legend"></div>
+          </div>
+          <aside class="stage-side">
+            <div class="controls">
+              <button class="btn" id="btn-reset" title="Về đầu">⏮</button>
+              <button class="btn" id="btn-prev" title="Lùi 1 bước (phím ←)">◀</button>
+              <button class="btn primary" id="btn-play" title="Chạy / dừng (phím cách)">▶ Chạy</button>
+              <button class="btn" id="btn-next" title="Bước tiếp (phím →)">Bước ▶</button>
+            </div>
+            <div class="controls-2">
+              <label class="speed">Tốc độ <input type="range" id="speed" min="0.5" max="3" step="0.25" value="1"><span id="speed-v">1×</span></label>
+              <span class="progress" id="progress"></span>
+            </div>
+            <div class="stage-bar"><div id="stage-bar"></div></div>
+            <div class="now" id="now"></div>
+            <p class="hint">Phím tắt: <kbd>→</kbd> bước tiếp · <kbd>←</kbd> lùi · <kbd>cách</kbd> chạy / dừng</p>
+          </aside>
+        </div>
+
         <div class="card hidden" id="extra-card" style="margin-top:14px">
           <h3 id="extra-title">Kết quả</h3>
           <div id="extra"></div>
         </div>
 
-        <div class="toolbar">
-          <button class="btn" id="btn-reset" title="Về đầu">⏮</button>
-          <button class="btn" id="btn-prev" title="Lùi 1 bước (phím ←)">◀</button>
-          <button class="btn primary" id="btn-play" title="Chạy / dừng (phím cách)">▶ Chạy</button>
-          <button class="btn" id="btn-next" title="Bước tiếp (phím →)">Bước ▶</button>
-          <label class="speed">Tốc độ <input type="range" id="speed" min="0.5" max="3" step="0.25" value="1"><span id="speed-v">1×</span></label>
-          <span class="spacer"></span>
-          <div class="legend" id="legend"></div>
-          <span class="progress" id="progress"></span>
-        </div>
-
-        <div class="card now" id="now" style="margin-bottom:14px"></div>
-
-        <div class="card" style="margin-bottom:14px">
-          <h3>🗺️ Đường đi trên sơ đồ <span class="sub">chấm sáng = thông tin đang được gửi · nét đứt chuyển động = đang đợi trả lời · ô mờ = không tham gia</span></h3>
-          <div class="map-wrap" id="map"></div>
-        </div>
-        <div class="grid grid-sim">
+        <div class="grid grid-sim" style="margin-top:14px">
           <div class="card">
             <h3>📜 Diễn biến theo thời gian <span class="sub">đọc từ trên xuống · bấm một dòng để nhảy tới bước đó</span></h3>
             <div class="call-legend">

@@ -264,6 +264,7 @@
         this.nodeEls[id].classList.toggle('dim', steps.length > 0 && !used.has(id));
         this.nodeEls[id].classList.remove('active');
       }
+      this.used = used;
       this.fit();
     }
 
@@ -340,6 +341,24 @@
       let box;
       try { box = this.svg.getBBox(); } catch (e) { return; }
       if (!box || !box.width) return; // đang bị ẩn — sẽ gọi lại khi hiện
+      // Trong một tình huống: phóng to vào các bộ phận có tham gia (và các đường nối giữa chúng)
+      // để chữ trên sơ đồ to, dễ đọc hơn.
+      if (this.used && this.used.size && this.used.size < Object.keys(NODES).length) {
+        let x1 = Infinity; let y1 = Infinity; let x2 = -Infinity; let y2 = -Infinity;
+        for (const id of this.used) {
+          const n = NODES[id];
+          x1 = Math.min(x1, n.x - NODE_W / 2); x2 = Math.max(x2, n.x + NODE_W / 2);
+          y1 = Math.min(y1, n.y - NODE_H / 2); y2 = Math.max(y2, n.y + NODE_H / 2);
+        }
+        for (const k in this.edgeEls) {
+          const b = this.edgeEls[k].path.getBBox();
+          x1 = Math.min(x1, b.x); x2 = Math.max(x2, b.x + b.width);
+          y1 = Math.min(y1, b.y); y2 = Math.max(y2, b.y + b.height);
+        }
+        const P = 22;
+        this.svg.setAttribute('viewBox', `${x1 - P} ${y1 - P - 12} ${x2 - x1 + 2 * P} ${y2 - y1 + 2 * P + 12}`);
+        return;
+      }
       const PAD = 14; // chừa chỗ cho viền active/selected và chấm sáng
       const x = Math.min(0, box.x - PAD);
       const y = Math.min(0, box.y - PAD);

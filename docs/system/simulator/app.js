@@ -113,12 +113,12 @@
     const box = $('now');
     const s = p.steps[p.idx];
     if (!s) {
-      box.className = 'card now';
+      box.className = 'now';
       box.innerHTML = `<div class="now-head"><span class="now-step">Sẵn sàng</span><span class="now-title">Bấm ▶ Chạy để xem tự động, hoặc “Bước ▶” để đi từng bước</span></div>
         <p class="now-detail">Mỗi bước sẽ được kể lại ở đây bằng lời: bộ phận nào đang làm gì, có phải đợi ai không. Khi một bộ phận nhờ bộ phận khác và phải đợi, sẽ luôn có một bước “↩ gửi kết quả” tương ứng.</p>`;
       return;
     }
-    box.className = `card now k-${s.kind}`;
+    box.className = `now k-${s.kind}`;
     const waits = (s.stack || []).map((fr) => `<span class="frame">${esc(NODES[fr.caller].label)} ⏳ đợi ${esc(NODES[fr.callee].label)}</span>`).join('');
     box.innerHTML = `<div class="now-head"><span class="now-step">Bước ${p.idx + 1}/${p.steps.length}</span>
         <span class="now-title">${esc(s.label)}</span></div>
@@ -130,7 +130,14 @@
     }));
   }
 
+  // Khi bấm bước tiếp / phím tắt mà sơ đồ đang bị cuộn khuất, đưa nó về trong tầm nhìn.
+  function keepStageInView() {
+    const r = $('stage').getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight) $('stage').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function updateToolbar(p) {
+    $('stage-bar').style.width = p.steps.length ? `${((p.idx + 1) / p.steps.length) * 100}%` : '0';
     renderNow(p);
     $('btn-play').textContent = p.playing ? '⏸ Dừng' : (p.idx >= p.steps.length - 1 && p.idx >= 0 ? '↺ Chạy lại' : '▶ Chạy');
     $('btn-prev').disabled = p.idx < 0;
@@ -138,16 +145,16 @@
     $('progress').textContent = p.idx < 0 ? `${p.steps.length} bước` : `Bước ${p.idx + 1}/${p.steps.length}`;
   }
 
-  $('btn-play').addEventListener('click', () => (player.playing ? player.stop() : player.play()));
-  $('btn-next').addEventListener('click', () => { player.stop(); player.next(); });
+  $('btn-play').addEventListener('click', () => { if (player.playing) player.stop(); else { keepStageInView(); player.play(); } });
+  $('btn-next').addEventListener('click', () => { player.stop(); keepStageInView(); player.next(); });
   $('btn-prev').addEventListener('click', () => { player.stop(); player.prev(); });
   $('btn-reset').addEventListener('click', () => player.reset());
   $('speed').addEventListener('input', (e) => { player.speed = parseFloat(e.target.value); $('speed-v').textContent = `${player.speed}×`; });
   document.addEventListener('keydown', (e) => {
     if (!current || ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
-    if (e.code === 'Space') { e.preventDefault(); player.playing ? player.stop() : player.play(); }
-    else if (e.key === 'ArrowRight') { player.stop(); player.next(); }
-    else if (e.key === 'ArrowLeft') { player.stop(); player.prev(); }
+    if (e.code === 'Space') { e.preventDefault(); if (player.playing) player.stop(); else { keepStageInView(); player.play(); } }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); player.stop(); keepStageInView(); player.next(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); player.stop(); keepStageInView(); player.prev(); }
     else if (e.key === 'Home') player.reset();
   });
 
