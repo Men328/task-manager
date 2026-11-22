@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task Manager Flow Simulator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">TM</div>
+        <div><h1>Flow Simulator</h1><p>Task Manager — luồng hệ thống</p></div>
+      </div>
+      <nav class="nav" id="nav"></nav>
+    </aside>
+
+    <main class="main">
+      <div class="page-head">
+        <h2 id="title"></h2>
+        <p id="desc"></p>
+      </div>
+
+      <!-- Trang tổng quan -->
+      <section id="overview" class="hidden">
+        <div class="card">
+          <h3>🗺️ Sơ đồ thành phần <span class="sub">bấm vào một thành phần để xem chi tiết</span></h3>
+          <div class="map-wrap" id="overview-map"></div>
+          <div class="legend" id="overview-legend" style="margin-top:8px"></div>
+        </div>
+        <div class="grid grid-2" style="margin-top:14px;align-items:start">
+          <div class="card info-card" id="node-info"></div>
+          <div class="card">
+            <h3>▶️ Chọn luồng để mô phỏng</h3>
+            <div id="scenario-cards" class="grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trang mô phỏng -->
+      <section id="sim" class="hidden">
+        <div id="panel"></div>
+        <div class="card hidden" id="extra-card" style="margin-top:14px">
+          <h3 id="extra-title">Kết quả</h3>
+          <div id="extra"></div>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn" id="btn-reset" title="Về đầu (Home)">⏮</button>
+          <button class="btn" id="btn-prev" title="Lùi 1 bước (←)">◀</button>
+          <button class="btn primary" id="btn-play" title="Chạy / dừng (Space)">▶ Chạy</button>
+          <button class="btn" id="btn-next" title="Bước tiếp (→)">Bước ▶</button>
+          <label class="speed">Tốc độ <input type="range" id="speed" min="0.5" max="3" step="0.25" value="1"><span id="speed-v">1×</span></label>
+          <span class="spacer"></span>
+          <div class="legend" id="legend"></div>
+          <span class="progress" id="progress"></span>
+        </div>
+
+        <div class="card now" id="now" style="margin-bottom:14px"></div>
+
+        <div class="card" style="margin-bottom:14px">
+          <h3>🗺️ Đường đi trên kiến trúc <span class="sub">chấm sáng = request / kết quả đang chạy · nét đứt chuyển động = lời gọi đang chờ trả lời · ô mờ = không tham gia</span></h3>
+          <div class="map-wrap" id="map"></div>
+        </div>
+        <div class="grid grid-sim">
+          <div class="card">
+            <h3>📜 Sơ đồ tuần tự <span class="sub">bấm một dòng để nhảy tới bước đó</span></h3>
+            <div class="call-legend">
+              <span><svg width="34" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="var(--k-grpc)" stroke-width="1.6"/><path d="M28,0 L34,4 L28,8z" fill="var(--k-grpc)"/></svg> gọi &amp; chờ trả lời</span>
+              <span><svg width="34" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="var(--k-reply)" stroke-width="1.6" stroke-dasharray="5 4"/><path d="M28,0 L34,4 L28,8z" fill="var(--k-reply)"/></svg> ↩ trả kết quả</span>
+              <span><svg width="34" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="var(--k-async)" stroke-width="1.6" stroke-dasharray="5 4"/><path d="M28,0 L34,4 L28,8z" fill="var(--k-async)"/></svg> 🚀 gửi đi, không chờ</span>
+              <span><svg width="12" height="16"><rect x="1" y="0" width="10" height="16" rx="2" fill="var(--panel-2)" stroke="var(--muted)"/></svg> service đang bận xử lý (bên gọi đang chờ)</span>
+              <span>Gọi DB vẽ cả đi lẫn về trên cùng một dòng</span>
+            </div>
+            <div class="seq-wrap" id="seq"></div>
+          </div>
+          <div class="card">
+            <h3>🧾 Từng bước <span class="sub">API, bảng dữ liệu, ghi chú</span></h3>
+            <div class="log" id="log"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="engine.js"></script>
+  <script src="scenarios.js"></script>
+  <script src="mail.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

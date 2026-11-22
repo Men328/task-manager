@@ -12,6 +12,7 @@ Bộ tài liệu tổng hợp từ việc quét toàn bộ mã nguồn (13 servi
 | 04 | [04-user-stories.md](04-user-stories.md) | User story theo epic, kèm tiêu chí chấp nhận |
 | 05 | [05-service-calls-and-data.md](05-service-calls-and-data.md) | **Chi tiết**: service nào gọi service nào, bằng RPC/API nào, cấu hình nào; service nào đọc/ghi Postgres / S3 / Kafka / Soketi; bảng & cột; luồng end-to-end từng bước |
 | 06 | [06-mail-flow.md](06-mail-flow.md) | Sơ đồ đơn giản luồng xử lý mail: Gmail → phân loại → task / lịch / sự kiện / backlog → thông báo |
+| 🎮 | [simulator/](simulator/index.html) | **Trang web mô phỏng tương tác** mọi luồng: chạy từng bước trên sơ đồ kiến trúc + sơ đồ tuần tự; nhập email bất kỳ để xem nó được phân loại và đi đâu. Mở: `python3 -m http.server -d docs/system/simulator 8000` rồi vào <http://localhost:8000> (hoặc mở thẳng `index.html`) |
 
 Tóm tắt một dòng: SPA React → nginx `/api/*` → grpc-gateway → gRPC server của từng service;
 service gọi nhau bằng gRPC; dữ liệu ở PostgreSQL (schema riêng mỗi service), tệp ở RustFS (S3),
