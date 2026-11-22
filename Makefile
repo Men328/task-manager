@@ -17,7 +17,7 @@ DATABASE_URL ?= postgres://task_manager:task_manager@postgres:5432/task_manager?
 .DEFAULT_GOAL := help
 
 .PHONY: help tools gen error-codes check-error-codes tidy work build test fmt vet smoke seed-demo migrate-up migrate-down \
-        up up-core up-tunnel tunnel-up tunnel-stop down logs tunnel-logs ps build-images web-install web-dev web-build \
+        up up-core up-tunnel tunnel-up tunnel-stop down logs tunnel-logs ps build-images simulator web-install web-dev web-build \
         run-identity run-identity-grpc run-identity-http run-task run-task-grpc run-task-http \
         run-calendar run-calendar-grpc run-calendar-http \
         run-project run-project-grpc run-project-http \
@@ -124,6 +124,9 @@ tunnel-logs: ## Xem log cloudflared
 
 ps: ## Trạng thái compose (kèm cloudflared nếu đang chạy)
 	$(COMPOSE_ALL) ps
+
+simulator: ## Build + chạy riêng trang mô phỏng luồng (http://localhost:5500)
+	$(COMPOSE) up -d --build simulator
 
 # Build theo batch (BATCH_SIZE image/lần, mặc định 3) thay vì build tất cả cùng lúc.
 # VD: make build-images BATCH_SIZE=1 | make build-images SERVICES="task-grpc frontend"

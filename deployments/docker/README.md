@@ -42,6 +42,7 @@ trong network Docker nội bộ và được các container gọi nhau bằng t�
 | Service (compose) | Container | Truy cập | Ghi chú |
 |---|---|---|---|
 | frontend | tm-frontend | `http://127.0.0.1:3000` (`FRONTEND_PORT`) | nginx: serve SPA + proxy `/api/*` |
+| simulator | tm-simulator | `http://127.0.0.1:5500` (`SIMULATOR_PORT`) | nginx: trang mô phỏng luồng `docs/system/simulator`, độc lập (`make simulator`) |
 | identity (gateway) | tm-identity | nội bộ `identity:8081` | không publish ra host |
 | identity-grpc | tm-identity-grpc | nội bộ `identity-grpc:9081` | không publish ra host |
 | task (gateway) | tm-task | nội bộ `task:8082` | không publish ra host |
