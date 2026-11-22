@@ -260,3 +260,9 @@ svg.seq { display: block; }
 .now a { color: var(--accent); }
 .call-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
 .call-legend svg { vertical-align: middle; }
+
+/* ---------- chi tiết kỹ thuật thu gọn ---------- */
+details.tech { margin-top: 6px; font-size: 12px; }
+details.tech summary { cursor: pointer; color: var(--muted); user-select: none; }
+details.tech summary:hover { color: var(--accent); }
+details.tech .store { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }

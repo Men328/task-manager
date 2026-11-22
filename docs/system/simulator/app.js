@@ -28,9 +28,9 @@
 
   // ---------------------------------------------------------------- điều hướng
   const nav = $('nav');
-  const GROUP_ORDER = ['Bắt đầu', 'Email', 'Tài khoản', 'Công việc', 'Giao tiếp', 'Khác'];
+  const GROUP_ORDER = ['Bắt đầu', 'Email', 'Tài khoản', 'Công việc', 'Liên lạc', 'Khác'];
   scenarios.sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group));
-  const items = [{ id: 'overview', icon: '🗺️', title: 'Tổng quan kiến trúc', group: 'Bắt đầu' }].concat(scenarios);
+  const items = [{ id: 'overview', icon: '🗺️', title: 'Toàn cảnh hệ thống', group: 'Bắt đầu' }].concat(scenarios);
   let lastGroup = '';
   for (const it of items) {
     if (it.group !== lastGroup) {
@@ -58,9 +58,9 @@
     const related = scenarios.filter((s) => s.build(defaults(s)).some((st) => st.f === id || st.t === id));
     $('node-info').innerHTML = `<h3>${esc(n.label)} <span class="sub">${esc(n.sub)}</span></h3>
       <dl>${Object.entries(n.info).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
-      ${related.length ? `<p style="margin:10px 0 4px;color:var(--muted);font-size:12px">Tham gia các luồng:</p>${related.map((s) => `<a href="#${s.id}" class="chip hit" style="text-decoration:none">${s.icon} ${esc(s.title)}</a>`).join('')}` : ''}`;
+      ${related.length ? `<p style="margin:10px 0 4px;color:var(--muted);font-size:12px">Có mặt trong các tình huống:</p>${related.map((s) => `<a href="#${s.id}" class="chip hit" style="text-decoration:none">${s.icon} ${esc(s.title)}</a>`).join('')}` : ''}`;
   }
-  $('node-info').innerHTML = '<h3>ℹ️ Chi tiết thành phần</h3><p class="note">Bấm vào một ô trên sơ đồ bên trái để xem chức năng, nơi lưu dữ liệu và các luồng mà thành phần đó tham gia.</p>';
+  $('node-info').innerHTML = '<h3>ℹ️ Bộ phận này làm gì?</h3><p class="note">Bấm vào một ô trên sơ đồ ở trên để xem bộ phận đó là gì, làm việc gì, và có mặt trong những tình huống nào.</p>';
   $('scenario-cards').innerHTML = scenarios.map((s) => `<a href="#${s.id}" class="log-item" style="text-decoration:none;color:inherit;display:block">
       <div class="label">${s.icon} ${esc(s.title)}</div><div class="detail">${esc(s.desc)}</div></a>`).join('');
 
@@ -85,7 +85,7 @@
     const panel = $('panel');
     if (s.mountPanel) { s.mountPanel(panel, rebuild); return; }
     if (!s.options.length) { panel.innerHTML = ''; return; }
-    panel.innerHTML = `<div class="card"><h3>⚙️ Tình huống <span class="sub">đổi tuỳ chọn để xem luồng thay đổi</span></h3><div class="options">${
+    panel.innerHTML = `<div class="card"><h3>⚙️ Thử các tình huống <span class="sub">đổi lựa chọn để xem các bước thay đổi theo</span></h3><div class="options">${
       s.options.map((op) => op.type === 'checkbox'
         ? `<label class="opt"><input type="checkbox" data-o="${op.id}" ${opts[s.id][op.id] ? 'checked' : ''}> ${esc(op.label)}</label>`
         : `<label class="opt">${esc(op.label)} <select data-o="${op.id}">${op.options.map(([v, l]) => `<option value="${v}" ${opts[s.id][op.id] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`).join('')
@@ -114,17 +114,17 @@
     const s = p.steps[p.idx];
     if (!s) {
       box.className = 'card now';
-      box.innerHTML = `<div class="now-head"><span class="now-step">Sẵn sàng</span><span class="now-title">Bấm ▶ Chạy hoặc “Bước ▶” để đi từng bước</span></div>
-        <p class="now-detail">Mỗi bước sẽ được giải thích ở đây: ai gọi ai, có phải chờ trả lời không, và đang có những ai đứng chờ. Lời gọi đồng bộ luôn có một bước “↩ trả về” tương ứng.</p>`;
+      box.innerHTML = `<div class="now-head"><span class="now-step">Sẵn sàng</span><span class="now-title">Bấm ▶ Chạy để xem tự động, hoặc “Bước ▶” để đi từng bước</span></div>
+        <p class="now-detail">Mỗi bước sẽ được kể lại ở đây bằng lời: bộ phận nào đang làm gì, có phải đợi ai không. Khi một bộ phận nhờ bộ phận khác và phải đợi, sẽ luôn có một bước “↩ gửi kết quả” tương ứng.</p>`;
       return;
     }
     box.className = `card now k-${s.kind}`;
-    const waits = (s.stack || []).map((fr) => `<span class="frame">${esc(NODES[fr.caller].label)} ⏳ chờ ${esc(NODES[fr.callee].label)}</span>`).join('');
+    const waits = (s.stack || []).map((fr) => `<span class="frame">${esc(NODES[fr.caller].label)} ⏳ đợi ${esc(NODES[fr.callee].label)}</span>`).join('');
     box.innerHTML = `<div class="now-head"><span class="now-step">Bước ${p.idx + 1}/${p.steps.length}</span>
         <span class="now-title">${esc(s.label)}</span></div>
       <p class="now-what">${window.Sim.describe(p.steps, p.idx)}</p>
       ${s.detail ? `<p class="now-detail">${s.detail}</p>` : ''}
-      <div class="now-wait"><span class="lbl">Đang chờ trả lời:</span>${waits || '<span class="frame">không ai — mọi lời gọi đã xong</span>'}</div>`;
+      <div class="now-wait"><span class="lbl">Ai đang đợi ai:</span>${waits || '<span class="frame">không ai phải đợi</span>'}</div>`;
     box.querySelectorAll('[data-goto]').forEach((a) => a.addEventListener('click', (e) => {
       e.preventDefault(); player.stop(); player.goTo(+a.dataset.goto);
     }));
@@ -159,8 +159,8 @@
     player.stop();
     if (!s) {
       current = null;
-      $('title').textContent = 'Tổng quan kiến trúc';
-      $('desc').textContent = 'SPA React → nginx /api/* → grpc-gateway → gRPC server của từng service. Service gọi nhau bằng gRPC; dữ liệu ở PostgreSQL (schema riêng mỗi service), tệp ở RustFS (S3), chat qua Kafka + worker, realtime qua Soketi. Chọn một luồng ở menu trái để xem mô phỏng từng bước.';
+      $('title').textContent = 'Toàn cảnh hệ thống';
+      $('desc').textContent = 'Task Manager gồm nhiều bộ phận nhỏ, mỗi bộ phận lo một việc (tài khoản, công việc, lịch, email, tin nhắn…). Khi bạn bấm một nút trên trang web, yêu cầu đi qua Cổng vào tới bộ phận phụ trách; các bộ phận nhờ nhau khi cần, cất dữ liệu vào Cơ sở dữ liệu, và đẩy thông báo lên màn hình bạn ngay lập tức. Chọn một tình huống ở menu trái để xem từng bước diễn ra thế nào.';
       $('overview').classList.remove('hidden');
       $('sim').classList.add('hidden');
       overviewMap.fit();

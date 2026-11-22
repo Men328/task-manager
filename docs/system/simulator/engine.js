@@ -7,73 +7,74 @@
   const NODE_H = 44;
 
   // Mỗi thành phần: vị trí trên sơ đồ kiến trúc + thông tin hiển thị khi bấm vào.
+  // label = tên dễ hiểu cho người dùng; sub = tên kỹ thuật trong code.
   const NODES = {
-    browser: { label: 'Browser (SPA)', sub: 'React + Mantine', x: 85, y: 250, cls: 'client',
-      info: { 'Vai trò': 'Người dùng thao tác trên giao diện React SPA', 'Giao tiếp': 'HTTP /api/* qua nginx; WebSocket tới Soketi' } },
-    peer: { label: 'Browser B', sub: 'người nhận', x: 85, y: 400, cls: 'client',
-      info: { 'Vai trò': 'Người dùng thứ hai (bạn bè / người nhận tin nhắn)' } },
-    nginx: { label: 'nginx', sub: 'frontend :3000', x: 250, y: 325, cls: 'edge',
-      info: { 'Vai trò': 'Phục vụ SPA tĩnh + reverse proxy /api/<service>/ tới gateway HTTP', 'Cổng': 'host 127.0.0.1:3000 (duy nhất publish ra ngoài)' } },
+    browser: { label: 'Trình duyệt', sub: 'ứng dụng web của bạn', x: 85, y: 250, cls: 'client',
+      info: { 'Là gì': 'Trang web Task Manager bạn đang mở trên máy.', 'Làm gì': 'Gửi yêu cầu khi bạn bấm nút, và nhận thông báo tức thì (chuông, tin nhắn).', 'Kỹ thuật': 'React SPA; gọi /api/* qua nginx, WebSocket tới Soketi' } },
+    peer: { label: 'Trình duyệt B', sub: 'người thứ hai', x: 85, y: 400, cls: 'client',
+      info: { 'Là gì': 'Máy của một người dùng khác — người được kết bạn hoặc nhận tin nhắn.' } },
+    nginx: { label: 'Cổng vào', sub: 'nginx', x: 250, y: 325, cls: 'edge',
+      info: { 'Là gì': 'Cửa duy nhất để đi vào hệ thống từ bên ngoài.', 'Làm gì': 'Nhận mọi yêu cầu rồi chuyển đúng tới bộ phận phụ trách, sau đó chuyển kết quả ngược lại.', 'Kỹ thuật': 'nginx reverse proxy /api/<service>/; host 127.0.0.1:3000' } },
 
-    identity: { label: 'identity', sub: ':8081 / :9081', x: 440, y: 50, cls: 'svc',
-      info: { 'Chức năng': 'Hồ sơ, OAuth Google, phát session JWT HS256, ký kênh Soketi, seed dữ liệu cho profile mới', 'Lưu trữ': 'identity.profiles, identity.auth_providers', 'Gọi tới': 'task (seed status), project (seed project), mail-provider (Subscribe), Google OAuth' } },
-    project: { label: 'project', sub: ':8090 / :9090', x: 440, y: 115, cls: 'svc',
-      info: { 'Chức năng': 'Project theo profile; project mặc định "Chung" không archive được', 'Lưu trữ': 'project.projects', 'Gọi tới': '— (service lá)' } },
-    task: { label: 'task', sub: ':8082 / :9082', x: 440, y: 180, cls: 'svc',
-      info: { 'Chức năng': 'Task cha/con, status & lifecycle, audit log, tìm kiếm, nhắc việc (ReminderWorker), task lặp lại (RRULE)', 'Lưu trữ': 'task.tasks, task_statuses, status_transitions, task_status_logs', 'Gọi tới': 'project (GetProject), notification (CreateNotice nhắc việc)' } },
-    calendar: { label: 'calendar', sub: ':8083 / :9083', x: 440, y: 245, cls: 'svc',
-      info: { 'Chức năng': 'Lịch cá nhân (khối thời gian, all-day, màu)', 'Lưu trữ': 'calendar.schedules', 'Gọi tới': 'project (GetProject)' } },
-    event: { label: 'event', sub: ':8085 / :9085', x: 440, y: 310, cls: 'svc',
-      info: { 'Chức năng': 'Sự kiện PLANNED → CONFIRMED → CANCELLED, truy vết email nguồn', 'Lưu trữ': 'event.events', 'Gọi tới': 'project (GetProject)' } },
-    backlog: { label: 'backlog', sub: ':8086 / :9086', x: 440, y: 375, cls: 'svc',
-      info: { 'Chức năng': 'Email không phân loại được (NEW / TRIAGED / ARCHIVED) kèm reason', 'Lưu trữ': 'backlog.backlogs', 'Gọi tới': '— (service lá)' } },
-    attachment: { label: 'attachment', sub: ':8089 / :9089', x: 440, y: 440, cls: 'svc',
-      info: { 'Chức năng': 'Tệp đính kèm đa hình (owner_type, owner_id), upload / download', 'Lưu trữ': 'attachment.attachments + RustFS', 'Gọi tới': 'RustFS (S3)' } },
-    report: { label: 'report', sub: ':8087 / :9087', x: 440, y: 505, cls: 'svc',
-      info: { 'Chức năng': 'Báo cáo tổng quan, status breakdown, time series, activity', 'Lưu trữ': 'Không có DB — tổng hợp qua gRPC', 'Gọi tới': 'task, calendar, event, backlog' } },
+    identity: { label: 'Tài khoản', sub: 'identity', x: 440, y: 50, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận quản lý tài khoản người dùng.', 'Làm gì': 'Đăng nhập bằng Google, cấp "vé vào cửa" (phiên đăng nhập), tạo sẵn dữ liệu ban đầu cho người mới.', 'Lưu ở': 'Hồ sơ người dùng', 'Kỹ thuật': 'identity :8081/:9081 — JWT HS256, identity.profiles, identity.auth_providers' } },
+    project: { label: 'Dự án', sub: 'project', x: 440, y: 115, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận quản lý dự án (nhóm công việc).', 'Làm gì': 'Tạo, đổi tên, lưu trữ dự án. Mỗi người có sẵn dự án "Chung".', 'Lưu ở': 'Danh sách dự án', 'Kỹ thuật': 'project :8090/:9090 — project.projects' } },
+    task: { label: 'Công việc', sub: 'task', x: 440, y: 180, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận quản lý công việc (task).', 'Làm gì': 'Tạo/sửa công việc, đổi trạng thái (To Do → Completed), nhắc việc đúng giờ, công việc lặp lại.', 'Lưu ở': 'Công việc, trạng thái, lịch sử thay đổi', 'Kỹ thuật': 'task :8082/:9082 — task.tasks, task_statuses, status_transitions, task_status_logs' } },
+    calendar: { label: 'Lịch', sub: 'calendar', x: 440, y: 245, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận quản lý lịch cá nhân.', 'Làm gì': 'Lưu các cuộc hẹn, cuộc họp có giờ bắt đầu/kết thúc.', 'Kỹ thuật': 'calendar :8083/:9083 — calendar.schedules' } },
+    event: { label: 'Sự kiện', sub: 'event', x: 440, y: 310, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận quản lý sự kiện.', 'Làm gì': 'Lưu hội thảo, tiệc, lễ… và trạng thái dự kiến / xác nhận / huỷ.', 'Kỹ thuật': 'event :8085/:9085 — event.events' } },
+    backlog: { label: 'Hộp chờ xử lý', sub: 'backlog', x: 440, y: 375, cls: 'svc',
+      info: { 'Là gì': 'Nơi giữ các email hệ thống chưa tự xếp được.', 'Làm gì': 'Giữ email kèm lý do để bạn tự xem và phân loại — không email nào bị mất.', 'Kỹ thuật': 'backlog :8086/:9086 — backlog.backlogs' } },
+    attachment: { label: 'Tệp đính kèm', sub: 'attachment', x: 440, y: 440, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận quản lý file đính kèm.', 'Làm gì': 'Nhận file bạn tải lên, cất vào kho tệp, cho tải về.', 'Kỹ thuật': 'attachment :8089/:9089 — attachment.attachments + RustFS' } },
+    report: { label: 'Báo cáo', sub: 'report', x: 440, y: 505, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận làm báo cáo.', 'Làm gì': 'Hỏi số liệu từ các bộ phận khác rồi tổng hợp thành biểu đồ. Bản thân không lưu dữ liệu.', 'Kỹ thuật': 'report :8087/:9087 — không có DB, gọi gRPC' } },
 
-    notification: { label: 'notification', sub: ':8088 / :9088', x: 640, y: 70, cls: 'svc',
-      info: { 'Chức năng': 'Lưu notice, đếm chưa đọc, đánh dấu đã đọc, push realtime', 'Lưu trữ': 'notification.notices', 'Gọi tới': 'Soketi (notice.created)' } },
-    social: { label: 'social', sub: ':8091 / :9091', x: 640, y: 150, cls: 'svc',
-      info: { 'Chức năng': 'Kết bạn: tìm theo email, gửi / chấp nhận / từ chối / huỷ lời mời', 'Lưu trữ': 'social.friendships', 'Gọi tới': 'identity, notification' } },
-    message: { label: 'message', sub: ':8092 / :9092', x: 640, y: 230, cls: 'svc',
-      info: { 'Chức năng': 'Chat 1-1: broadcast realtime + đẩy Kafka; đọc lịch sử', 'Lưu trữ': 'message.* (chỉ đọc)', 'Gọi tới': 'social (AreFriends), Soketi, Kafka' } },
-    worker: { label: 'worker ×N', sub: 'health :8094', x: 640, y: 310, cls: 'svc',
-      info: { 'Chức năng': 'Consume chat.messages, ghi tin nhắn idempotent', 'Lưu trữ': 'message.messages, message.conversations', 'Gọi tới': 'Kafka, Postgres' } },
-    mail: { label: 'mail-provider', sub: ':8084 / :9084', x: 640, y: 460, cls: 'svc',
-      info: { 'Chức năng': 'Watch Gmail, nhận Pub/Sub, lưu email gốc lên S3, phân loại (DeepSeek / từ khoá), dispatch', 'Lưu trữ': 'mail_provider.sessions, mail_provider.noti_indexes + RustFS', 'Gọi tới': 'project, task, calendar, event, backlog, notification, Gmail, DeepSeek, Pub/Sub' } },
+    notification: { label: 'Thông báo', sub: 'notification', x: 640, y: 70, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận thông báo (cái chuông).', 'Làm gì': 'Lưu thông báo, đếm số chưa đọc, và đẩy ngay lên màn hình.', 'Kỹ thuật': 'notification :8088/:9088 — notification.notices; publish Soketi' } },
+    social: { label: 'Bạn bè', sub: 'social', x: 640, y: 150, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận kết bạn.', 'Làm gì': 'Tìm người theo email, gửi / chấp nhận / huỷ lời mời kết bạn.', 'Kỹ thuật': 'social :8091/:9091 — social.friendships' } },
+    message: { label: 'Tin nhắn', sub: 'message', x: 640, y: 230, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận nhắn tin giữa hai người bạn.', 'Làm gì': 'Chuyển tin nhắn tới người nhận ngay lập tức, rồi gửi sang hàng đợi để lưu sau.', 'Kỹ thuật': 'message :8092/:9092 — Soketi + Kafka, đọc message.*' } },
+    worker: { label: 'Bộ lưu tin nhắn', sub: 'worker', x: 640, y: 310, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận chạy ngầm chuyên lưu tin nhắn.', 'Làm gì': 'Lấy tin nhắn từ hàng đợi và cất vào cơ sở dữ liệu, không bao giờ lưu trùng.', 'Kỹ thuật': 'worker ×N — consume Kafka chat.messages, ghi message.messages' } },
+    mail: { label: 'Bộ xử lý email', sub: 'mail-provider', x: 640, y: 460, cls: 'svc',
+      info: { 'Là gì': 'Bộ phận đọc Gmail của bạn.', 'Làm gì': 'Khi có thư mới: đọc thư, đoán xem đó là công việc / lịch / sự kiện, rồi tạo giúp bạn.', 'Kỹ thuật': 'mail-provider :8084/:9084 — Gmail API, Pub/Sub, DeepSeek, RustFS' } },
 
-    pg: { label: 'PostgreSQL', sub: 'schema / service', x: 840, y: 90, cls: 'infra',
-      info: { 'Vai trò': 'DB task_manager, mỗi service sở hữu 1 schema riêng', 'Cổng': 'postgres:5432' } },
-    s3: { label: 'RustFS (S3)', sub: 'bucket task-manager', x: 840, y: 210, cls: 'infra',
-      info: { 'Vai trò': 'Object storage: email gốc + tệp đính kèm', 'Cổng': 'rustfs:9000' } },
-    kafka: { label: 'Kafka', sub: 'chat.messages ×6', x: 840, y: 330, cls: 'infra',
-      info: { 'Vai trò': 'Hàng đợi tin nhắn chat, key = conversation_id', 'Cổng': 'kafka:9092' } },
-    soketi: { label: 'Soketi', sub: 'WebSocket :6001', x: 840, y: 450, cls: 'infra',
-      info: { 'Vai trò': 'Realtime theo giao thức Pusher; kênh private ký bởi identity', 'Cổng': 'soketi:6001' } },
+    pg: { label: 'Cơ sở dữ liệu', sub: 'PostgreSQL', x: 840, y: 90, cls: 'infra',
+      info: { 'Là gì': 'Nơi lưu trữ lâu dài mọi dữ liệu (như một cuốn sổ cái).', 'Làm gì': 'Mỗi bộ phận có một ngăn riêng của mình.', 'Kỹ thuật': 'postgres:5432, DB task_manager, schema riêng mỗi service' } },
+    s3: { label: 'Kho lưu tệp', sub: 'RustFS (S3)', x: 840, y: 210, cls: 'infra',
+      info: { 'Là gì': 'Kho chứa file.', 'Làm gì': 'Cất bản gốc email và các file đính kèm.', 'Kỹ thuật': 'rustfs:9000, bucket task-manager' } },
+    kafka: { label: 'Hàng đợi', sub: 'Kafka', x: 840, y: 330, cls: 'infra',
+      info: { 'Là gì': 'Hàng đợi tin nhắn — như một băng chuyền.', 'Làm gì': 'Giữ tin nhắn theo đúng thứ tự cho tới khi được lưu xong.', 'Kỹ thuật': 'kafka:9092, topic chat.messages ×6 partition' } },
+    soketi: { label: 'Kênh tức thì', sub: 'Soketi', x: 840, y: 450, cls: 'infra',
+      info: { 'Là gì': 'Đường dây luôn mở giữa hệ thống và trình duyệt.', 'Làm gì': 'Đẩy thông báo, tin nhắn lên màn hình ngay lập tức mà không cần tải lại trang.', 'Kỹ thuật': 'soketi:6001, WebSocket giao thức Pusher' } },
 
-    google: { label: 'Google OAuth', sub: 'OIDC / token', x: 1050, y: 90, cls: 'ext',
-      info: { 'Vai trò': 'Đăng nhập Google, đổi code lấy token, refresh token' } },
-    gmail: { label: 'Gmail API', sub: 'watch / history', x: 1050, y: 210, cls: 'ext',
-      info: { 'Vai trò': 'users.watch, users.history.list, users.messages.get' } },
-    pubsub: { label: 'Google Pub/Sub', sub: 'push / pull', x: 1050, y: 330, cls: 'ext',
-      info: { 'Vai trò': 'Báo cho mail-provider khi hộp thư thay đổi' } },
-    deepseek: { label: 'DeepSeek LLM', sub: '/chat/completions', x: 1050, y: 450, cls: 'ext',
-      info: { 'Vai trò': 'Phân loại email thành task / schedule / event / other' } },
+    google: { label: 'Đăng nhập Google', sub: 'Google OAuth', x: 1050, y: 90, cls: 'ext',
+      info: { 'Là gì': 'Dịch vụ đăng nhập của Google.', 'Làm gì': 'Xác nhận bạn là ai và cấp quyền đọc Gmail nếu bạn đồng ý.' } },
+    gmail: { label: 'Gmail', sub: 'Gmail API', x: 1050, y: 210, cls: 'ext',
+      info: { 'Là gì': 'Hộp thư Gmail của bạn.', 'Làm gì': 'Cho hệ thống đọc thư mới (chỉ đọc, không gửi).' } },
+    pubsub: { label: 'Google báo tin', sub: 'Pub/Sub', x: 1050, y: 330, cls: 'ext',
+      info: { 'Là gì': 'Dịch vụ của Google chuyên báo tin.', 'Làm gì': 'Báo cho hệ thống biết "hộp thư vừa có thay đổi".' } },
+    deepseek: { label: 'AI đọc email', sub: 'DeepSeek', x: 1050, y: 450, cls: 'ext',
+      info: { 'Là gì': 'Trí tuệ nhân tạo bên ngoài.', 'Làm gì': 'Đọc nội dung email và đoán xem đó là công việc, lịch, sự kiện hay thư thường.' } },
   };
 
   const GROUPS = [
-    { label: 'Client', x: 10, y: 205, w: 150, h: 250 },
-    { label: 'Nghiệp vụ lõi', x: 362, y: 12, w: 156, h: 525 },
-    { label: 'Giao tiếp & mail', x: 562, y: 32, w: 156, h: 460 },
-    { label: 'Hạ tầng', x: 762, y: 52, w: 156, h: 440 },
-    { label: 'Bên ngoài', x: 972, y: 52, w: 156, h: 440 },
+    { label: 'Người dùng', x: 10, y: 205, w: 150, h: 250 },
+    { label: 'Chức năng chính', x: 362, y: 12, w: 156, h: 525 },
+    { label: 'Liên lạc & email', x: 562, y: 32, w: 156, h: 460 },
+    { label: 'Nơi lưu trữ', x: 762, y: 52, w: 156, h: 440 },
+    { label: 'Dịch vụ bên ngoài', x: 972, y: 52, w: 156, h: 440 },
   ];
 
   const KIND_LABEL = {
-    http: 'HTTP / REST', grpc: 'gRPC nội bộ', db: 'Đọc / ghi dữ liệu', async: 'Bất đồng bộ (Kafka / queue)',
-    ext: 'Gọi dịch vụ ngoài', ws: 'Realtime WebSocket', self: 'Xử lý nội bộ', decision: 'Rẽ nhánh / quyết định', error: 'Lỗi / từ chối',
-    reply: 'Trả kết quả (response)',
+    http: 'Gửi yêu cầu qua web', grpc: 'Bộ phận nhờ bộ phận', db: 'Lưu / lấy dữ liệu', async: 'Gửi đi, không đợi',
+    ext: 'Nhờ dịch vụ bên ngoài', ws: 'Đẩy lên màn hình ngay', self: 'Tự xử lý', decision: 'Tự quyết định', error: 'Lỗi / bị từ chối',
+    reply: 'Gửi kết quả về',
   };
 
   // ---------------------------------------------------------------- Mô hình gọi đồng bộ / bất đồng bộ
@@ -105,7 +106,7 @@
       const r = Object.assign({}, src || {}, {
         f: fr.callee, t: fr.caller, mode: 'return', retOf: fr.idx, reply: true,
         kind: src && src.kind === 'error' ? 'error' : 'reply',
-        label: src ? src.label : `Trả về: ${call.ret || (fr.caller === 'browser' || fr.caller === 'peer' ? 'phản hồi HTTP' : 'kết quả')}`,
+        label: src ? src.label : `Trả về: ${call.ret || 'kết quả'}`,
         auto: !src,
       });
       call.retAt = out.length;
@@ -125,7 +126,7 @@
         // phản hồi đi ngược qua các tầng trung gian (vd task → nginx → browser)
         while (fr.caller !== target && stack.length && stack[stack.length - 1].callee === fr.caller) {
           const via = fr.caller;
-          fr = emitReturn({ label: `Chuyển tiếp: ${s.label}`, kind: s.kind, detail: `${NODES[via].label} chỉ chuyển tiếp phản hồi về bên đã gọi nó.` });
+          fr = emitReturn({ label: `Chuyển tiếp: ${s.label}`, kind: s.kind, detail: `${NODES[via].label} không tự xử lý gì, chỉ chuyển kết quả về cho bên đã gửi yêu cầu.` });
         }
         continue;
       }
@@ -147,29 +148,31 @@
     const B = `<b>${esc(NODES[s.t].label)}</b>`;
     switch (s.mode) {
       case 'sync':
-        return `${A} gọi ${B} (${KIND_LABEL[s.kind]}) và <b>đứng chờ</b> ${B} trả lời — đây là lời gọi đồng bộ. `
-          + (s.retAt != null ? `Kết quả trả về ở <a href="#" data-goto="${s.retAt}">bước ${s.retAt + 1}</a>; trong lúc chờ, ${A} chưa làm bước nào khác.` : '');
+        return `${A} nhờ ${B} làm việc này và <b>đợi</b> ${B} làm xong mới đi tiếp. `
+          + (s.retAt != null ? `${B} sẽ gửi kết quả lại ở <a href="#" data-goto="${s.retAt}">bước ${s.retAt + 1}</a>.` : '');
       case 'db':
-        return `${A} ${s.t === 's3' ? 'ghi/đọc tệp trên' : 'đọc/ghi'} ${B} và chờ kết quả ngay trong bước này (không cần bước trả về riêng).`;
+        return s.t === 's3'
+          ? `${A} cất / lấy file trong ${B}. Việc này xong ngay trong bước này.`
+          : `${A} ghi / đọc dữ liệu trong ${B}. Việc này xong ngay trong bước này.`;
       case 'async':
         return s.kind === 'ws'
-          ? `${A} đẩy sự kiện xuống ${B} qua kết nối WebSocket đang mở sẵn. <b>Không cần trả lời</b> — trình duyệt chỉ nhận và cập nhật giao diện.`
-          : `${A} gửi sang ${B} rồi <b>làm tiếp ngay, không chờ</b> phản hồi (bất đồng bộ).`;
+          ? `${A} đẩy thông tin lên màn hình ${B} <b>ngay lập tức</b>, không cần tải lại trang và không cần ai trả lời.`
+          : `${A} gửi sang ${B} rồi <b>làm việc khác luôn</b>, không đợi ${B} trả lời.`;
       case 'return':
         return s.retOf != null
-          ? `${A} xử lý xong và <b>trả kết quả</b> về cho ${B} — trả lời cho <a href="#" data-goto="${s.retOf}">bước ${s.retOf + 1}</a> (“${esc(steps[s.retOf].label)}”). ${B} hết chờ và đi tiếp.`
-          : `${A} trả kết quả về cho ${B}.`;
+          ? `${A} đã làm xong và <b>gửi kết quả</b> lại cho ${B} (trả lời cho <a href="#" data-goto="${s.retOf}">bước ${s.retOf + 1}</a>). ${B} hết phải đợi và làm tiếp.`
+          : `${A} gửi kết quả lại cho ${B}.`;
       default:
-        return s.kind === 'decision' ? `${A} tự ra quyết định rẽ nhánh dựa trên dữ liệu đã có.` : `${A} tự xử lý bên trong, không gọi thành phần nào khác.`;
+        return s.kind === 'decision' ? `${A} tự xem xét thông tin đã có để quyết định làm gì tiếp theo.` : `${A} tự xử lý, không cần nhờ ai.`;
     }
   }
 
   const MODE_BADGE = {
-    sync: (s) => `⏳ Đồng bộ — chờ trả lời${s.retAt != null ? ` ở bước ${s.retAt + 1}` : ''}`,
-    db: () => '🗄️ Đọc/ghi dữ liệu, chờ kết quả ngay',
-    async: () => '🚀 Bất đồng bộ — không chờ phản hồi',
-    return: (s) => `↩️ Trả lời${s.retOf != null ? ` cho bước ${s.retOf + 1}` : ''}`,
-    local: () => '⚙️ Xử lý nội bộ',
+    sync: (s) => `⏳ Nhờ và đợi kết quả${s.retAt != null ? ` (có ở bước ${s.retAt + 1})` : ''}`,
+    db: () => '🗄️ Lưu / lấy dữ liệu, xong ngay',
+    async: () => '🚀 Gửi đi, không đợi trả lời',
+    return: (s) => `↩️ Gửi kết quả${s.retOf != null ? ` cho bước ${s.retOf + 1}` : ''}`,
+    local: () => '⚙️ Tự xử lý',
   };
 
   function el(tag, attrs, parent) {
@@ -360,7 +363,7 @@
       (laneOrder || []).forEach((id) => steps.some((s) => s.f === id || s.t === id) && add(id));
       steps.forEach((s) => { add(s.f); add(s.t); });
 
-      const GAP = 128;
+      const GAP = 140;
       const LEFT = 70;
       const TOP = 54;
       const ROW = 36;
@@ -378,7 +381,7 @@
         const x = xOf(id);
         el('line', { class: 'lifeline', x1: x, y1: 40, x2: x, y2: height - 6 }, svg);
         const g = el('g', { class: 'lane-head' }, svg);
-        el('rect', { x: x - 58, y: 6, width: 116, height: 30, rx: 7, fill: `var(--n-${NODES[id].cls})`, stroke: 'var(--border)' }, g);
+        el('rect', { x: x - 64, y: 6, width: 128, height: 30, rx: 7, fill: `var(--n-${NODES[id].cls})`, stroke: 'var(--border)' }, g);
         const t = el('text', { x, y: 25, 'text-anchor': 'middle' }, g);
         t.textContent = NODES[id].label;
       });
@@ -422,7 +425,7 @@
         const n = el('text', { class: 'num', x: nx, y: y + 3.5, 'text-anchor': 'middle' }, g);
         n.textContent = i + 1;
         const title = el('title', {}, g);
-        title.textContent = `${s.label}${s.detail ? '\n' + s.detail : ''}`;
+        title.textContent = `${s.label}${s.detail ? '\n' + s.detail.replace(/<[^>]+>/g, '') : ''}`;
         g.addEventListener('click', () => this.onStepClick && this.onStepClick(i));
         return g;
       });
@@ -481,13 +484,15 @@
         div.className = `log-item k-${s.kind}`;
         const from = NODES[s.f].label;
         const to = NODES[s.t].label;
+        const tech = [].concat(s.tech || []);
         div.innerHTML = `
           <div class="top"><span class="n">${i + 1}</span>
-            <div><div class="route">${esc(from)}${s.f === s.t ? '' : ' → ' + esc(to)} · ${KIND_LABEL[s.kind]}</div>
+            <div><div class="route">${esc(from)}${s.f === s.t ? '' : ' → ' + esc(to)}</div>
             <div class="label">${esc(s.label)}</div></div></div>
           <div class="mode mode-${s.mode}">${MODE_BADGE[s.mode](s)}</div>
           ${s.detail ? `<div class="detail">${s.detail}</div>` : ''}
-          ${s.store ? `<div class="store">${[].concat(s.store).map((x) => `<code>${esc(x)}</code>`).join(' ')}</div>` : ''}`;
+          ${tech.length ? `<details class="tech"><summary>Chi tiết kỹ thuật</summary><div class="store">${tech.map((x) => `<code>${esc(x)}</code>`).join(' ')}</div></details>` : ''}`;
+        div.querySelector('details') && div.querySelector('details').addEventListener('click', (e) => e.stopPropagation());
         div.addEventListener('click', () => this.onStepClick && this.onStepClick(i));
         this.container.appendChild(div);
         return div;
