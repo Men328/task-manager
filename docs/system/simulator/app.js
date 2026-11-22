@@ -141,6 +141,7 @@
       $('desc').textContent = 'SPA React → nginx /api/* → grpc-gateway → gRPC server của từng service. Service gọi nhau bằng gRPC; dữ liệu ở PostgreSQL (schema riêng mỗi service), tệp ở RustFS (S3), chat qua Kafka + worker, realtime qua Soketi. Chọn một luồng ở menu trái để xem mô phỏng từng bước.';
       $('overview').classList.remove('hidden');
       $('sim').classList.add('hidden');
+      overviewMap.fit();
       return;
     }
     current = s;

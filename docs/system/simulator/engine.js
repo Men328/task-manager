@@ -164,6 +164,7 @@
         this.nodeEls[id].classList.toggle('dim', steps.length > 0 && !used.has(id));
         this.nodeEls[id].classList.remove('active');
       }
+      this.fit();
     }
 
     showAllEdges(pairs) {
@@ -227,6 +228,19 @@
 
     select(id) {
       for (const k in this.nodeEls) this.nodeEls[k].classList.toggle('selected', k === id);
+    }
+
+    // Co giãn viewBox theo nội dung thật (node + mọi cạnh cong) để không phần nào bị cắt.
+    fit() {
+      let box;
+      try { box = this.svg.getBBox(); } catch (e) { return; }
+      if (!box || !box.width) return; // đang bị ẩn — sẽ gọi lại khi hiện
+      const PAD = 14; // chừa chỗ cho viền active/selected và chấm sáng
+      const x = Math.min(0, box.x - PAD);
+      const y = Math.min(0, box.y - PAD);
+      const w = Math.max(1140, box.x + box.width + PAD) - x;
+      const h = Math.max(560, box.y + box.height + PAD) - y;
+      this.svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
     }
   }
 
@@ -298,6 +312,26 @@
 
       this.container.innerHTML = '';
       this.container.appendChild(svg);
+      this.svg = svg;
+      this.fit();
+    }
+
+    // Mở rộng khung theo nhãn dài nhất để chữ ở lane cuối không bị cắt.
+    fit() {
+      const svg = this.svg;
+      if (!svg) return;
+      let box;
+      try { box = svg.getBBox(); } catch (e) { return; }
+      if (!box || !box.width) return;
+      const PAD = 12;
+      const x = Math.min(0, box.x - PAD);
+      const y = Math.min(0, box.y - PAD);
+      const w = box.x + box.width + PAD - x;
+      const h = box.y + box.height + PAD - y;
+      svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
+      svg.setAttribute('width', w);
+      svg.setAttribute('height', h);
+      svg.querySelectorAll('.row-hl').forEach((r) => { r.setAttribute('x', x); r.setAttribute('width', w); });
     }
 
     highlight(idx) {
