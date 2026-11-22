@@ -23,7 +23,7 @@
     ['social', 'pg', 'db'], ['message', 'pg', 'db'],
   ];
 
-  const legendHtml = () => ['http', 'grpc', 'db', 'async', 'ext', 'ws', 'error']
+  const legendHtml = () => ['http', 'grpc', 'db', 'reply', 'async', 'ext', 'ws', 'error']
     .map((k) => `<span><i style="background:var(--k-${k})"></i>${KIND_LABEL[k]}</span>`).join('');
 
   // ---------------------------------------------------------------- điều hướng
@@ -109,7 +109,29 @@
     player.load(s.build(o), s.lanes);
   }
 
+  function renderNow(p) {
+    const box = $('now');
+    const s = p.steps[p.idx];
+    if (!s) {
+      box.className = 'card now';
+      box.innerHTML = `<div class="now-head"><span class="now-step">Sẵn sàng</span><span class="now-title">Bấm ▶ Chạy hoặc “Bước ▶” để đi từng bước</span></div>
+        <p class="now-detail">Mỗi bước sẽ được giải thích ở đây: ai gọi ai, có phải chờ trả lời không, và đang có những ai đứng chờ. Lời gọi đồng bộ luôn có một bước “↩ trả về” tương ứng.</p>`;
+      return;
+    }
+    box.className = `card now k-${s.kind}`;
+    const waits = (s.stack || []).map((fr) => `<span class="frame">${esc(NODES[fr.caller].label)} ⏳ chờ ${esc(NODES[fr.callee].label)}</span>`).join('');
+    box.innerHTML = `<div class="now-head"><span class="now-step">Bước ${p.idx + 1}/${p.steps.length}</span>
+        <span class="now-title">${esc(s.label)}</span></div>
+      <p class="now-what">${window.Sim.describe(p.steps, p.idx)}</p>
+      ${s.detail ? `<p class="now-detail">${s.detail}</p>` : ''}
+      <div class="now-wait"><span class="lbl">Đang chờ trả lời:</span>${waits || '<span class="frame">không ai — mọi lời gọi đã xong</span>'}</div>`;
+    box.querySelectorAll('[data-goto]').forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault(); player.stop(); player.goTo(+a.dataset.goto);
+    }));
+  }
+
   function updateToolbar(p) {
+    renderNow(p);
     $('btn-play').textContent = p.playing ? '⏸ Dừng' : (p.idx >= p.steps.length - 1 && p.idx >= 0 ? '↺ Chạy lại' : '▶ Chạy');
     $('btn-prev').disabled = p.idx < 0;
     $('btn-next').disabled = p.idx >= p.steps.length - 1;

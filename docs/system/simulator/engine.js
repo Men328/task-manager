@@ -73,6 +73,103 @@
   const KIND_LABEL = {
     http: 'HTTP / REST', grpc: 'gRPC nội bộ', db: 'Đọc / ghi dữ liệu', async: 'Bất đồng bộ (Kafka / queue)',
     ext: 'Gọi dịch vụ ngoài', ws: 'Realtime WebSocket', self: 'Xử lý nội bộ', decision: 'Rẽ nhánh / quyết định', error: 'Lỗi / từ chối',
+    reply: 'Trả kết quả (response)',
+  };
+
+  // ---------------------------------------------------------------- Mô hình gọi đồng bộ / bất đồng bộ
+  // Mỗi bước được gán "mode":
+  //   sync   — bên gọi đứng chờ bên được gọi trả lời (gRPC / HTTP / API ngoài)
+  //   db     — đọc/ghi Postgres hoặc S3, chờ kết quả ngay trong cùng bước
+  //   async  — gửi đi rồi làm tiếp, không chờ (Kafka, WebSocket, sự kiện Gmail)
+  //   return — bên được gọi trả kết quả về cho bên gọi
+  //   local  — tự xử lý bên trong, không gọi ai
+  // expandCalls() duyệt kịch bản như một call stack và tự chèn bước "trả về" ngay khi
+  // luồng điều khiển quay lại bên gọi, để thấy rõ ai chờ ai.
+  const STORES = new Set(['pg', 's3']);
+  function modeOf(s) {
+    if (s.f === s.t) return 'local';
+    if (s.reply) return 'return';
+    if (s.call) return s.call;
+    if (s.kind === 'async' || s.kind === 'ws') return 'async';
+    if (s.kind === 'db' || STORES.has(s.t)) return 'db';
+    return 'sync';
+  }
+
+  function expandCalls(raw) {
+    const out = [];
+    const stack = [];
+    const snap = () => stack.map((fr) => ({ caller: fr.caller, callee: fr.callee, idx: fr.idx }));
+    const emitReturn = (src) => {
+      const fr = stack.pop();
+      const call = out[fr.idx];
+      const r = Object.assign({}, src || {}, {
+        f: fr.callee, t: fr.caller, mode: 'return', retOf: fr.idx, reply: true,
+        kind: src && src.kind === 'error' ? 'error' : 'reply',
+        label: src ? src.label : `Trả về: ${call.ret || (fr.caller === 'browser' || fr.caller === 'peer' ? 'phản hồi HTTP' : 'kết quả')}`,
+        auto: !src,
+      });
+      call.retAt = out.length;
+      r.stack = snap();
+      out.push(r);
+      return fr;
+    };
+    for (const s0 of raw) {
+      const s = Object.assign({}, s0);
+      s.mode = modeOf(s);
+      if (s.mode === 'return') {
+        const i = stack.map((fr) => fr.callee).lastIndexOf(s.f);
+        if (i < 0) { s.stack = snap(); out.push(s); continue; }
+        while (stack.length - 1 > i) emitReturn();
+        const target = s.t;
+        let fr = emitReturn(s);
+        // phản hồi đi ngược qua các tầng trung gian (vd task → nginx → browser)
+        while (fr.caller !== target && stack.length && stack[stack.length - 1].callee === fr.caller) {
+          const via = fr.caller;
+          fr = emitReturn({ label: `Chuyển tiếp: ${s.label}`, kind: s.kind, detail: `${NODES[via].label} chỉ chuyển tiếp phản hồi về bên đã gọi nó.` });
+        }
+        continue;
+      }
+      // điều khiển quay về s.f ⇒ mọi lời gọi s.f đang chờ phía trên đã xong, trả kết quả trước
+      while (stack.length && stack[stack.length - 1].callee !== s.f) emitReturn();
+      if (s.mode === 'sync') stack.push({ caller: s.f, callee: s.t, idx: out.length });
+      s.stack = snap();
+      out.push(s);
+    }
+    while (stack.length) emitReturn();
+    return out;
+  }
+
+  // Câu giải thích dễ hiểu cho một bước.
+  function describe(steps, i) {
+    const s = steps[i];
+    if (!s) return '';
+    const A = `<b>${esc(NODES[s.f].label)}</b>`;
+    const B = `<b>${esc(NODES[s.t].label)}</b>`;
+    switch (s.mode) {
+      case 'sync':
+        return `${A} gọi ${B} (${KIND_LABEL[s.kind]}) và <b>đứng chờ</b> ${B} trả lời — đây là lời gọi đồng bộ. `
+          + (s.retAt != null ? `Kết quả trả về ở <a href="#" data-goto="${s.retAt}">bước ${s.retAt + 1}</a>; trong lúc chờ, ${A} chưa làm bước nào khác.` : '');
+      case 'db':
+        return `${A} ${s.t === 's3' ? 'ghi/đọc tệp trên' : 'đọc/ghi'} ${B} và chờ kết quả ngay trong bước này (không cần bước trả về riêng).`;
+      case 'async':
+        return s.kind === 'ws'
+          ? `${A} đẩy sự kiện xuống ${B} qua kết nối WebSocket đang mở sẵn. <b>Không cần trả lời</b> — trình duyệt chỉ nhận và cập nhật giao diện.`
+          : `${A} gửi sang ${B} rồi <b>làm tiếp ngay, không chờ</b> phản hồi (bất đồng bộ).`;
+      case 'return':
+        return s.retOf != null
+          ? `${A} xử lý xong và <b>trả kết quả</b> về cho ${B} — trả lời cho <a href="#" data-goto="${s.retOf}">bước ${s.retOf + 1}</a> (“${esc(steps[s.retOf].label)}”). ${B} hết chờ và đi tiếp.`
+          : `${A} trả kết quả về cho ${B}.`;
+      default:
+        return s.kind === 'decision' ? `${A} tự ra quyết định rẽ nhánh dựa trên dữ liệu đã có.` : `${A} tự xử lý bên trong, không gọi thành phần nào khác.`;
+    }
+  }
+
+  const MODE_BADGE = {
+    sync: (s) => `⏳ Đồng bộ — chờ trả lời${s.retAt != null ? ` ở bước ${s.retAt + 1}` : ''}`,
+    db: () => '🗄️ Đọc/ghi dữ liệu, chờ kết quả ngay',
+    async: () => '🚀 Bất đồng bộ — không chờ phản hồi',
+    return: (s) => `↩️ Trả lời${s.retOf != null ? ` cho bước ${s.retOf + 1}` : ''}`,
+    local: () => '⚙️ Xử lý nội bộ',
   };
 
   function el(tag, attrs, parent) {
@@ -173,7 +270,7 @@
     }
 
     highlight(steps, idx) {
-      for (const k in this.edgeEls) this.edgeEls[k].path.classList.remove('active', 'done');
+      for (const k in this.edgeEls) this.edgeEls[k].path.classList.remove('active', 'done', 'waiting');
       for (const id in this.nodeEls) this.nodeEls[id].classList.remove('active');
       for (let i = 0; i <= idx && i < steps.length; i++) {
         const s = steps[i];
@@ -183,6 +280,11 @@
       }
       const cur = steps[idx];
       if (!cur) return;
+      // các lời gọi đồng bộ còn đang chờ trả lời: nét đứt chạy
+      for (const fr of cur.stack || []) {
+        const w = this.edgeEls[this.key(fr.caller, fr.callee)];
+        if (w) w.path.classList.add('waiting');
+      }
       this.nodeEls[cur.f] && this.nodeEls[cur.f].classList.add('active');
       this.nodeEls[cur.t] && this.nodeEls[cur.t].classList.add('active');
       const e = this.edgeEls[this.key(cur.f, cur.t)];
@@ -281,6 +383,15 @@
         t.textContent = NODES[id].label;
       });
 
+      // thanh kích hoạt: bên được gọi đang bận xử lý, bên gọi đang chờ
+      const actLayer = el('g', { class: 'acts' }, svg);
+      steps.forEach((s, i) => {
+        if (s.mode !== 'sync' || s.retAt == null) return;
+        const y1 = TOP + i * ROW + 18;
+        const y2 = TOP + s.retAt * ROW + 18;
+        el('rect', { class: 'act', x: xOf(s.t) - 5, y: y1, width: 10, height: Math.max(6, y2 - y1), rx: 2, 'data-i': i }, actLayer);
+      });
+
       this.msgEls = steps.map((s, i) => {
         const y = TOP + i * ROW + 18;
         const g = el('g', { class: `msg k-${s.kind}`, 'data-i': i }, svg);
@@ -294,15 +405,21 @@
           const t = el('text', { x: x1 + 32, y: y + 2 }, g);
           t.textContent = (s.kind === 'decision' ? '◆ ' : '') + label;
         } else {
-          const dashed = ['async', 'ws'].includes(s.kind) || s.reply;
+          const dashed = s.mode === 'async' || s.mode === 'return';
           el('line', { x1, y1: y, x2: x2 + (x2 > x1 ? -2 : 2), y2: y, stroke: color, 'stroke-width': 1.6, 'stroke-dasharray': dashed ? '5 4' : '', 'marker-end': `url(#arr-${s.kind})` }, g);
+          if (s.mode === 'db') {
+            // đi và về trong cùng một bước
+            el('line', { x1: x2 + (x2 > x1 ? -4 : 4), y1: y + 6, x2: x1 + (x2 > x1 ? 2 : -2), y2: y + 6, stroke: color, 'stroke-width': 1.2, 'stroke-dasharray': '3 3', opacity: 0.8, 'marker-end': `url(#arr-${s.kind})` }, g);
+          }
           const mid = (x1 + x2) / 2;
           const span = Math.abs(x2 - x1);
           const t = el('text', { x: span > 200 ? mid : Math.min(x1, x2) + 6, y: y - 6, 'text-anchor': span > 200 ? 'middle' : 'start' }, g);
-          t.textContent = label;
+          t.textContent = (s.mode === 'return' ? '↩ ' : s.mode === 'async' ? '🚀 ' : '') + label;
         }
-        el('circle', { cx: x1 - 14 * (s.f === s.t || x2 > x1 ? 1 : -1), cy: y, r: 9, fill: color }, g);
-        const n = el('text', { class: 'num', x: x1 - 14 * (s.f === s.t || x2 > x1 ? 1 : -1), y: y + 3.5, 'text-anchor': 'middle' }, g);
+        // số thứ tự luôn nằm bên trái mũi tên để không đè lên nhãn
+        const nx = Math.min(x1, x2) - 14;
+        el('circle', { cx: nx, cy: y, r: 9, fill: color }, g);
+        const n = el('text', { class: 'num', x: nx, y: y + 3.5, 'text-anchor': 'middle' }, g);
         n.textContent = i + 1;
         const title = el('title', {}, g);
         title.textContent = `${s.label}${s.detail ? '\n' + s.detail : ''}`;
@@ -368,6 +485,7 @@
           <div class="top"><span class="n">${i + 1}</span>
             <div><div class="route">${esc(from)}${s.f === s.t ? '' : ' → ' + esc(to)} · ${KIND_LABEL[s.kind]}</div>
             <div class="label">${esc(s.label)}</div></div></div>
+          <div class="mode mode-${s.mode}">${MODE_BADGE[s.mode](s)}</div>
           ${s.detail ? `<div class="detail">${s.detail}</div>` : ''}
           ${s.store ? `<div class="store">${[].concat(s.store).map((x) => `<code>${esc(x)}</code>`).join(' ')}</div>` : ''}`;
         div.addEventListener('click', () => this.onStepClick && this.onStepClick(i));
@@ -393,8 +511,9 @@
       this.steps = []; this.idx = -1; this.playing = false; this.speed = 1; this.token = 0;
     }
 
-    load(steps, laneOrder) {
+    load(rawSteps, laneOrder) {
       this.stop();
+      const steps = expandCalls(rawSteps);
       this.steps = steps;
       this.idx = -1;
       this.map.setSteps(steps);
@@ -443,5 +562,5 @@
     return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 
-  window.Sim = { NODES, KIND_LABEL, ArchMap, SeqDiagram, StepLog, Player, esc };
+  window.Sim = { NODES, KIND_LABEL, ArchMap, SeqDiagram, StepLog, Player, esc, expandCalls, describe };
 })();

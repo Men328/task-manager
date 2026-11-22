@@ -275,42 +275,50 @@
   function build() {
     const a = analyze(state);
     const d = DEST[a.dest];
-    const st = [S('gmail', 'pubsub', 'Hộp thư INBOX có thư mới', 'ext', `Từ <code>${esc(state.from)}</code>: “${esc(state.subject)}”. Gmail báo về topic nhờ <code>users.watch</code> đã đăng ký lúc đăng nhập.`)];
+    const st = [S('gmail', 'pubsub', 'Hộp thư INBOX có thư mới', 'ext', `Từ <code>${esc(state.from)}</code>: “${esc(state.subject)}”. Gmail chỉ bắn một sự kiện lên topic (nhờ <code>users.watch</code> đã đăng ký lúc đăng nhập) chứ không gửi nội dung thư, và không chờ ai trả lời.`, null, { call: 'async' })];
     const deliver = (label) => {
       if (state.delivery === 'push') {
         st.push(
-          S('pubsub', 'nginx', label || 'POST /api/mail/v1/notifications', 'ext', 'Push qua Cloudflare tunnel, kèm OIDC JWT. Payload chỉ có <code>emailAddress</code> + <code>historyId</code> — không có nội dung thư.'),
-          S('nginx', 'mail', 'mail-provider:8084 → HandleNotification', 'grpc', 'Gateway xác thực OIDC (<code>MAIL_PUBSUB_AUDIENCE</code>), giải mã envelope, gọi gRPC :9084.'),
+          S('pubsub', 'nginx', label || 'POST /api/mail/v1/notifications', 'ext', 'Pub/Sub gọi webhook (qua Cloudflare tunnel, kèm OIDC JWT) và <b>chờ mã HTTP</b>: 2xx = đã nhận, lỗi = sẽ gửi lại sau. Payload chỉ có <code>emailAddress</code> + <code>historyId</code>.'),
+          S('nginx', 'mail', 'mail-provider:8084 → HandleNotification', 'grpc', 'nginx chuyển tới gateway HTTP của mail-provider; gateway xác thực OIDC (<code>MAIL_PUBSUB_AUDIENCE</code>), giải mã envelope rồi gọi gRPC :9084.', null, { ret: '200 OK' }),
         );
       } else {
-        st.push(S('mail', 'pubsub', label || 'subscriptions.pull (long-poll)', 'ext', 'Pull worker chạy khi đặt <code>MAIL_PULL_SUBSCRIPTION</code>; không cần endpoint công khai.'));
+        st.push(S('mail', 'pubsub', label || 'subscriptions.pull (long-poll)', 'ext', 'Pull worker (khi đặt <code>MAIL_PULL_SUBSCRIPTION</code>) hỏi Pub/Sub có notice mới không và chờ tới khi có hoặc hết thời gian long-poll.', null, { ret: 'danh sách notice' }));
+      }
+    };
+    const acceptNotice = () => {
+      st.push(S('mail', 'mail', 'Đưa notice vào queue RAM', 'self', 'Chỉ xếp hàng (queue 256 chỗ) chứ chưa xử lý — để trả lời Pub/Sub thật nhanh.'));
+      if (state.delivery === 'push') {
+        st.push(S('mail', 'pubsub', '200 OK — đã nhận notice', 'http', 'Trả lời ngay để Pub/Sub không gửi lại. Phần việc nặng (đọc Gmail, phân loại, tạo task) do worker nền làm sau, nên webhook không phải chờ.', null, { reply: true }));
+      } else {
+        st.push(S('mail', 'pubsub', 'acknowledge(ackIds)', 'ext', 'Báo Pub/Sub đã nhận để nó không giao lại.', null, { ret: 'OK' }));
       }
     };
     deliver();
     if (state.queueFull) {
-      st.push(
-        S('mail', 'mail', 'Queue RAM đầy (MAIL_QUEUE_SIZE=256)', 'error', 'Lỗi tạm thời ⇒ KHÔNG ack để Pub/Sub gửi lại sau. Email không mất.'),
-        S('mail', 'pubsub', 'Không ack / trả lỗi', 'error', null, null, { reply: true }),
-      );
+      st.push(S('mail', 'mail', 'Queue RAM đầy (MAIL_QUEUE_SIZE=256)', 'error', 'Lỗi tạm thời ⇒ cố ý KHÔNG ack để Pub/Sub gửi lại sau. Email không mất.'));
+      if (state.delivery === 'push') st.push(S('mail', 'pubsub', '503 — chưa nhận được', 'error', 'Pub/Sub thấy lỗi nên sẽ tự gửi lại notice sau một lúc.', null, { reply: true }));
+      else st.push(S('mail', 'mail', 'Bỏ qua, không acknowledge', 'error', 'Hết hạn ack, Pub/Sub sẽ giao lại notice này.'));
       deliver(state.delivery === 'push' ? 'Gửi lại notice (retry)' : 'Pull lại notice');
     }
-    st.push(S('mail', 'mail', 'Enqueue → ack / 200 ngay', 'async', 'Xử lý nặng chạy ở 2 worker nền (<code>MAIL_WORKER_COUNT</code>).'));
+    acceptNotice();
+    st.push(S('mail', 'mail', 'Worker nền lấy notice khỏi queue', 'self', 'Từ đây là việc chạy nền trong mail-provider-grpc (<code>MAIL_WORKER_COUNT=2</code>), không ai bên ngoài đang chờ.'));
     st.push(S('mail', 'pg', 'Đọc token + checkpoint historyId', 'db', 'Không tin historyId trong notice — dùng checkpoint đã lưu.', ['R mail_provider.sessions', 'R mail_provider.noti_indexes']));
     if (state.tokenExpired) {
       st.push(
-        S('mail', 'google', 'POST oauth2 token (refresh_token)', 'ext', 'Access token hết hạn ⇒ refresh.'),
+        S('mail', 'google', 'POST oauth2 token (refresh_token)', 'ext', 'Access token hết hạn ⇒ đổi refresh_token lấy access_token mới.', null, { ret: 'access_token mới' }),
         S('mail', 'pg', 'Lưu access_token mới', 'db', null, ['U mail_provider.sessions']),
       );
     }
     st.push(
-      S('mail', 'gmail', 'users.history.list(startHistoryId)', 'ext', 'Lấy mọi message mới kể từ checkpoint.'),
-      S('mail', 'gmail', 'users.messages.get' + (state.attachments ? ' + attachments' : ''), 'ext', 'Lấy tiêu đề, nội dung (cắt ở 32 KB)' + (state.attachments ? ', tối đa 5 tệp ≤ 10 MiB' : '') + '.'),
+      S('mail', 'gmail', 'users.history.list(startHistoryId)', 'ext', 'Hỏi Gmail: từ checkpoint tới giờ có những thư mới nào?', null, { ret: 'danh sách message id mới' }),
+      S('mail', 'gmail', 'users.messages.get' + (state.attachments ? ' + attachments' : ''), 'ext', 'Lấy tiêu đề, nội dung (cắt ở 32 KB)' + (state.attachments ? ', tối đa 5 tệp ≤ 10 MiB' : '') + '.', null, { ret: 'nội dung email' + (state.attachments ? ' + tệp' : '') }),
       S('mail', 's3', 'PUT email gốc' + (state.attachments ? ' + tệp đính kèm' : ''), 'db', 'Lưu trước khi phân loại để luôn truy vết được.', ['mail/{profile}/{yyyymmdd}/{msg}.json'].concat(state.attachments ? ['mail/.../{msg}/attachments/{file}'] : [])),
-      S('mail', 'project', 'ListProjects (ứng viên)', 'grpc', `Bỏ project mặc định và đã archive ⇒ ${a.projects.length} ứng viên.`, ['R project.projects']),
+      S('mail', 'project', 'ListProjects (ứng viên)', 'grpc', `Lấy danh sách project để biết email thuộc dự án nào. Bỏ project mặc định và đã archive ⇒ ${a.projects.length} ứng viên.`, ['R project.projects'], { ret: `${a.projects.length} project ứng viên` }),
     );
     if (state.classifier === 'ai-ok') {
       st.push(
-        S('mail', 'deepseek', 'POST /chat/completions', 'ext', 'Prompt gồm email + danh sách PROJECTS, yêu cầu trả đúng 1 JSON object.'),
+        S('mail', 'deepseek', 'POST /chat/completions', 'ext', 'Gửi email + danh sách PROJECTS cho AI, yêu cầu trả đúng 1 JSON object (category, title, thời gian, project_id...).'),
         S('deepseek', 'mail', `JSON {category: "${a.category}"}`, 'ext', null, null, { reply: true }),
       );
     } else if (state.classifier === 'ai-fail') {
@@ -329,25 +337,30 @@
     if (state.createFail && a.reason === 'create_failed') {
       const tried = a.category === 'schedule' ? 'calendar' : a.category;
       st.push(
-        S('mail', tried, `${DEST[tried === 'calendar' ? 'calendar' : tried].rpc}`, 'grpc'),
+        S('mail', tried, `${DEST[tried].rpc}`, 'grpc', 'Thử tạo bản ghi ở service đích.'),
         S(tried, 'mail', 'Lỗi khi tạo', 'error', null, null, { reply: true }),
       );
     }
-    st.push(S('mail', d.svc, `${d.rpc}${a.dest === 'backlog' ? ` reason=${a.reason}` : ''}`, 'grpc', a.dest === 'backlog' ? 'Backlog lưu kèm sender, source (message id) và object_key email gốc — không email nào bị mất.' : `Gắn vào project <b>${esc(a.project ? a.project.name : '')}</b>.`));
-    if (a.dest !== 'backlog') st.push(S(d.svc, 'project', 'GetProject (kiểm tra project)', 'grpc', null, ['R project.projects']));
+    const idName = { task: 'task_id', calendar: 'schedule_id', event: 'event_id', backlog: 'backlog_id' }[a.dest];
+    st.push(S('mail', d.svc, `${d.rpc}${a.dest === 'backlog' ? ` reason=${a.reason}` : ''}`, 'grpc',
+      (a.dest === 'backlog' ? 'Backlog lưu kèm sender, source (message id) và object_key email gốc — không email nào bị mất.' : `Gắn vào project <b>${esc(a.project ? a.project.name : '')}</b>.`)
+        + ` mail-provider <b>phải chờ</b> ${d.svc} trả về ${idName} để còn tạo thông báo trỏ tới bản ghi đó; nếu ${d.svc} báo lỗi thì email được giữ lại trong backlog.`,
+      null, { ret: `${idName} mới` }));
+    if (a.dest !== 'backlog') st.push(S(d.svc, 'project', 'GetProject (kiểm tra project)', 'grpc', `${d.svc} tự kiểm tra lại project còn hợp lệ (chưa archive, đúng chủ) trước khi ghi.`, ['R project.projects'], { ret: 'project hợp lệ' }));
     st.push(
-      S(d.svc, 'pg', 'Ghi bản ghi mới', 'db', null, ['C ' + d.table]),
-      S('mail', 'notification', `CreateNotice(${d.notice})`, 'grpc', 'Best-effort: lỗi chỉ log, không xử lý lại email.'),
+      S(d.svc, 'pg', 'Ghi bản ghi mới', 'db', `${d.svc} ghi vào bảng của mình. Ghi xong mới trả ${idName} về cho mail-provider ở bước kế tiếp.`, ['C ' + d.table]),
+      S('mail', 'notification', `CreateNotice(${d.notice})`, 'grpc', 'Tạo thông báo cho người dùng. Best-effort: lỗi chỉ log, không xử lý lại email.', null, { ret: 'notice_id' }),
       S('notification', 'pg', 'Lưu notice', 'db', null, ['C notification.notices']),
-      S('notification', 'soketi', 'publish notice.created', 'http', 'Kênh <code>private-noti-internal-&lt;profile_id&gt;</code>.'),
+      S('notification', 'soketi', 'publish notice.created', 'http', 'Gọi REST API của Soketi để phát sự kiện lên kênh <code>private-noti-internal-&lt;profile_id&gt;</code>.', null, { ret: '200 OK' }),
       S('soketi', 'browser', 'WebSocket → chuông +1', 'ws', `Người dùng thấy: ${d.icon} ${d.name}.`),
       S('mail', 'pg', 'Tiến checkpoint historyId', 'db', 'Chỉ tiến SAU khi xử lý xong ⇒ notice trùng / lệch thứ tự không làm mất thư.', ['U mail_provider.noti_indexes']),
     );
     if (state.duplicate) {
       deliver(state.delivery === 'push' ? 'Notice trùng (cùng historyId)' : 'Pull nhận bản sao notice');
+      acceptNotice();
       st.push(
         S('mail', 'pg', 'Đọc checkpoint (đã tiến)', 'db', null, ['R mail_provider.noti_indexes']),
-        S('mail', 'gmail', 'users.history.list → rỗng', 'ext', 'Không có message mới sau checkpoint.'),
+        S('mail', 'gmail', 'users.history.list(startHistoryId)', 'ext', 'Hỏi lại Gmail từ checkpoint mới.', null, { ret: 'rỗng — không có thư mới' }),
         S('mail', 'mail', 'Không tạo bản ghi trùng', 'decision', 'Idempotent nhờ checkpoint historyId.'),
       );
     }

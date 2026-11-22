@@ -30,21 +30,21 @@
     build(o) {
       const st = [
         S('browser', 'nginx', `GET /api/identity/v1/auth/google/login${o.gmail ? '?gmail=1' : ''}`, 'http', 'Người dùng bấm "Đăng nhập bằng Google".'),
-        S('nginx', 'identity', 'Forward tới identity:8081', 'http', 'nginx proxy theo tiền tố <code>/api/identity/</code>.'),
+        S('nginx', 'identity', 'Forward tới identity:8081', 'http', 'nginx proxy theo tiền tố <code>/api/identity/</code>.', null, { ret: 'redirect' }),
         S('identity', 'browser', '302 → accounts.google.com', 'http', 'Sinh <code>state</code> ký HMAC + PKCE code_verifier. Scope: <code>openid email profile</code>' + (o.gmail ? ' + <code>gmail.readonly</code>, <code>access_type=offline</code>' : '') + '.', null, { reply: true }),
         S('browser', 'google', 'Đăng nhập + đồng ý cấp quyền', 'ext', 'Người dùng chọn tài khoản Google và đồng ý.'),
         S('google', 'browser', '302 /v1/auth/google/callback?code&state', 'ext', null, null, { reply: true }),
         S('browser', 'identity', 'GET /v1/auth/google/callback', 'http', 'identity kiểm tra chữ ký <code>state</code>.'),
-        S('identity', 'google', 'POST oauth2.googleapis.com/token', 'ext', 'Đổi <code>code</code> + code_verifier lấy access_token' + (o.gmail ? ' và refresh_token' : '') + '.'),
-        S('identity', 'google', 'GET openidconnect.../userinfo', 'ext', 'Lấy subject, email, tên, avatar.'),
+        S('identity', 'google', 'POST oauth2.googleapis.com/token', 'ext', 'Đổi <code>code</code> + code_verifier lấy access_token' + (o.gmail ? ' và refresh_token' : '') + '.', null, { ret: 'access_token' + (o.gmail ? ' + refresh_token' : '') }),
+        S('identity', 'google', 'GET openidconnect.../userinfo', 'ext', 'Lấy subject, email, tên, avatar.', null, { ret: 'email, tên, avatar' }),
         S('identity', 'identity', 'LoginWithProvider (gRPC identity-grpc)', 'grpc', 'Gateway HTTP gọi sang identity-grpc :9081.'),
       ];
       if (o.isNew) {
         st.push(
           S('identity', 'pg', 'Tạo profile mới', 'db', 'Email chưa tồn tại ⇒ tạo profile + liên kết provider google.', ['C identity.profiles', 'C identity.auth_providers']),
-          S('identity', 'task', 'SeedDefaultStatuses(profile_id)', 'grpc', 'Tạo bộ status mặc định cho người dùng mới.'),
+          S('identity', 'task', 'SeedDefaultStatuses(profile_id)', 'grpc', 'Tạo bộ status mặc định cho người dùng mới. Best-effort: lỗi chỉ log.', null, { ret: 'OK' }),
           S('task', 'pg', 'Ghi 4 status + 5 rule lifecycle', 'db', 'To Do → On Progress → In Review → Completed (và các đường quay lại).', ['C task.task_statuses', 'C task.status_transitions']),
-          S('identity', 'project', 'SeedDefaultProject(profile_id)', 'grpc', 'Tạo project mặc định.'),
+          S('identity', 'project', 'SeedDefaultProject(profile_id)', 'grpc', 'Tạo project mặc định.', null, { ret: 'OK' }),
           S('project', 'pg', 'Tạo project "Chung" (is_default)', 'db', 'Project mặc định không archive được.', ['C project.projects']),
         );
       } else {
@@ -52,16 +52,16 @@
       }
       if (o.gmail) {
         st.push(
-          S('identity', 'mail', 'Subscribe(profile_id, email, tokens)', 'grpc', 'Chỉ khi người dùng tích "Cho phép đọc Gmail".'),
-          S('mail', 'gmail', 'users.watch(topic MAIL_PUBSUB_TOPIC)', 'ext', 'Gmail sẽ báo về Pub/Sub mỗi khi INBOX thay đổi. Hạn watch tối đa 7 ngày (có worker gia hạn).'),
+          S('identity', 'mail', 'Subscribe(profile_id, email, tokens)', 'grpc', 'Chỉ khi người dùng tích "Cho phép đọc Gmail". identity chuyển token Gmail sang cho mail-provider giữ.', null, { ret: 'OK' }),
+          S('mail', 'gmail', 'users.watch(topic MAIL_PUBSUB_TOPIC)', 'ext', 'Gmail sẽ báo về Pub/Sub mỗi khi INBOX thay đổi. Hạn watch tối đa 7 ngày (có worker gia hạn).', null, { ret: 'historyId + expiration' }),
           S('mail', 'pg', 'Lưu token + checkpoint historyId', 'db', null, ['UPSERT mail_provider.sessions', 'UPSERT mail_provider.noti_indexes']),
         );
       }
       st.push(
         S('identity', 'browser', '302 /auth/callback#token=<JWT>', 'http', 'Session JWT HS256 ký bằng <code>SESSION_SECRET</code>, claim <code>sub</code> = profile_id.', null, { reply: true }),
-        S('browser', 'identity', 'GET /v1/auth/me (Bearer)', 'http', 'SPA lưu token, tải hồ sơ.'),
-        S('browser', 'identity', 'POST /v1/auth/soketi', 'http', 'Xin chữ ký subscribe kênh private: <code>HMAC_SHA256(app_secret, socket_id:channel)</code>, chỉ cho kênh của chính mình.'),
-        S('browser', 'soketi', 'Subscribe private-noti-internal-<id>', 'ws', 'Từ đây chuông thông báo nhận realtime.'),
+        S('browser', 'identity', 'GET /v1/auth/me (Bearer)', 'http', 'SPA lưu token, tải hồ sơ.', null, { ret: 'profile' }),
+        S('browser', 'identity', 'POST /v1/auth/soketi', 'http', 'Xin chữ ký subscribe kênh private: <code>HMAC_SHA256(app_secret, socket_id:channel)</code>, chỉ cho kênh của chính mình.', null, { ret: 'chữ ký auth' }),
+        S('browser', 'soketi', 'Subscribe private-noti-internal-<id>', 'ws', 'Gửi lệnh subscribe kèm chữ ký qua WebSocket. Từ đây chuông thông báo nhận realtime.'),
       );
       return st;
     },
@@ -79,8 +79,8 @@
     build(o) {
       const st = [
         S('browser', 'nginx', 'POST /api/task/v1/tasks', 'http', 'Body: <code>{profile_id, project_id, title, priority, due_at, ...}</code>'),
-        S('nginx', 'task', 'task:8082 → gRPC CreateTask (:9082)', 'grpc', 'grpc-gateway chuyển REST JSON sang gRPC.'),
-        S('task', 'project', 'ProjectService.GetProject', 'grpc', 'Chặn project của người khác hoặc đã archive.'),
+        S('nginx', 'task', 'task:8082 → gRPC CreateTask (:9082)', 'grpc', 'nginx chuyển tới gateway HTTP của task; grpc-gateway đổi REST JSON sang gRPC.'),
+        S('task', 'project', 'ProjectService.GetProject', 'grpc', 'task phải chờ project trả lời để biết có được ghi không: chặn project của người khác hoặc đã archive.', null, { ret: 'project (chưa archive)' }),
         S('project', 'pg', 'Đọc project', 'db', null, ['R project.projects']),
       ];
       if (o.archived) {
@@ -98,7 +98,7 @@
       if (o.attach) {
         st.push(
           S('browser', 'nginx', 'POST /api/attachment/v1/attachments (multipart)', 'http', '<code>owner_type=task</code>, <code>owner_id=&lt;task_id&gt;</code>. Route upload viết tay ở gateway.'),
-          S('nginx', 'attachment', 'attachment:8089 → gRPC', 'grpc'),
+          S('nginx', 'attachment', 'attachment:8089 → gRPC', 'grpc', 'Gateway nhận multipart rồi gọi attachment-grpc.'),
           S('attachment', 's3', 'PUT attachments/{profile}/task/{id}/{uuid}.ext', 'db', 'Nội dung tệp vào RustFS.', ['S3 PUT']),
           S('attachment', 'pg', 'Lưu metadata tệp', 'db', 'Liên kết đa hình, không có FK tới task.', ['C attachment.attachments']),
           S('attachment', 'browser', '200 {attachment}', 'http', null, null, { reply: true }),
@@ -131,7 +131,7 @@
       const toDone = STATUSES.find((s) => s.slug === o.to).category === 'DONE';
       const st = [
         S('browser', 'nginx', 'POST /api/task/v1/tasks/{id}/status', 'http', `Body <code>{status_id: "${o.to}", note}</code> — kéo thẻ từ <b>${statusName(o.from)}</b> sang <b>${statusName(o.to)}</b>.`),
-        S('nginx', 'task', 'gRPC ChangeTaskStatus', 'grpc'),
+        S('nginx', 'task', 'gRPC ChangeTaskStatus', 'grpc', 'nginx chuyển tới gateway task, gateway gọi task-grpc.'),
         S('task', 'pg', 'Đọc task + status đích', 'db', null, ['R task.tasks', 'R task.task_statuses']),
         S('task', 'pg', `IsAllowed? ${statusName(o.from)} → ${statusName(o.to)}`, 'db', 'Tìm rule đang active trong allowlist.', ['R task.status_transitions']),
       ];
@@ -170,7 +170,7 @@
       const st = [
         S('task', 'task', 'Ticker tới chu kỳ', 'self', 'Worker nền trong task-grpc, không có API.'),
         S('task', 'pg', 'ClaimDueReminders', 'db', '<code>remind_at &lt;= now AND reminded_at IS NULL</code> → đặt reminded_at (claim nằm ở DB, không ở RAM).', ['U task.tasks.reminded_at']),
-        S('task', 'notification', 'CreateNotice(TASK_REMINDER, target TASK)', 'grpc'),
+        S('task', 'notification', 'CreateNotice(TASK_REMINDER, target TASK)', 'grpc', 'Worker chờ kết quả: thành công thì giữ claim, lỗi thì trả claim lại.', null, { ret: 'notice_id' }),
       ];
       if (o.fail) {
         st.push(
@@ -178,7 +178,7 @@
           S('task', 'pg', 'ReleaseReminder', 'db', 'Bỏ claim để chu kỳ sau thử lại.', ['U task.tasks.reminded_at = NULL']),
           S('task', 'task', 'Chu kỳ kế tiếp', 'self'),
           S('task', 'pg', 'ClaimDueReminders (lần 2)', 'db', null, ['U task.tasks.reminded_at']),
-          S('task', 'notification', 'CreateNotice(TASK_REMINDER)', 'grpc'),
+          S('task', 'notification', 'CreateNotice(TASK_REMINDER)', 'grpc', null, null, { ret: 'notice_id' }),
         );
       }
       st.push(
@@ -201,8 +201,8 @@
     ],
     build(o) {
       const st = [
-        S('browser', 'social', 'POST /api/social/v1/friend-requests {email}', 'http', 'Qua nginx. Gateway social tự verify JWT, lấy requester từ <code>sub</code>.'),
-        S('social', 'identity', 'FindProfileByEmail', 'grpc'),
+        S('browser', 'social', 'POST /api/social/v1/friend-requests {email}', 'http', 'Qua nginx. Gateway social tự verify JWT, lấy requester từ <code>sub</code>.', null, { ret: 'lời mời (pending)' }),
+        S('social', 'identity', 'FindProfileByEmail', 'grpc', 'social không có bảng người dùng nên phải hỏi identity: email này là ai?', null, { ret: 'profile B' }),
       ];
       if (!o.found) {
         st.push(S('identity', 'social', 'Không tìm thấy', 'error', null, null, { reply: true }), S('social', 'browser', 'Lỗi: không có người dùng với email này', 'error', null, null, { reply: true }));
@@ -210,17 +210,17 @@
       }
       st.push(
         S('social', 'pg', 'Tạo lời mời pending', 'db', 'Ràng buộc: không tự kết bạn, cặp không thứ tự là duy nhất.', ['C social.friendships (pending)']),
-        S('social', 'notification', 'CreateNotice(FRIEND_REQUEST → B)', 'grpc'),
+        S('social', 'notification', 'CreateNotice(FRIEND_REQUEST → B)', 'grpc', 'Best-effort: lỗi chỉ log, lời mời vẫn được tạo.', null, { ret: 'notice_id' }),
         S('notification', 'pg', 'Lưu notice', 'db', null, ['C notification.notices']),
-        S('notification', 'soketi', 'publish notice.created', 'http'),
+        S('notification', 'soketi', 'publish notice.created', 'http', null, null, { ret: '200 OK' }),
         S('soketi', 'peer', 'WebSocket → chuông của B', 'ws'),
       );
       if (o.accept) {
         st.push(
-          S('peer', 'social', 'POST /v1/friend-requests/{id}/accept', 'http'),
+          S('peer', 'social', 'POST /v1/friend-requests/{id}/accept', 'http', 'B bấm Chấp nhận (một request mới, độc lập với request của A).', null, { ret: 'friendship (accepted)' }),
           S('social', 'pg', 'status = accepted', 'db', null, ['U social.friendships']),
-          S('social', 'notification', 'CreateNotice(FRIEND_ACCEPTED → A)', 'grpc'),
-          S('notification', 'soketi', 'publish notice.created', 'http'),
+          S('social', 'notification', 'CreateNotice(FRIEND_ACCEPTED → A)', 'grpc', null, null, { ret: 'notice_id' }),
+          S('notification', 'soketi', 'publish notice.created', 'http', null, null, { ret: '200 OK' }),
           S('soketi', 'browser', 'WebSocket → chuông của A', 'ws', 'Từ giờ A và B nhắn tin được cho nhau.'),
         );
       }
@@ -241,18 +241,18 @@
       const st = [
         S('browser', 'message', 'POST /api/message/v1/conversations/{peer}/messages', 'http', 'Body <code>{body, client_id}</code>, Bearer JWT. sender = <code>sub</code>.'),
         S('message', 'message', 'gRPC SendMessage', 'grpc'),
-        S('message', 'social', 'AreFriends(sender, peer)', 'grpc', null, ['R social.friendships']),
+        S('message', 'social', 'AreFriends(sender, peer)', 'grpc', 'Chỉ bạn bè mới được nhắn tin — message phải chờ câu trả lời trước khi phát tin.', ['R social.friendships'], { ret: o.friends ? 'true' : 'false' }),
       ];
       if (!o.friends) {
         st.push(S('social', 'message', 'false', 'error', null, null, { reply: true }), S('message', 'browser', 'Lỗi MESSAGE_NOT_FRIENDS', 'error', null, null, { reply: true }));
         return st;
       }
       st.push(
-        S('message', 'soketi', 'publish message.created ×2 kênh', 'http', '<code>private-chat-&lt;peer&gt;</code> và <code>private-chat-&lt;sender&gt;</code> (đồng bộ nhiều tab).'),
+        S('message', 'soketi', 'publish message.created ×2 kênh', 'http', 'Gọi REST của Soketi: <code>private-chat-&lt;peer&gt;</code> và <code>private-chat-&lt;sender&gt;</code> (đồng bộ nhiều tab).', null, { ret: '200 OK' }),
         S('soketi', 'peer', 'WebSocket: tin nhắn hiện ngay', 'ws'),
         S('message', 'kafka', 'produce chat.messages (async)', 'async', 'key = conversation_id ⇒ cùng partition ⇒ giữ thứ tự. acks=all, retry 10 lần.'),
         S('message', 'browser', '200 {message}', 'http', 'Khớp <code>client_id</code> để thay tin "đang gửi".', null, { reply: true }),
-        S('kafka', 'worker', 'consume (group message-worker)', 'async'),
+        S('kafka', 'worker', 'consume (group message-worker)', 'async', 'Worker đọc tin từ Kafka một cách độc lập; người gửi đã nhận 200 từ trước nên không ai chờ bước này.'),
         S('worker', 'pg', 'INSERT ... ON CONFLICT DO NOTHING', 'db', 'id = UUIDv7 ⇒ ghi lại cùng tin không bị trùng.', ['C message.messages', 'UPSERT message.conversations']),
       );
       if (o.crash) {
@@ -262,7 +262,7 @@
           S('worker', 'pg', 'INSERT lại → ON CONFLICT DO NOTHING', 'db', 'Không sinh bản ghi trùng (idempotent).', ['message.messages: 0 dòng mới']),
         );
       }
-      st.push(S('worker', 'kafka', 'commit offset', 'async', 'Chỉ commit SAU khi ghi DB thành công.'));
+      st.push(S('worker', 'kafka', 'commit offset', 'async', 'Chỉ commit SAU khi ghi DB thành công — nếu worker chết trước bước này, Kafka giao lại tin.'));
       return st;
     },
   });
@@ -280,12 +280,12 @@
       ];
       if (o.kind === 'activity') {
         st.push(
-          S('report', 'event', 'ListEvents', 'grpc'), S('event', 'pg', 'Đọc sự kiện', 'db', null, ['R event.events']),
-          S('report', 'calendar', 'ListSchedules', 'grpc'), S('calendar', 'pg', 'Đọc lịch', 'db', null, ['R calendar.schedules']),
-          S('report', 'backlog', 'ListBacklogs', 'grpc'), S('backlog', 'pg', 'Đọc backlog', 'db', null, ['R backlog.backlogs']),
+          S('report', 'event', 'ListEvents', 'grpc', 'report không có DB nên phải hỏi từng service và chờ dữ liệu.', null, { ret: 'danh sách sự kiện' }), S('event', 'pg', 'Đọc sự kiện', 'db', null, ['R event.events']),
+          S('report', 'calendar', 'ListSchedules', 'grpc', null, null, { ret: 'danh sách lịch' }), S('calendar', 'pg', 'Đọc lịch', 'db', null, ['R calendar.schedules']),
+          S('report', 'backlog', 'ListBacklogs', 'grpc', null, null, { ret: 'danh sách backlog' }), S('backlog', 'pg', 'Đọc backlog', 'db', null, ['R backlog.backlogs']),
         );
       } else {
-        st.push(S('report', 'task', 'ListTasks / statuses', 'grpc'), S('task', 'pg', 'Đọc task', 'db', null, ['R task.tasks', 'R task.task_statuses']));
+        st.push(S('report', 'task', 'ListTasks / statuses', 'grpc', null, null, { ret: 'task + status' }), S('task', 'pg', 'Đọc task', 'db', null, ['R task.tasks', 'R task.task_statuses']));
       }
       st.push(
         S('report', 'report', 'Tổng hợp trong RAM', 'self', 'Đếm, nhóm theo ngày / status.'),
@@ -308,10 +308,10 @@
         S('mail', 'pg', 'Đọc token', 'db', null, ['R mail_provider.sessions']),
       ];
       if (o.expired) {
-        st.push(S('mail', 'google', 'POST token (refresh_token)', 'ext'), S('mail', 'pg', 'Lưu access_token mới', 'db', null, ['U mail_provider.sessions']));
+        st.push(S('mail', 'google', 'POST token (refresh_token)', 'ext', null, null, { ret: 'access_token mới' }), S('mail', 'pg', 'Lưu access_token mới', 'db', null, ['U mail_provider.sessions']));
       }
       st.push(
-        S('mail', 'gmail', 'users.watch(topic)', 'ext'),
+        S('mail', 'gmail', 'users.watch(topic)', 'ext', 'Đăng ký lại watch để gia hạn thêm tối đa 7 ngày.', null, { ret: 'expiration mới' }),
         S('mail', 'pg', 'Cập nhật hạn watch', 'db', null, ['U mail_provider.noti_indexes']),
       );
       return st;

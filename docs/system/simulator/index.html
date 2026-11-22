@@ -57,13 +57,22 @@
           <span class="progress" id="progress"></span>
         </div>
 
+        <div class="card now" id="now" style="margin-bottom:14px"></div>
+
         <div class="card" style="margin-bottom:14px">
-          <h3>🗺️ Đường đi trên kiến trúc <span class="sub">chấm sáng = request đang chạy · ô mờ = không tham gia luồng này</span></h3>
+          <h3>🗺️ Đường đi trên kiến trúc <span class="sub">chấm sáng = request / kết quả đang chạy · nét đứt chuyển động = lời gọi đang chờ trả lời · ô mờ = không tham gia</span></h3>
           <div class="map-wrap" id="map"></div>
         </div>
         <div class="grid grid-sim">
           <div class="card">
             <h3>📜 Sơ đồ tuần tự <span class="sub">bấm một dòng để nhảy tới bước đó</span></h3>
+            <div class="call-legend">
+              <span><svg width="34" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="var(--k-grpc)" stroke-width="1.6"/><path d="M28,0 L34,4 L28,8z" fill="var(--k-grpc)"/></svg> gọi &amp; chờ trả lời</span>
+              <span><svg width="34" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="var(--k-reply)" stroke-width="1.6" stroke-dasharray="5 4"/><path d="M28,0 L34,4 L28,8z" fill="var(--k-reply)"/></svg> ↩ trả kết quả</span>
+              <span><svg width="34" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="var(--k-async)" stroke-width="1.6" stroke-dasharray="5 4"/><path d="M28,0 L34,4 L28,8z" fill="var(--k-async)"/></svg> 🚀 gửi đi, không chờ</span>
+              <span><svg width="12" height="16"><rect x="1" y="0" width="10" height="16" rx="2" fill="var(--panel-2)" stroke="var(--muted)"/></svg> service đang bận xử lý (bên gọi đang chờ)</span>
+              <span>Gọi DB vẽ cả đi lẫn về trên cùng một dòng</span>
+            </div>
             <div class="seq-wrap" id="seq"></div>
           </div>
           <div class="card">

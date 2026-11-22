@@ -16,6 +16,7 @@
   --k-ws: #0891b2;
   --k-self: #64748b;
   --k-error: #dc2626;
+  --k-reply: #0f766e;
 
   --n-client: #dbeafe;
   --n-edge: #e0e7ff;
@@ -51,6 +52,7 @@
     --k-ws: #22d3ee;
     --k-self: #94a3b8;
     --k-error: #f87171;
+    --k-reply: #2dd4bf;
   }
 }
 
@@ -205,7 +207,7 @@ svg.seq { display: block; }
 /* kind colors */
 .k-http { --kc: var(--k-http); } .k-grpc { --kc: var(--k-grpc); } .k-db { --kc: var(--k-db); }
 .k-async { --kc: var(--k-async); } .k-ext { --kc: var(--k-ext); } .k-ws { --kc: var(--k-ws); }
-.k-self, .k-decision { --kc: var(--k-self); } .k-error { --kc: var(--k-error); }
+.k-self, .k-decision { --kc: var(--k-self); } .k-error { --kc: var(--k-error); } .k-reply { --kc: var(--k-reply); }
 .log-item[class*="k-"] { border-left-color: var(--kc); }
 .log-item[class*="k-"] .n { background: var(--kc); }
 
@@ -240,3 +242,21 @@ svg.seq { display: block; }
 .mini-kanban .col.from { outline: 2px dashed var(--muted); }
 .mini-kanban .col.to { outline: 2px solid var(--accent); }
 .hidden { display: none !important; }
+
+/* ---------- gọi đồng bộ / chờ trả lời ---------- */
+.map .edge.waiting { opacity: 1; stroke-width: 2.4; stroke-dasharray: 7 5; animation: wait-dash 0.9s linear infinite; }
+@keyframes wait-dash { to { stroke-dashoffset: -24; } }
+.seq .act { fill: var(--panel-2); stroke: var(--muted); stroke-width: 1; }
+.log-item .mode { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--kc, var(--muted)); }
+.now { border-left: 4px solid var(--kc, var(--accent)); }
+.now .now-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.now .now-step { font-size: 12px; font-weight: 700; color: #fff; background: var(--kc, var(--accent)); border-radius: 999px; padding: 1px 10px; }
+.now .now-title { font-size: 16px; font-weight: 700; }
+.now .now-what { margin: 8px 0 0; font-size: 14px; }
+.now .now-detail { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.now .now-wait { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; }
+.now .now-wait .lbl { color: var(--muted); font-weight: 600; margin-right: 4px; }
+.now .frame { background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 1px 9px; }
+.now a { color: var(--accent); }
+.call-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.call-legend svg { vertical-align: middle; }
