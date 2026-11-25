@@ -23,6 +23,7 @@ import {
 import { getErrorMessage } from '../../api/client';
 import { useSession } from '../../context';
 import { formatBytes } from '../../lib/format';
+import { subscribeTaskAttachments } from '../../lib/taskAttachments';
 import { tokens } from '../../theme';
 import type { Attachment, AttachmentOwnerType } from '../../types';
 import classes from './AttachmentSection.module.css';
@@ -47,6 +48,15 @@ export function AttachmentSection({ ownerType, ownerId }: AttachmentSectionProps
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const resetRef = useRef<(() => void) | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+
+  // Tệp gắn vào task từ nơi khác (vd. khi giao task trong chat) thì tải lại danh sách.
+  useEffect(() => {
+    if (ownerType !== 'task' || !ownerId) {
+      return undefined;
+    }
+    return subscribeTaskAttachments(ownerId, () => setReloadTick((value) => value + 1));
+  }, [ownerType, ownerId]);
 
   useEffect(() => {
     if (!ownerId) {
@@ -75,7 +85,7 @@ export function AttachmentSection({ ownerType, ownerId }: AttachmentSectionProps
     return () => {
       cancelled = true;
     };
-  }, [ownerType, ownerId]);
+  }, [ownerType, ownerId, reloadTick]);
 
   const handleFile = async (file: File | null) => {
     if (!file) {

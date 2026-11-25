@@ -197,3 +197,26 @@
 .slashItem:hover {
   background: var(--tm-nav-active-bg);
 }
+
+/* Tệp đính kèm của task giao trong chat. */
+.taskFile {
+  display: block;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--tm-column-bg);
+  border: 1px solid var(--tm-border);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.taskFile:hover {
+  border-color: var(--tm-brand);
+}
+
+/* Tệp đã chọn trong form giao task (chưa tải lên). */
+.pickedFile {
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--tm-column-bg);
+  border: 1px solid var(--tm-border);
+}

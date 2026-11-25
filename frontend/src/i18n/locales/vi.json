@@ -679,6 +679,14 @@
     "unknownStatus": "Không rõ trạng thái",
     "open": "Mở task",
     "previewPrefix": "[Task]",
-    "openFailed": "Không mở được tin nhắn"
+    "openFailed": "Không mở được tin nhắn",
+    "fieldFiles": "Tệp đính kèm",
+    "addFiles": "Chọn tệp",
+    "filesHint": "Tối đa {{max}} tệp. {{name}} sẽ thấy tệp trong task được giao.",
+    "removeFile": "Bỏ {{name}}",
+    "tooManyFiles": "Chỉ đính kèm được tối đa {{max}} tệp",
+    "tooManyFilesHint": "Các tệp vượt giới hạn đã bị bỏ qua.",
+    "filesPartialFailed": "Đã giao task nhưng {{count}} tệp không tải lên được",
+    "filesCount": "{{count}} tệp đính kèm"
   }
 }

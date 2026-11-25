@@ -6,15 +6,17 @@ import { IconAlertCircle, IconArrowLeft, IconChecklist, IconMessages, IconSend }
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
+import { uploadAttachment } from '../../api/attachment';
 import { getErrorMessage } from '../../api/client';
 import { getMessage } from '../../api/message';
 import { ApiErrorAlert, CenteredPanel, LoadingBlock } from '../../components/common/States';
 import { useAppSelector, useChat, useFriends } from '../../context';
 import { compareMessages, peerOf } from '../../lib/chatMessages';
 import { matchSlashCommand } from '../../lib/slashCommands';
+import { notifyTaskAttachmentsChanged } from '../../lib/taskAttachments';
 import scrollClasses from '../../styles/scroll.module.css';
 import { tokens } from '../../theme';
-import type { ChatMessage, Friend, FriendProfile } from '../../types';
+import type { ChatMessage, ChatTaskDraft, Friend, FriendProfile } from '../../types';
 import { ChatTaskModal } from './ChatTaskModal';
 import classes from './MessagesPage.module.css';
 import { TaskCard } from './TaskCard';
@@ -103,7 +105,7 @@ function MessageBubble({
   return (
     <Box className={classes.bubbleRow} data-mine={mine} data-focused={focused} data-message-id={message.id}>
       {message.task ? (
-        <TaskCard task={message.task} mine={mine} peerName={peerName} />
+        <TaskCard task={message.task} mine={mine} peerName={peerName} createdAt={message.createdAt} />
       ) : (
         <Box className={classes.bubble} data-mine={mine} data-pending={Boolean(message.pending)}>
           <Text fz={13.5} className={classes.bubbleText}>
@@ -146,6 +148,38 @@ function Thread({ peer, onBack }: { peer: FriendProfile; onBack: () => void }) {
   const stickToBottom = useRef(true);
   const lastId = thread.messages[thread.messages.length - 1]?.id;
   const slash = slashDismissed ? null : matchSlashCommand(draft);
+
+  /**
+   * Giao task rồi tải các tệp đã chọn lên chính task vừa tạo ở phía người nhận.
+   * Tệp lỗi không làm hỏng việc giao task: task vẫn được giao, chỉ báo tệp nào không lên.
+   */
+  const submitTask = async (value: ChatTaskDraft, files: File[]) => {
+    const message = await sendTask(value);
+    const taskId = message.task?.taskId;
+    if (files.length === 0 || !taskId || !profileId) {
+      return message;
+    }
+
+    const failed: string[] = [];
+    for (const file of files) {
+      try {
+        await uploadAttachment({ profileId, ownerType: 'task', ownerId: taskId, file });
+      } catch (cause) {
+        failed.push(`${file.name}: ${getErrorMessage(cause)}`);
+      }
+    }
+    notifyTaskAttachmentsChanged(taskId);
+
+    if (failed.length > 0) {
+      notifications.show({
+        title: t('chatTask.filesPartialFailed', { count: failed.length }),
+        message: failed.join('\n'),
+        color: 'yellow',
+        autoClose: 8000,
+      });
+    }
+    return message;
+  };
 
   useEffect(() => {
     focusPages.current = 0;
@@ -352,9 +386,9 @@ function Thread({ peer, onBack }: { peer: FriendProfile; onBack: () => void }) {
         peerName={peer.displayName}
         initialTitle={taskTitle ?? ''}
         onClose={() => setTaskTitle(null)}
-        onSubmit={(value) => {
+        onSubmit={(value, files) => {
           stickToBottom.current = true;
-          return sendTask(value);
+          return submitTask(value, files);
         }}
       />
     </Box>

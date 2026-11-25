@@ -679,6 +679,16 @@
     "unknownStatus": "Unknown status",
     "open": "Open task",
     "previewPrefix": "[Task]",
-    "openFailed": "Couldn't open the message"
+    "openFailed": "Couldn't open the message",
+    "fieldFiles": "Attachments",
+    "addFiles": "Choose files",
+    "filesHint": "Up to {{max}} files. {{name}} will see them on the assigned task.",
+    "removeFile": "Remove {{name}}",
+    "tooManyFiles": "You can attach at most {{max}} files",
+    "tooManyFilesHint": "Files over the limit were skipped.",
+    "filesPartialFailed_one": "Task assigned, but {{count}} file failed to upload",
+    "filesPartialFailed_other": "Task assigned, but {{count}} files failed to upload",
+    "filesCount_one": "{{count}} attachment",
+    "filesCount_other": "{{count}} attachments"
   }
 }
