@@ -3,6 +3,8 @@ package main
 import (
 	"log/slog"
 	"os"
+	// Nhúng dữ liệu múi giờ để MAIL_TIMEZONE chạy được cả khi image thiếu tzdata.
+	_ "time/tzdata"
 
 	"go.uber.org/fx"
 

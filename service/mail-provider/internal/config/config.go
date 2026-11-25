@@ -69,6 +69,9 @@ type Config struct {
 	ProjectTimeout        time.Duration
 	ProjectMatchThreshold float64
 
+	// Timezone: múi giờ người dùng để hiểu ngày giờ trong email ("9:00 sáng mai").
+	Timezone string
+
 	S3Endpoint          string
 	S3AccessKey         string
 	S3SecretKey         string
@@ -143,6 +146,8 @@ func Load() Config {
 		ProjectTimeout:        getduration("MAIL_PROJECT_TIMEOUT", 15*time.Second),
 		ProjectMatchThreshold: getfloat("PROJECT_MATCH_THRESHOLD", 0.6),
 
+		Timezone: getenv("MAIL_TIMEZONE", "Asia/Ho_Chi_Minh"),
+
 		S3Endpoint:          firstEnv("S3_ENDPOINT", "MINIO_ENDPOINT"),
 		S3AccessKey:         firstEnv("S3_ACCESS_KEY", "MINIO_ACCESS_KEY"),
 		S3SecretKey:         firstEnv("S3_SECRET_KEY", "MINIO_SECRET_KEY"),
@@ -158,6 +163,15 @@ func Load() Config {
 		QueueSize:   getint("MAIL_QUEUE_SIZE", 256),
 		WorkerCount: getint("MAIL_WORKER_COUNT", 2),
 	}
+}
+
+// Location trả múi giờ người dùng; tên không hợp lệ thì dùng UTC+7.
+func (c Config) Location() *time.Location {
+	if loc, err := time.LoadLocation(strings.TrimSpace(c.Timezone)); err == nil && strings.TrimSpace(c.Timezone) != "" {
+		return loc
+	}
+	slog.Warn("MAIL_TIMEZONE không hợp lệ, dùng UTC+07:00", "timezone", c.Timezone)
+	return time.FixedZone("ICT", 7*60*60)
 }
 
 func (c Config) PubSubConfigured() bool {

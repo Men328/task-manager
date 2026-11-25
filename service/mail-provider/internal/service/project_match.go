@@ -86,16 +86,18 @@ func matchProjectByRules(text string, projects []model.ProjectCandidate) (string
 	return bestID, best
 }
 
-// resolveProject chỉ chấp nhận project của draft khi project đó có trong danh sách
-// và độ tin cậy đạt ngưỡng.
-func resolveProject(draft model.MailDraft, projects []model.ProjectCandidate, threshold float64) (model.ProjectCandidate, bool) {
-	if draft.ProjectID == "" || draft.ProjectConfidence < threshold {
-		return model.ProjectCandidate{}, false
-	}
-	for _, project := range projects {
-		if project.ID == draft.ProjectID {
-			return project, true
+// resolveProject chỉ chấp nhận project của draft khi project đó có trong danh sách dò
+// và độ tin cậy đạt ngưỡng; không khớp thì dùng project mặc định ("Chung") nếu có.
+func resolveProject(draft model.MailDraft, projects model.ProjectSet, threshold float64) (model.ProjectCandidate, bool) {
+	if draft.ProjectID != "" && draft.ProjectConfidence >= threshold {
+		for _, project := range projects.Detectable {
+			if project.ID == draft.ProjectID {
+				return project, true
+			}
 		}
+	}
+	if projects.Default != nil {
+		return *projects.Default, true
 	}
 	return model.ProjectCandidate{}, false
 }

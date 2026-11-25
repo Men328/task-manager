@@ -120,6 +120,13 @@ type ProjectCandidate struct {
 	Description string
 }
 
+// ProjectSet: các project dùng để dò theo nội dung email, kèm project mặc định ("Chung")
+// để chứa email không khớp project nào.
+type ProjectSet struct {
+	Detectable []ProjectCandidate
+	Default    *ProjectCandidate
+}
+
 type TaskInput struct {
 	ProfileID   string
 	ProjectID   string

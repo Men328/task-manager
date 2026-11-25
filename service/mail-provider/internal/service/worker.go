@@ -149,24 +149,28 @@ func (w *notificationWorker) processMessage(ctx context.Context, sub model.Subsc
 
 	objectKey := w.archive(ctx, sub, accessToken, message)
 
-	projects, err := w.projects.ListDetectable(ctx, sub.ProfileID)
+	projectSet, err := w.projects.ListForMail(ctx, sub.ProfileID)
 	if err != nil {
 		slog.Error("đọc danh sách project thất bại, đẩy email vào backlog", "profile_id", sub.ProfileID, "message_id", messageID, "error", err)
-		projects = nil
+		projectSet = model.ProjectSet{}
 	}
 
-	draft := w.classify(ctx, message, projects)
+	draft := w.classify(ctx, message, projectSet.Detectable)
 	if draft.Priority == model.PriorityUnspecified {
 		draft.Priority = w.opts.DefaultPriority
 	}
 
-	w.dispatch(ctx, sub, message, draft, projects, objectKey)
+	w.dispatch(ctx, sub, message, draft, projectSet, objectKey)
 }
 
 func (w *notificationWorker) classify(ctx context.Context, message model.EmailMessage, projects []model.ProjectCandidate) model.MailDraft {
 	if w.opts.AnalyzerEnabled {
 		draft, err := w.analyzer.Analyze(ctx, message, projects)
 		if err == nil && draft.Category.Valid() {
+			if draft.Category == model.CategorySchedule || draft.Category == model.CategoryEvent {
+				// DeepSeek đôi khi bỏ sót giờ / địa điểm: bổ sung phần còn trống bằng rule.
+				fillScheduleFromText(&draft, message, w.opts.Location)
+			}
 			return draft
 		}
 		slog.Warn("DeepSeek phân loại thất bại, dùng rule keyword dự phòng",
@@ -175,12 +179,12 @@ func (w *notificationWorker) classify(ctx context.Context, message model.EmailMe
 		)
 	}
 	if w.opts.RuleFallbackEnabled {
-		return classifyByRules(message, projects)
+		return classifyByRules(message, projects, w.opts.Location)
 	}
 	return model.MailDraft{Category: model.CategoryOther, Reason: "classifier_disabled"}
 }
 
-func (w *notificationWorker) dispatch(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, projects []model.ProjectCandidate, objectKey string) {
+func (w *notificationWorker) dispatch(ctx context.Context, sub model.Subscription, message model.EmailMessage, draft model.MailDraft, projects model.ProjectSet, objectKey string) {
 	switch draft.Category {
 	case model.CategoryTask:
 		if !draft.Actionable || strings.TrimSpace(draft.Title) == "" {

@@ -73,7 +73,7 @@ func newTokenRefresher(cfg config.Config) service.TokenRefresher {
 }
 
 func newMailAnalyzer(cfg config.Config) service.MailAnalyzer {
-	return repository.NewDeepSeekAnalyzer(cfg.DeepSeekAPIKey, cfg.DeepSeekBaseURL, cfg.DeepSeekModel, cfg.DeepSeekTimeout)
+	return repository.NewDeepSeekAnalyzer(cfg.DeepSeekAPIKey, cfg.DeepSeekBaseURL, cfg.DeepSeekModel, cfg.DeepSeekTimeout, cfg.Location())
 }
 
 func newBlobStore(cfg config.Config) service.BlobStore {
@@ -226,6 +226,7 @@ func newOptions(cfg config.Config) service.Options {
 		HeartbeatInterval:   cfg.PullHeartbeat,
 
 		ProjectMatchThreshold: cfg.ProjectMatchThreshold,
+		Location:              cfg.Location(),
 	}
 }
 

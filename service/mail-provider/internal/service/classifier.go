@@ -1,7 +1,6 @@
 package service
 
 import (
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -29,11 +28,7 @@ var taskKeywords = []string{
 	"xác nhận",
 }
 
-var isoTimePattern = regexp.MustCompile(`(\d{4})-(\d{1,2})-(\d{1,2})(?:[ t](\d{1,2}):(\d{2}))?`)
-
-var dayFirstTimePattern = regexp.MustCompile(`\b(\d{1,2})[/](\d{1,2})(?:[/](\d{2,4}))?(?:\s+(\d{1,2}):(\d{2}))?`)
-
-func classifyByRules(message model.EmailMessage, projects []model.ProjectCandidate) model.MailDraft {
+func classifyByRules(message model.EmailMessage, projects []model.ProjectCandidate, loc *time.Location) model.MailDraft {
 	subject := strings.ToLower(strings.TrimSpace(message.Subject))
 	text := strings.ToLower(strings.Join([]string{message.Subject, message.Snippet, message.Body}, "\n"))
 
@@ -65,7 +60,7 @@ func classifyByRules(message model.EmailMessage, projects []model.ProjectCandida
 		return draft
 	}
 	if category == model.CategorySchedule || category == model.CategoryEvent {
-		draft.StartAt = parseFirstTime(text)
+		fillScheduleFromText(&draft, message, loc)
 	}
 	return draft
 }
@@ -104,37 +99,33 @@ func draftDescription(message model.EmailMessage) string {
 	return truncateRunes(body, 500)
 }
 
-func parseFirstTime(text string) *time.Time {
-	if match := isoTimePattern.FindStringSubmatch(text); match != nil {
-		year := atoi(match[1])
-		month := atoi(match[2])
-		day := atoi(match[3])
-		hour := atoi(match[4])
-		minute := atoi(match[5])
-		if validClock(hour, minute) && validDate(year, month, day) {
-			parsed := time.Date(year, time.Month(month), day, hour, minute, 0, 0, time.UTC)
-			return &parsed
+// fillScheduleFromText bổ sung giờ bắt đầu/kết thúc và địa điểm còn trống của draft
+// bằng rule đọc nội dung email (dùng cho cả rule fallback lẫn khi DeepSeek bỏ sót).
+func fillScheduleFromText(draft *model.MailDraft, message model.EmailMessage, loc *time.Location) {
+	text := strings.Join([]string{message.Subject, message.Body}, "\n")
+	if strings.TrimSpace(message.Body) == "" {
+		text = strings.Join([]string{message.Subject, message.Snippet}, "\n")
+	}
+
+	if draft.StartAt == nil && draft.DueAt == nil {
+		parsed := extractSchedule(text, message.ReceivedAt, loc)
+		if parsed.Start != nil {
+			draft.StartAt = parsed.Start
+			draft.AllDay = parsed.AllDay
+			if draft.EndAt == nil {
+				draft.EndAt = parsed.End
+			}
+		}
+	} else if draft.EndAt == nil && draft.StartAt != nil && !draft.AllDay {
+		if d := findDuration(strings.ToLower(text)); d > 0 {
+			end := draft.StartAt.Add(d)
+			draft.EndAt = &end
 		}
 	}
 
-	if match := dayFirstTimePattern.FindStringSubmatch(text); match != nil {
-		day := atoi(match[1])
-		month := atoi(match[2])
-		year := time.Now().UTC().Year()
-		if match[3] != "" {
-			year = atoi(match[3])
-			if year < 100 {
-				year += 2000
-			}
-		}
-		hour := atoi(match[4])
-		minute := atoi(match[5])
-		if validClock(hour, minute) && validDate(year, month, day) {
-			parsed := time.Date(year, time.Month(month), day, hour, minute, 0, 0, time.UTC)
-			return &parsed
-		}
+	if strings.TrimSpace(draft.Location) == "" {
+		draft.Location = extractLocation(text)
 	}
-	return nil
 }
 
 func validClock(hour int, minute int) bool {

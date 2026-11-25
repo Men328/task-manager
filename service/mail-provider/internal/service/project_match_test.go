@@ -91,7 +91,7 @@ func TestProjectTokensDropsVietnameseStopwords(t *testing.T) {
 
 func TestResolveProjectRejectsUnknownID(t *testing.T) {
 	projects := []model.ProjectCandidate{{ID: "pr1", Name: "A"}}
-	_, ok := resolveProject(model.MailDraft{ProjectID: "ghost", ProjectConfidence: 0.9}, projects, 0.6)
+	_, ok := resolveProject(model.MailDraft{ProjectID: "ghost", ProjectConfidence: 0.9}, model.ProjectSet{Detectable: projects}, 0.6)
 	if ok {
 		t.Fatal("id không có trong danh sách phải bị từ chối")
 	}
@@ -99,11 +99,32 @@ func TestResolveProjectRejectsUnknownID(t *testing.T) {
 
 func TestResolveProjectRejectsBelowThreshold(t *testing.T) {
 	projects := []model.ProjectCandidate{{ID: "pr1", Name: "A"}}
-	if _, ok := resolveProject(model.MailDraft{ProjectID: "pr1", ProjectConfidence: 0.59}, projects, 0.6); ok {
+	if _, ok := resolveProject(model.MailDraft{ProjectID: "pr1", ProjectConfidence: 0.59}, model.ProjectSet{Detectable: projects}, 0.6); ok {
 		t.Fatal("0.59 < 0.6 phải bị từ chối")
 	}
-	project, ok := resolveProject(model.MailDraft{ProjectID: "pr1", ProjectConfidence: 0.6}, projects, 0.6)
+	project, ok := resolveProject(model.MailDraft{ProjectID: "pr1", ProjectConfidence: 0.6}, model.ProjectSet{Detectable: projects}, 0.6)
 	if !ok || project.ID != "pr1" {
 		t.Fatalf("0.6 phải được chấp nhận, nhận %+v %v", project, ok)
+	}
+}
+
+func TestResolveProjectFallsBackToDefault(t *testing.T) {
+	set := model.ProjectSet{
+		Detectable: []model.ProjectCandidate{{ID: "pr1", Name: "A"}},
+		Default:    &model.ProjectCandidate{ID: "chung", Name: "Chung"},
+	}
+	for _, draft := range []model.MailDraft{
+		{},
+		{ProjectID: "pr1", ProjectConfidence: 0.2},
+		{ProjectID: "ghost", ProjectConfidence: 0.9},
+	} {
+		project, ok := resolveProject(draft, set, 0.6)
+		if !ok || project.ID != "chung" {
+			t.Fatalf("không khớp phải vào project Chung, nhận %+v %v (draft %+v)", project, ok, draft)
+		}
+	}
+	project, ok := resolveProject(model.MailDraft{ProjectID: "pr1", ProjectConfidence: 0.9}, set, 0.6)
+	if !ok || project.ID != "pr1" {
+		t.Fatalf("khớp thì giữ project pr1, nhận %+v", project)
 	}
 }

@@ -696,3 +696,59 @@ func TestWorkerSendsToBacklogWhenScheduleCreateFails(t *testing.T) {
 		t.Fatal("tạo lịch lỗi nhưng email không được đẩy vào backlog")
 	}
 }
+
+func TestWorkerPutsUnmatchedScheduleIntoDefaultProject(t *testing.T) {
+	created := make(chan model.ScheduleInput, 1)
+	backlogs := &stubBacklogs{created: make(chan model.BacklogInput, 1)}
+	projects := defaultProjects()
+	projects.fallback = &model.ProjectCandidate{ID: "chung", Name: "Chung"}
+	analyzer := &stubAnalyzer{draft: model.MailDraft{
+		Category: model.CategorySchedule, Actionable: true, Title: "Họp kickoff dự án CRM",
+	}}
+	message := model.EmailMessage{
+		ID:         "m1",
+		Subject:    "Họp kickoff dự án CRM",
+		Body:       "Men Tran Thi mời tham dự buổi họp kickoff dự án CRM lúc 9:00 sáng mai tại phòng họp tầng 3, kéo dài khoảng một tiếng.",
+		ReceivedAt: testReceivedAt(),
+	}
+	opts := testOptions()
+	opts.Location = testLocation()
+	runProjectWorker(t, analyzer, projects, message, opts, &stubTasks{}, &stubSchedules{created: created}, backlogs, &stubNotices{})
+
+	select {
+	case input := <-created:
+		if input.ProjectID != "chung" {
+			t.Fatalf("lịch không khớp project phải vào Chung, nhận %q", input.ProjectID)
+		}
+		if input.Location != "phòng họp tầng 3" {
+			t.Fatalf("địa điểm sai: %q", input.Location)
+		}
+		assertLocalTime(t, &input.StartAt, time.Date(2026, 11, 25, 9, 0, 0, 0, testLocation()))
+		assertLocalTime(t, input.EndAt, time.Date(2026, 11, 25, 10, 0, 0, 0, testLocation()))
+	case input := <-backlogs.created:
+		t.Fatalf("không được đẩy vào backlog: %+v", input)
+	case <-time.After(2 * time.Second):
+		t.Fatal("worker không tạo lịch")
+	}
+}
+
+func TestWorkerPutsUnmatchedTaskIntoDefaultProject(t *testing.T) {
+	created := make(chan model.TaskInput, 1)
+	projects := defaultProjects()
+	projects.fallback = &model.ProjectCandidate{ID: "chung", Name: "Chung"}
+	analyzer := &stubAnalyzer{draft: model.MailDraft{
+		Category: model.CategoryTask, Actionable: true, Title: "Nộp báo cáo",
+		ProjectID: "pr1", ProjectConfidence: 0.3,
+	}}
+	runProjectWorker(t, analyzer, projects, model.EmailMessage{ID: "m1", Subject: "Nộp báo cáo", Body: "x"}, testOptions(),
+		&stubTasks{created: created}, &stubSchedules{}, &stubBacklogs{}, &stubNotices{})
+
+	select {
+	case input := <-created:
+		if input.ProjectID != "chung" {
+			t.Fatalf("task không khớp project phải vào Chung, nhận %q", input.ProjectID)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("worker không tạo task")
+	}
+}

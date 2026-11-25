@@ -35,7 +35,9 @@ type MailAnalyzer interface {
 }
 
 type ProjectLister interface {
-	ListDetectable(ctx context.Context, profileID string) ([]model.ProjectCandidate, error)
+	// ListForMail trả các project đang hoạt động: Detectable (không gồm project mặc định)
+	// để dò theo nội dung email, và Default là project "Chung" nếu có.
+	ListForMail(ctx context.Context, profileID string) (model.ProjectSet, error)
 }
 
 type NotificationSource interface {

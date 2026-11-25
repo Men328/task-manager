@@ -16,7 +16,7 @@ import (
 func TestParseDraftReadsFencedJSON(t *testing.T) {
 	content := "```json\n{\"is_actionable\": true, \"title\": \"Nộp báo cáo\", \"description\": \"Trước thứ sáu\", \"priority\": \"high\", \"due_at\": \"2026-01-02T09:00:00Z\"}\n```"
 
-	draft, err := parseDraft(content)
+	draft, err := parseDraft(content, time.UTC)
 	if err != nil {
 		t.Fatalf("parse draft: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestParseDraftReadsFencedJSON(t *testing.T) {
 }
 
 func TestParseDraftDefaultsActionableToTrue(t *testing.T) {
-	draft, err := parseDraft(`{"title": "Việc"}`)
+	draft, err := parseDraft(`{"title": "Việc"}`, time.UTC)
 	if err != nil {
 		t.Fatalf("parse draft: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestParseDraftDefaultsActionableToTrue(t *testing.T) {
 }
 
 func TestParseDraftMarksNonActionable(t *testing.T) {
-	draft, err := parseDraft(`{"is_actionable": false, "title": "", "priority": ""}`)
+	draft, err := parseDraft(`{"is_actionable": false, "title": "", "priority": ""}`, time.UTC)
 	if err != nil {
 		t.Fatalf("parse draft: %v", err)
 	}
@@ -61,10 +61,10 @@ func TestParseDraftMarksNonActionable(t *testing.T) {
 }
 
 func TestParseDraftRejectsMissingJSON(t *testing.T) {
-	if _, err := parseDraft("không có json ở đây"); !errors.Is(err, model.ErrAnalyzeFailed) {
+	if _, err := parseDraft("không có json ở đây", time.UTC); !errors.Is(err, model.ErrAnalyzeFailed) {
 		t.Fatalf("thiếu JSON phải là ErrAnalyzeFailed, nhận %v", err)
 	}
-	if _, err := parseDraft("{không phải json}"); !errors.Is(err, model.ErrAnalyzeFailed) {
+	if _, err := parseDraft("{không phải json}", time.UTC); !errors.Is(err, model.ErrAnalyzeFailed) {
 		t.Fatalf("JSON hỏng phải là ErrAnalyzeFailed, nhận %v", err)
 	}
 }
@@ -87,20 +87,20 @@ func TestParsePriorityAliases(t *testing.T) {
 func TestParseDueAtLayouts(t *testing.T) {
 	cases := []string{"2026-01-02T09:00:00Z", "2026-01-02T09:00:00", "2026-01-02 09:00:00", "2026-01-02"}
 	for _, input := range cases {
-		if parsed := parseDueAt(input); parsed == nil {
+		if parsed := parseDueAt(input, time.UTC); parsed == nil {
 			t.Fatalf("parseDueAt(%q) không được nil", input)
 		}
 	}
-	if parsed := parseDueAt("không phải ngày"); parsed != nil {
+	if parsed := parseDueAt("không phải ngày", time.UTC); parsed != nil {
 		t.Fatalf("ngày không hợp lệ phải là nil, nhận %v", parsed)
 	}
-	if parsed := parseDueAt("   "); parsed != nil {
+	if parsed := parseDueAt("   ", time.UTC); parsed != nil {
 		t.Fatalf("chuỗi rỗng phải là nil, nhận %v", parsed)
 	}
 }
 
 func TestDeepSeekAnalyzerRequiresAPIKey(t *testing.T) {
-	analyzer := NewDeepSeekAnalyzer("", "http://127.0.0.1:1", "deepseek-chat", time.Second)
+	analyzer := NewDeepSeekAnalyzer("", "http://127.0.0.1:1", "deepseek-chat", time.Second, nil)
 	if _, err := analyzer.Analyze(context.Background(), model.EmailMessage{}, nil); !errors.Is(err, model.ErrNotConfigured) {
 		t.Fatalf("thiếu API key phải là ErrNotConfigured, nhận %v", err)
 	}
@@ -129,7 +129,7 @@ func TestDeepSeekAnalyzerSendsEmailAndParsesResponse(t *testing.T) {
 	}))
 	defer server.Close()
 
-	analyzer := NewDeepSeekAnalyzer("secret", server.URL, "deepseek-chat", 5*time.Second)
+	analyzer := NewDeepSeekAnalyzer("secret", server.URL, "deepseek-chat", 5*time.Second, nil)
 	draft, err := analyzer.Analyze(context.Background(), model.EmailMessage{
 		From:    "boss@example.com",
 		To:      "user@example.com",
@@ -168,24 +168,50 @@ func TestDeepSeekAnalyzerReportsHTTPError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	analyzer := NewDeepSeekAnalyzer("secret", server.URL, "deepseek-chat", 5*time.Second)
+	analyzer := NewDeepSeekAnalyzer("secret", server.URL, "deepseek-chat", 5*time.Second, nil)
 	if _, err := analyzer.Analyze(context.Background(), model.EmailMessage{}, nil); !errors.Is(err, model.ErrAnalyzeFailed) {
 		t.Fatalf("lỗi HTTP phải là ErrAnalyzeFailed, nhận %v", err)
 	}
 }
 
 func TestEmailPromptWithoutProjects(t *testing.T) {
-	if got := emailPrompt(model.EmailMessage{Subject: "x"}, nil); !strings.Contains(got, "PROJECTS: (không có)") {
+	if got := emailPrompt(model.EmailMessage{Subject: "x"}, nil, nil); !strings.Contains(got, "PROJECTS: (không có)") {
 		t.Fatalf("danh sách rỗng phải ghi (không có), nhận %q", got)
 	}
 }
 
 func TestParseDraftReadsProject(t *testing.T) {
-	draft, err := parseDraft(`{"category":"task","project_id":" pr1 ","project_confidence":0.75}`)
+	draft, err := parseDraft(`{"category":"task","project_id":" pr1 ","project_confidence":0.75}`, time.UTC)
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
 	if draft.ProjectID != "pr1" || draft.ProjectConfidence != 0.75 {
 		t.Fatalf("project sai: %+v", draft)
+	}
+}
+
+func TestEmailPromptIncludesLocalTimezone(t *testing.T) {
+	loc := time.FixedZone("ICT", 7*60*60)
+	got := emailPrompt(model.EmailMessage{
+		Subject:    "Họp",
+		ReceivedAt: time.Date(2026, 11, 24, 15, 59, 0, 0, time.UTC),
+	}, nil, loc)
+	if !strings.Contains(got, "Received: 2026-11-24T22:59:00+07:00 (Thứ ba)") {
+		t.Fatalf("prompt phải có giờ nhận theo múi giờ người dùng, nhận %q", got)
+	}
+	if !strings.Contains(got, "UTC+07:00") {
+		t.Fatalf("prompt phải nêu múi giờ, nhận %q", got)
+	}
+}
+
+func TestParseDueAtWithoutOffsetUsesUserTimezone(t *testing.T) {
+	loc := time.FixedZone("ICT", 7*60*60)
+	parsed := parseDueAt("2026-11-25T09:00:00", loc)
+	if parsed == nil || !parsed.Equal(time.Date(2026, 11, 25, 2, 0, 0, 0, time.UTC)) {
+		t.Fatalf("09:00 không offset phải là 09:00 +07:00, nhận %v", parsed)
+	}
+	withOffset := parseDueAt("2026-11-25T09:00:00+07:00", loc)
+	if withOffset == nil || !withOffset.Equal(*parsed) {
+		t.Fatalf("RFC3339 có offset phải giữ nguyên, nhận %v", withOffset)
 	}
 }

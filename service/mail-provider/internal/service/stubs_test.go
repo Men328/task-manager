@@ -200,12 +200,13 @@ func (a *stubAnalyzer) receivedProjects() []model.ProjectCandidate {
 }
 
 type stubProjects struct {
-	items []model.ProjectCandidate
-	err   error
+	items    []model.ProjectCandidate
+	fallback *model.ProjectCandidate
+	err      error
 }
 
-func (p *stubProjects) ListDetectable(_ context.Context, _ string) ([]model.ProjectCandidate, error) {
-	return p.items, p.err
+func (p *stubProjects) ListForMail(_ context.Context, _ string) (model.ProjectSet, error) {
+	return model.ProjectSet{Detectable: p.items, Default: p.fallback}, p.err
 }
 
 // defaultProjects: các từ "dự án nhóm họp hội thảo sự kiện" được chọn để email mẫu

@@ -271,14 +271,17 @@ func TestProjectClientFiltersDefaultAndArchived(t *testing.T) {
 	conn := startBufconnServer(t, func(s *grpc.Server) { projectv1.RegisterProjectServiceServer(s, server) })
 	client := NewProjectClient(projectv1.NewProjectServiceClient(conn), time.Second)
 
-	got, err := client.ListDetectable(context.Background(), "p1")
+	got, err := client.ListForMail(context.Background(), "p1")
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
 	if server.request.GetProfileId() != "p1" || server.request.GetIncludeArchived() {
 		t.Fatalf("request sai: %+v", server.request)
 	}
-	if len(got) != 1 || got[0].ID != "pr1" || got[0].Description != "website" {
-		t.Fatalf("phải chỉ còn project thường: %+v", got)
+	if len(got.Detectable) != 1 || got.Detectable[0].ID != "pr1" || got.Detectable[0].Description != "website" {
+		t.Fatalf("phải chỉ còn project thường: %+v", got.Detectable)
+	}
+	if got.Default == nil || got.Default.ID != "def" {
+		t.Fatalf("phải trả project mặc định riêng: %+v", got.Default)
 	}
 }

@@ -23,6 +23,8 @@ type Options struct {
 	HeartbeatInterval   time.Duration
 
 	ProjectMatchThreshold float64
+	// Location: múi giờ người dùng, dùng để hiểu "9:00 sáng mai" trong email. Mặc định Asia/Ho_Chi_Minh.
+	Location *time.Location
 }
 
 func (o Options) withDefaults() Options {
@@ -44,6 +46,9 @@ func (o Options) withDefaults() Options {
 	}
 	if out.ProjectMatchThreshold <= 0 {
 		out.ProjectMatchThreshold = 0.6
+	}
+	if out.Location == nil {
+		out.Location = defaultLocation()
 	}
 	return out
 }

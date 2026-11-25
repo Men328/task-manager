@@ -26,8 +26,12 @@ Quy tắc:
 - is_actionable = false với thông báo, quảng cáo, newsletter.
 - title tối đa 120 ký tự. Với task bắt đầu bằng động từ hành động.
 - description tóm tắt nội dung hữu ích (người gửi, deadline, link nếu có).
-- start_at/end_at chỉ điền khi email nêu rõ thời gian; không rõ thì để chuỗi rỗng.
+- Thời gian: đọc ngày giờ trong NỘI DUNG email (không phải giờ nhận email). Mốc tương đối ("hôm nay", "sáng mai", "chiều thứ 6", "tuần sau") tính từ thời điểm "Received" ở múi giờ người dùng ghi trong email.
+- start_at/end_at/due_at luôn ghi dạng RFC3339 KÈM offset múi giờ người dùng (vd "2026-11-25T09:00:00+07:00"). "9:00 sáng" là 09:00, "3 giờ chiều" là 15:00.
+- start_at chỉ điền khi email nêu thời gian; không có thì để chuỗi rỗng. Email chỉ nêu ngày không nêu giờ thì start_at là 00:00 của ngày đó và all_day = true.
+- end_at: điền khi email nêu giờ kết thúc hoặc thời lượng ("kéo dài khoảng một tiếng" => start_at + 1 giờ); không rõ thì để chuỗi rỗng.
 - due_at chỉ điền khi email nêu rõ hạn; không rõ thì để chuỗi rỗng.
+- location: địa điểm nêu trong email, giữ nguyên văn ngắn gọn (vd "phòng họp tầng 3", "Hội trường A2", "Google Meet"); không có thì chuỗi rỗng.
 - project_id chỉ được chọn id có trong danh sách PROJECTS; so nội dung email với description của từng project.
 - Không project nào phù hợp thì project_id là chuỗi rỗng và project_confidence = 0.`
 
@@ -36,15 +40,29 @@ type deepSeekAnalyzer struct {
 	baseURL string
 	model   string
 	http    *http.Client
+	loc     *time.Location
 }
 
-func NewDeepSeekAnalyzer(apiKey string, baseURL string, model string, timeout time.Duration) *deepSeekAnalyzer {
+// NewDeepSeekAnalyzer: loc là múi giờ người dùng (nil = Asia/Ho_Chi_Minh), dùng để
+// DeepSeek hiểu mốc tương đối trong email và để đọc thời gian trả về không kèm offset.
+func NewDeepSeekAnalyzer(apiKey string, baseURL string, model string, timeout time.Duration, loc *time.Location) *deepSeekAnalyzer {
+	if loc == nil {
+		loc = defaultLocation()
+	}
 	return &deepSeekAnalyzer{
 		apiKey:  apiKey,
 		baseURL: strings.TrimRight(baseURL, "/"),
 		model:   model,
 		http:    &http.Client{Timeout: timeout},
+		loc:     loc,
 	}
+}
+
+func defaultLocation() *time.Location {
+	if loc, err := time.LoadLocation("Asia/Ho_Chi_Minh"); err == nil {
+		return loc
+	}
+	return time.FixedZone("ICT", 7*60*60)
 }
 
 func (a *deepSeekAnalyzer) Analyze(ctx context.Context, message model.EmailMessage, projects []model.ProjectCandidate) (model.MailDraft, error) {
@@ -56,7 +74,7 @@ func (a *deepSeekAnalyzer) Analyze(ctx context.Context, message model.EmailMessa
 		"model": a.model,
 		"messages": []map[string]string{
 			{"role": "system", "content": analyzerSystemPrompt},
-			{"role": "user", "content": emailPrompt(message, projects)},
+			{"role": "user", "content": emailPrompt(message, projects, a.loc)},
 		},
 		"response_format": map[string]string{"type": "json_object"},
 		"temperature":     0,
@@ -104,10 +122,19 @@ func (a *deepSeekAnalyzer) Analyze(ctx context.Context, message model.EmailMessa
 		return model.MailDraft{}, fmt.Errorf("%w: deepseek không trả lựa chọn nào", model.ErrAnalyzeFailed)
 	}
 
-	return parseDraft(completion.Choices[0].Message.Content)
+	return parseDraft(completion.Choices[0].Message.Content, a.loc)
 }
 
-func emailPrompt(message model.EmailMessage, projects []model.ProjectCandidate) string {
+func emailPrompt(message model.EmailMessage, projects []model.ProjectCandidate, loc *time.Location) string {
+	if loc == nil {
+		loc = defaultLocation()
+	}
+	received := message.ReceivedAt
+	if received.IsZero() {
+		received = time.Now()
+	}
+	received = received.In(loc)
+
 	var builder strings.Builder
 	builder.WriteString("From: ")
 	builder.WriteString(message.From)
@@ -115,10 +142,15 @@ func emailPrompt(message model.EmailMessage, projects []model.ProjectCandidate) 
 	builder.WriteString(message.To)
 	builder.WriteString("\nSubject: ")
 	builder.WriteString(message.Subject)
-	if !message.ReceivedAt.IsZero() {
-		builder.WriteString("\nReceived: ")
-		builder.WriteString(message.ReceivedAt.Format(time.RFC3339))
-	}
+	builder.WriteString("\nReceived: ")
+	builder.WriteString(received.Format(time.RFC3339))
+	builder.WriteString(" (")
+	builder.WriteString(vietnameseWeekday(received.Weekday()))
+	builder.WriteString(")\nMúi giờ người dùng: ")
+	builder.WriteString(loc.String())
+	builder.WriteString(" (UTC")
+	builder.WriteString(received.Format("-07:00"))
+	builder.WriteString(")")
 	builder.WriteString("\n\n")
 	builder.WriteString(message.Body)
 	builder.WriteString("\n\nPROJECTS:")
@@ -136,7 +168,12 @@ func emailPrompt(message model.EmailMessage, projects []model.ProjectCandidate) 
 	return builder.String()
 }
 
-func parseDraft(content string) (model.MailDraft, error) {
+func vietnameseWeekday(day time.Weekday) string {
+	names := [...]string{"Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"}
+	return names[day]
+}
+
+func parseDraft(content string, loc *time.Location) (model.MailDraft, error) {
 	jsonPayload := extractJSONObject(content)
 	if jsonPayload == "" {
 		return model.MailDraft{}, fmt.Errorf("%w: không tìm thấy JSON trong phản hồi", model.ErrAnalyzeFailed)
@@ -173,9 +210,9 @@ func parseDraft(content string) (model.MailDraft, error) {
 		Title:       strings.TrimSpace(raw.Title),
 		Description: strings.TrimSpace(raw.Description),
 		Priority:    parsePriority(raw.Priority),
-		DueAt:       parseDueAt(raw.DueAt),
-		StartAt:     parseDueAt(raw.StartAt),
-		EndAt:       parseDueAt(raw.EndAt),
+		DueAt:       parseDueAt(raw.DueAt, loc),
+		StartAt:     parseDueAt(raw.StartAt, loc),
+		EndAt:       parseDueAt(raw.EndAt, loc),
 		AllDay:      raw.AllDay,
 		Location:    strings.TrimSpace(raw.Location),
 		Reason:      strings.TrimSpace(raw.Reason),
@@ -224,14 +261,22 @@ func parsePriority(value string) model.Priority {
 	}
 }
 
-func parseDueAt(value string) *time.Time {
+// parseDueAt đọc thời gian DeepSeek trả về; chuỗi không kèm offset được hiểu theo múi giờ người dùng.
+func parseDueAt(value string, loc *time.Location) *time.Time {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
 		return nil
 	}
-	layouts := []string{time.RFC3339, "2006-01-02T15:04:05", "2006-01-02 15:04:05", "2006-01-02"}
+	if loc == nil {
+		loc = defaultLocation()
+	}
+	if parsed, err := time.Parse(time.RFC3339, trimmed); err == nil {
+		utc := parsed.UTC()
+		return &utc
+	}
+	layouts := []string{"2006-01-02T15:04:05", "2006-01-02 15:04:05", "2006-01-02T15:04", "2006-01-02 15:04", "2006-01-02"}
 	for _, layout := range layouts {
-		if parsed, err := time.Parse(layout, trimmed); err == nil {
+		if parsed, err := time.ParseInLocation(layout, trimmed, loc); err == nil {
 			utc := parsed.UTC()
 			return &utc
 		}

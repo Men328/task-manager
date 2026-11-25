@@ -21,8 +21,9 @@ func NewProjectClient(client projectv1.ProjectServiceClient, timeout time.Durati
 	return &projectClient{client: client, timeout: timeout}
 }
 
-// ListDetectable trả về các project đang hoạt động, không phải project mặc định, của profile.
-func (c *projectClient) ListDetectable(ctx context.Context, profileID string) ([]model.ProjectCandidate, error) {
+// ListForMail trả các project đang hoạt động của profile: project thường để dò theo
+// nội dung email, và project mặc định ("Chung") để chứa email không khớp project nào.
+func (c *projectClient) ListForMail(ctx context.Context, profileID string) (model.ProjectSet, error) {
 	callCtx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
@@ -31,19 +32,26 @@ func (c *projectClient) ListDetectable(ctx context.Context, profileID string) ([
 		IncludeArchived: false,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", model.ErrProjectList, err)
+		return model.ProjectSet{}, fmt.Errorf("%w: %v", model.ErrProjectList, err)
 	}
 
-	out := make([]model.ProjectCandidate, 0, len(response.GetProjects()))
+	out := model.ProjectSet{Detectable: make([]model.ProjectCandidate, 0, len(response.GetProjects()))}
 	for _, project := range response.GetProjects() {
-		if project.GetIsDefault() || project.GetIsArchived() {
+		if project.GetIsArchived() {
 			continue
 		}
-		out = append(out, model.ProjectCandidate{
+		candidate := model.ProjectCandidate{
 			ID:          project.GetId(),
 			Name:        project.GetName(),
 			Description: project.GetDescription(),
-		})
+		}
+		if project.GetIsDefault() {
+			if out.Default == nil {
+				out.Default = &candidate
+			}
+			continue
+		}
+		out.Detectable = append(out.Detectable, candidate)
 	}
 	return out, nil
 }
