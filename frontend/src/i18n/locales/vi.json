@@ -334,11 +334,14 @@
   "calendarPage": {
     "breadcrumb": "Kế hoạch",
     "title": "Lịch",
-    "subtitle": "Lịch cá nhân của hồ sơ hiện tại",
+    "subtitle": "Lịch và sự kiện của hồ sơ hiện tại",
     "newSchedule": "Thêm lịch",
     "updateFailedTitle": "Không cập nhật được lịch",
     "deleted": "Đã xoá lịch",
-    "deleteFailed": "Không xoá được lịch"
+    "deleteFailed": "Không xoá được lịch",
+    "tagSchedule": "Lịch",
+    "tagEvent": "Sự kiện",
+    "newEvent": "Thêm sự kiện"
   },
   "scheduleForm": {
     "title": "Thêm lịch",

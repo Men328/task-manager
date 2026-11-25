@@ -334,11 +334,14 @@
   "calendarPage": {
     "breadcrumb": "Planning",
     "title": "Calendar",
-    "subtitle": "Schedules for the current profile",
+    "subtitle": "Schedules and events for the current profile",
     "newSchedule": "New schedule",
     "updateFailedTitle": "Could not update the schedule",
     "deleted": "Schedule deleted",
-    "deleteFailed": "Could not delete the schedule"
+    "deleteFailed": "Could not delete the schedule",
+    "tagSchedule": "Schedule",
+    "tagEvent": "Event",
+    "newEvent": "New event"
   },
   "scheduleForm": {
     "title": "New schedule",
